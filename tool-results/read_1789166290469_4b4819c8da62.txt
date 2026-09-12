@@ -1,0 +1,834 @@
+     1→/**
+     2→ * Matrix Strategy Archives — seed script.
+     3→ * Populates the database with realistic taxonomy data and 8 strategies
+     4→ * (6 published + 1 draft + 1 archived) so the application is immediately
+     5→ * explorable. Yield figures are deliberately qualitative — the strategy
+     6→ * definition describes HOW a strategy works; live market data stays out.
+     7→ *
+     8→ * Run with: bun run db:seed
+     9→ */
+    10→import { PrismaClient } from "@prisma/client"
+    11→import { generateObservationSeries } from "../src/lib/server/market-sim"
+    12→
+    13→const db = new PrismaClient()
+    14→
+    15→// ---------------------------------------------------------------------------
+    16→// Helpers
+    17→// ---------------------------------------------------------------------------
+    18→const iso = (date: string) => new Date(date)
+    19→
+    20→async function reset() {
+    21→  // Order matters: join tables + revisions first (though cascades would handle it).
+    22→  await db.marketObservation.deleteMany()
+    23→  await db.strategyDepositAsset.deleteMany()
+    24→  await db.strategyExposureAsset.deleteMany()
+    25→  await db.strategyRewardAsset.deleteMany()
+    26→  await db.strategyNetwork.deleteMany()
+    27→  await db.strategyProtocol.deleteMany()
+    28→  await db.revision.deleteMany()
+    29→  await db.strategy.deleteMany()
+    30→  await db.asset.deleteMany()
+    31→  await db.protocol.deleteMany()
+    32→  await db.network.deleteMany()
+    33→}
+    34→
+    35→async function main() {
+    36→  console.log("Seeding Matrix Strategy Archives…")
+    37→  await reset()
+    38→
+    39→  // -----------------------------------------------------------------------
+    40→  // Networks
+    41→  // -----------------------------------------------------------------------
+    42→  const [ethereum, arbitrum, base, optimism, solana] = await Promise.all([
+    43→    db.network.create({ data: { name: "Ethereum", slug: "ethereum", chainId: 1 } }),
+    44→    db.network.create({ data: { name: "Arbitrum", slug: "arbitrum", chainId: 42161 } }),
+    45→    db.network.create({ data: { name: "Base", slug: "base", chainId: 8453 } }),
+    46→    db.network.create({ data: { name: "Optimism", slug: "optimism", chainId: 10 } }),
+    47→    db.network.create({ data: { name: "Solana", slug: "solana", chainId: null } }),
+    48→  ])
+    49→
+    50→  // -----------------------------------------------------------------------
+    51→  // Assets
+    52→  // -----------------------------------------------------------------------
+    53→  const [eth, usdc, usdt, wsteth, sol, arb, crv, aero, op] = await Promise.all([
+    54→    db.asset.create({ data: { symbol: "ETH", name: "Ethereum", coingeckoId: "ethereum", category: "native" } }),
+    55→    db.asset.create({ data: { symbol: "USDC", name: "USD Coin", coingeckoId: "usd-coin", category: "stablecoin" } }),
+    56→    db.asset.create({ data: { symbol: "USDT", name: "Tether USD", coingeckoId: "tether", category: "stablecoin" } }),
+    57→    db.asset.create({ data: { symbol: "wstETH", name: "Wrapped Staked ETH", coingeckoId: "wrapped-steth", category: "lst" } }),
+    58→    db.asset.create({ data: { symbol: "SOL", name: "Solana", coingeckoId: "solana", category: "native" } }),
+    59→    db.asset.create({ data: { symbol: "ARB", name: "Arbitrum", coingeckoId: "arbitrum", category: "governance" } }),
+    60→    db.asset.create({ data: { symbol: "CRV", name: "Curve DAO Token", coingeckoId: "curve-dao-token", category: "governance" } }),
+    61→    db.asset.create({ data: { symbol: "AERO", name: "Aerodrome", coingeckoId: "aerodrome-finance", category: "governance" } }),
+    62→    db.asset.create({ data: { symbol: "OP", name: "Optimism", coingeckoId: "optimism", category: "governance" } }),
+    63→  ])
+    64→
+    65→  // -----------------------------------------------------------------------
+    66→  // Protocols
+    67→  // -----------------------------------------------------------------------
+    68→  const [uniswap, aave, morpho, compound, lido, pendle, curve, aerodrome, marinade] = await Promise.all([
+    69→    db.protocol.create({
+    70→      data: { name: "Uniswap", slug: "uniswap", website: "https://uniswap.org", description: "The largest automated market maker on Ethereum, with concentrated liquidity pools since V3." },
+    71→    }),
+    72→    db.protocol.create({
+    73→      data: { name: "Aave", slug: "aave", website: "https://aave.com", description: "Battle-tested non-custodial liquidity protocol for overcollateralized lending and borrowing." },
+    74→    }),
+    75→    db.protocol.create({
+    76→      data: { name: "Morpho", slug: "morpho", website: "https://morpho.org", description: "Efficient lending marketplace built around isolated, curatable markets." },
+    77→    }),
+    78→    db.protocol.create({
+    79→      data: { name: "Compound", slug: "compound", website: "https://compound.finance", description: "One of the oldest Ethereum money markets, governed by COMP holders." },
+    80→    }),
+    81→    db.protocol.create({
+    82→      data: { name: "Lido", slug: "lido", website: "https://lido.fi", description: "The largest liquid staking protocol for Ethereum, issuing stETH/wstETH." },
+    83→    }),
+    84→    db.protocol.create({
+    85→      data: { name: "Pendle", slug: "pendle", website: "https://pendle.finance", description: "Yield tokenization protocol that splits yield-bearing assets into principal and yield tokens." },
+    86→    }),
+    87→    db.protocol.create({
+    88→      data: { name: "Curve", slug: "curve", website: "https://curve.fi", description: "Exchange specialized in low-slippage stablecoin and correlated-asset swaps." },
+    89→    }),
+    90→    db.protocol.create({
+    91→      data: { name: "Aerodrome", slug: "aerodrome", website: "https://aerodrome.finance", description: "Base's central liquidity hub, a Curve-style DEX with incentive flywheel emissions." },
+    92→    }),
+    93→    db.protocol.create({
+    94→      data: { name: "Marinade", slug: "marinade", website: "https://marinade.finance", description: "Solana liquid staking protocol issuing mSOL with automated validator delegation." },
+    95→    }),
+    96→  ])
+    97→
+    98→  // -----------------------------------------------------------------------
+    99→  // Strategies
+   100→  // -----------------------------------------------------------------------
+   101→  const strategies = [
+   102→    {
+   103→      strategyId: "STRATEGY_001",
+   104→      name: "Accumulation LP",
+   105→      slug: "accumulation-lp",
+   106→      type: "Concentrated Liquidity",
+   107→      status: "PUBLISHED",
+   108→      summary:
+   109→        "Accumulate ETH during weak markets while earning trading fees inside a defined liquidity range.",
+   110→      description:
+   111→        "Accumulation LP is a concentrated liquidity strategy designed for investors who want to build ETH exposure during weak or ranging market conditions. Instead of buying spot at uncertain prices, you deposit ETH and USDC into a Uniswap V3 liquidity range positioned at and below the current price.\n\nWhile price stays inside the range, the position earns trading fees from every swap passing through it. If price falls through the range, the position automatically converts toward ETH as it moves down — effectively accumulating ETH at progressively lower prices, similar to a limit-order ladder. If price recovers through the range, the position converts back toward USDC, locking in the accumulated ETH at higher levels.\n\nThe strategy deliberately accepts one-directional impermanent loss (downward conversion) as the mechanism for accumulation, while trading fees and disciplined range selection compensate along the way. It is a patient, rules-based alternative to manual averaging that pays you to wait at your chosen entry zone.",
+   112→      marketFit: {
+   113→        regimes: ["BEAR", "SIDEWAYS"],
+   114→        scores: { BEAR: 90, SIDEWAYS: 80, BULL: 20 },
+   115→        secondaryRegimes: ["EARLY_RECOVERY", "LOW_VOL_COMPRESSION"],
+   116→        secondaryScores: { EARLY_RECOVERY: 90, LOW_VOL_COMPRESSION: 85 },
+   117→        explanation:
+   118→          "In bear and sideways markets, price tends to spend long stretches inside a defined range — exactly where concentrated liquidity earns the most fees per unit of risk. Downward moves convert the position into ETH at lower cost, serving the accumulation goal. In a strong bull market the strategy underperforms simply holding ETH, because the position converts back to USDC early and caps upside.",
+   119→      },
+   120→      steps: [
+   121→        { title: "Deposit ETH and USDC", description: "Fund the strategy with an approximately 50/50 split of ETH and USDC. The USDC side provides the dry powder that converts into ETH if price moves down through the range." },
+   122→        { title: "Select the liquidity range", description: "Define a concentrated price range at and below the current ETH price. A tighter range earns more fees but converts faster; a wider range behaves more like a broad limit ladder. Range width should reflect your volatility expectation and rebalancing appetite." },
+   123→        { title: "Provide liquidity", description: "Deposit both assets into the ETH/USDC pool on Uniswap V3 within the selected range. Confirm the position and its fee tier before submitting." },
+   124→        { title: "Monitor price relative to range", description: "Track where price sits inside the range. Fee earnings are highest when price actively crosses the middle of the range; the composition of the position shifts toward ETH near the bottom and toward USDC near the top." },
+   125→        { title: "Rebalance under defined conditions", description: "If price exits the range downward and you want to keep accumulating, remove the position and re-create it lower (accepting the realized impermanent loss as the cost of accumulated ETH). If price exits upward and accumulation is complete, harvest and exit." },
+   126→        { title: "Exit when conditions change", description: "Close the position when a confirmed bull regime makes passive ETH holding more attractive, when fee earnings no longer compensate for risk, or when your accumulation target has been reached." },
+   127→      ],
+   128→      entryConditions: [
+   129→        "Market regime is bear or sideways with no confirmed trend reversal",
+   130→        "ETH price is at or above the top of your intended accumulation range",
+   131→        "You are comfortable holding ETH long-term if price falls through the range",
+   132→        "Sufficient capital to make gas and rebalancing costs negligible (roughly $2,000+ on mainnet)",
+   133→        "Trading fees in the selected pool are healthy relative to your position size",
+   134→      ],
+   135→      exitConditions: [
+   136→        "A confirmed bull-regime breakout with sustained momentum above your range",
+   137→        "Price exits the range upward and your ETH accumulation target is met",
+   138→        "You no longer want directional exposure to ETH",
+   139→        "Fee earnings no longer compensate for impermanent-loss risk",
+   140→      ],
+   141→      risk: {
+   142→        overallRisk: "MEDIUM",
+   143→        explanation:
+   144→          "The dominant risk is impermanent loss: if price crashes through the range quickly, the position is mostly ETH at the bottom and the accumulated size can show a marked loss versus the initial deposit. Smart contract risk in Uniswap V3 pools is real but the codebase is among the most battle-tested in DeFi. The strategy is unleveraged and has no liquidation risk, but it requires active monitoring and disciplined rebalancing. Rapid rebounds after you rebalance lower can also cause you to re-enter at worse prices.",
+   145→        leverageUsed: false,
+   146→        leverageAmount: "",
+   147→        liquidationExposure: "NONE",
+   148→        withdrawalRestrictions: "None — the position can be removed at any time, though removing mid-range realizes impermanent loss",
+   149→        lockupPeriod: "",
+   150→        incentiveReliance: "LOW",
+   151→        smartContractRisk: "MEDIUM",
+   152→        impermanentLoss: "MEDIUM",
+   153→        assetVolatility: "HIGH",
+   154→      },
+   155→      requirements: {
+   156→        minCapital: "$2,000",
+   157→        requiredHoldings: ["ETH", "USDC"],
+   158→        walletSetup: "Ethereum-compatible wallet (e.g. MetaMask, Rabby) with a small gas buffer",
+   159→        other: "Must be able to interact with Uniswap V3 on Ethereum mainnet and monitor the position at least weekly",
+   160→      },
+   161→      references: [
+   162→        { title: "Uniswap V3 Documentation", url: "https://docs.uniswap.org/", publisher: "Uniswap Labs", notes: "Concentrated liquidity, positions and fee tiers" },
+   163→        { title: "Uniswap V3 Announcement", url: "https://uniswap.org/blog/uniswap-v3", publisher: "Uniswap Labs", notes: "Design rationale for concentrated liquidity" },
+   164→        { title: "Impermanent Loss Explained", url: "https://academy.binance.com/en/articles/impermanent-loss-explained", publisher: "Binance Academy", notes: "Primer on LP divergence risk" },
+   165→      ],
+   166→      lastReviewedAt: iso("2026-09-15"),
+   167→      depositAssets: [eth, usdc],
+   168→      exposureAssets: [eth, usdc],
+   169→      rewardAssets: [],
+   170→      networks: [ethereum],
+   171→      protocols: [uniswap],
+   172→    },
+   173→    {
+   174→      strategyId: "STRATEGY_002",
+   175→      name: "Stablecoin Lending",
+   176→      slug: "stablecoin-lending",
+   177→      type: "Lending",
+   178→      status: "PUBLISHED",
+   179→      summary:
+   180→        "Earn a conservative yield on idle USDC by lending it into an overcollateralized money market.",
+   181→      description:
+   182→        "Stablecoin Lending is the simplest way to put idle dollars to work in DeFi. You deposit USDC into a blue-chip money market such as Aave, where borrowers post collateral worth significantly more than they borrow. Your capital sits in a diversified, overcollateralized pool and earns a variable lending rate set by supply and demand.\n\nDeposits are represented by a receipt token (aUSDC) that accrues value continuously as interest is added. There is no lockup: you can withdraw whenever liquidity is available, which is almost always. Rates float with utilization — periods of heavy leverage demand push rates up, while quiet markets compress them.\n\nThis strategy intentionally trades upside for stability. It is regime-agnostic, liquid, and serves as the cash-management layer of a DeFi portfolio — the position you hold while waiting for higher-conviction deployments.",
+   183→      marketFit: {
+   184→        regimes: ["BULL", "SIDEWAYS", "BEAR"],
+   185→        scores: { BULL: 60, SIDEWAYS: 85, BEAR: 90 },
+   186→        secondaryRegimes: ["LATE_BULL_DISTRIBUTION", "CAPITULATION_DELEVERAGING"],
+   187→        secondaryScores: { LATE_BULL_DISTRIBUTION: 80, CAPITULATION_DELEVERAGING: 90 },
+   188→        explanation:
+   189→          "Lending stablecoins performs consistently across regimes because demand for leverage rarely disappears — and in bear markets a flight to safety frequently increases stablecoin lending utilization. In strong bull markets the strategy still earns, but it trails risk assets by design; investors often treat it as a dry-powder position rather than a growth position.",
+   190→      },
+   191→      steps: [
+   192→        { title: "Deposit USDC into the money market", description: "Connect your wallet to the lending protocol and supply USDC. The deposit instantly begins earning the current variable supply rate." },
+   193→        { title: "Receive the accruing receipt token", description: "Your position is tracked by a receipt token (e.g. aUSDC) whose balance grows over time as interest accrues. No action is required to compound." },
+   194→        { title: "Monitor the rate environment", description: "Variable rates move with pool utilization. Check occasionally to confirm the rate is acceptable relative to alternatives, and watch utilization extremes that could delay withdrawals." },
+   195→        { title: "Optionally switch rate modes", description: "Some venues allow locking a fixed borrow-side or supply-side rate or routing through fixed-rate markets. Use these when you expect variable rates to fall." },
+   196→        { title: "Withdraw when capital is needed", description: "Redeem the receipt token for USDC plus accrued interest. Withdrawals are instant while the pool has available liquidity." },
+   197→      ],
+   198→      entryConditions: [
+   199→        "You hold stablecoins you do not need in the short term",
+   200→        "Current supply rates are acceptable for your cash strategy",
+   201→        "You accept smart-contract and stablecoin-depeg tail risks",
+   202→        "Your time horizon is at least weeks, so gas costs amortize sensibly",
+   203→      ],
+   204→      exitConditions: [
+   205→        "You need the capital for spending or another deployment",
+   206→        "Rates compress to levels that no longer justify the risk",
+   207→        "You observe deterioration in the venue's risk profile (utilization extremes, oracle issues, governance disputes)",
+   208→        "You rotate into a higher-conviction strategy",
+   209→      ],
+   210→      risk: {
+   211→        overallRisk: "LOW",
+   212→        explanation:
+   213→          "This is among the lowest-risk DeFi strategies, but it is not risk-free. Smart contract bugs remain possible even on battle-tested venues. USDC itself carries issuer and depeg tail risk. Variable rates can fall with little notice. Deposits are not insured, and during extreme utilization spikes withdrawals can be temporarily delayed. Overcollateralization protects lenders from borrower defaults but not from protocol failure.",
+   214→        leverageUsed: false,
+   215→        leverageAmount: "",
+   216→        liquidationExposure: "NONE",
+   217→        withdrawalRestrictions: "None in practice — instant withdrawal while pool liquidity is available; extreme utilization can delay redemptions temporarily",
+   218→        lockupPeriod: "",
+   219→        incentiveReliance: "LOW",
+   220→        smartContractRisk: "LOW",
+   221→        impermanentLoss: "NONE",
+   222→        assetVolatility: "LOW",
+   223→      },
+   224→      requirements: {
+   225→        minCapital: "$100",
+   226→        requiredHoldings: ["USDC"],
+   227→        walletSetup: "Ethereum-compatible wallet",
+   228→        other: "Basic familiarity with supplying assets to a lending market",
+   229→      },
+   230→      references: [
+   231→        { title: "Aave Documentation", url: "https://docs.aave.com/", publisher: "Aave", notes: "Supply mechanics, aTokens and rate models" },
+   232→        { title: "Aave Risk Framework", url: "https://aave.com/docs/", publisher: "Aave", notes: "Risk parameters and collateral policy" },
+   233→      ],
+   234→      lastReviewedAt: iso("2026-09-10"),
+   235→      depositAssets: [usdc],
+   236→      exposureAssets: [usdc],
+   237→      rewardAssets: [],
+   238→      networks: [ethereum],
+   239→      protocols: [aave],
+   240→    },
+   241→    {
+   242→      strategyId: "STRATEGY_003",
+   243→      name: "ETH Liquid Staking",
+   244→      slug: "eth-liquid-staking",
+   245→      type: "Liquid Staking",
+   246→      status: "PUBLISHED",
+   247→      summary:
+   248→        "Earn native Ethereum staking rewards while keeping a liquid, DeFi-compatible staked-ETH position.",
+   249→      description:
+   250→        "ETH Liquid Staking converts idle ETH into a productive, liquid staking position. You deposit ETH into a liquid staking protocol such as Lido and receive a rebasing or rate-accruing representative token (stETH or its wrapped form wstETH) that captures consensus and execution rewards, net of validator and protocol fees.\n\nThe key advantage over native staking is liquidity: the staked representative trades freely and can be deployed as collateral, paired in liquidity pools, or sold — no 26-hour exit queue required for most practical purposes. The key advantage over simply holding ETH is a compounding reward stream that historically tracks the protocol's staking APR without adding directional leverage.\n\nThe trade-offs are a set of second-order risks: the staked token can trade at a discount to ETH in stressed markets, the protocol adds a smart-contract layer on top of the beacon chain, and slashing events are socialized across the staking pool. None of these typically dominate the strategy's ETH price exposure — the position is still, first and foremost, a long-ETH position.",
+   251→      marketFit: {
+   252→        regimes: ["BULL", "SIDEWAYS"],
+   253→        scores: { BULL: 85, SIDEWAYS: 75, BEAR: 40 },
+   254→        secondaryRegimes: ["BTC_LED_EXPANSION", "ALT_EXPANSION"],
+   255→        secondaryScores: { BTC_LED_EXPANSION: 80, ALT_EXPANSION: 90 },
+   256→        explanation:
+   257→          "Staking rewards stack best on top of price appreciation, making bull regimes the natural home for the strategy. In sideways markets the reward stream is the main return and does the heavy lifting. In bear markets the strategy still earns, but capital preservation usually argues for exiting to stables — the staked token can also trade at a discount exactly when liquidity is most wanted.",
+   258→      },
+   259→      steps: [
+   260→        { title: "Deposit ETH into the liquid staking protocol", description: "Submit ETH through the protocol's staking interface. The protocol routes deposits to a diversified set of professional validators." },
+   261→        { title: "Receive the liquid staking token", description: "You receive wstETH (or stETH), which represents your staked ETH plus accumulated rewards. wstETH's value per token rises over time as rewards compound." },
+   262→        { title: "Hold or deploy the staked position", description: "The token can simply be held, or used as collateral in lending markets, paired in liquidity pools, or allocated to other yield venues — keeping the staking yield running underneath." },
+   263→        { title: "Monitor exchange rate and market price", description: "Track the wstETH/ETH rate (which should grind upward) and the secondary-market price versus ETH (which can deviate in stressed conditions)." },
+   264→        { title: "Exit via swap or unstake queue", description: "For immediate liquidity, swap the staked token back to ETH on a DEX/CEX. For exact-value exit, use the protocol's unstake queue and wait for processing." },
+   265→      ],
+   266→      entryConditions: [
+   267→        "You have a long-term bullish or neutral thesis on ETH",
+   268→        "You are comfortable with the protocol's smart-contract and slashing risks",
+   269→        "You want staking yield without sacrificing liquidity",
+   270→        "Your time horizon is months or longer",
+   271→      ],
+   272→      exitConditions: [
+   273→        "You lose conviction on ETH and want to reduce exposure",
+   274→        "You want to realize gains into stablecoins",
+   275→        "The protocol's risk profile deteriorates materially",
+   276→        "You need immediate liquidity and the discount to swap is unacceptable (use the unstake queue instead)",
+   277→      ],
+   278→      risk: {
+   279→        overallRisk: "MEDIUM",
+   280→        explanation:
+   281→          "Primary risk remains ETH price volatility. Additional layers: smart-contract risk in the staking protocol and its validator set, potential slashing socialized across the pool, temporary depeg of the liquid staking token versus ETH in stressed markets, and queue delays for exact-value exits. None of these involve leverage or liquidation — the position cannot be forcibly closed.",
+   282→        leverageUsed: false,
+   283→        leverageAmount: "",
+   284→        liquidationExposure: "NONE",
+   285→        withdrawalRestrictions: "Instant via market swap (price may include a small discount); exact-value exit through the native unstake queue takes days",
+   286→        lockupPeriod: "No hard lockup, but exiting at full value requires the unstake queue",
+   287→        incentiveReliance: "LOW",
+   288→        smartContractRisk: "MEDIUM",
+   289→        impermanentLoss: "NONE",
+   290→        assetVolatility: "HIGH",
+   291→      },
+   292→      requirements: {
+   293→        minCapital: "Any (gas-optimal above roughly $500)",
+   294→        requiredHoldings: ["ETH"],
+   295→        walletSetup: "Ethereum-compatible wallet",
+   296→        other: "Ability to swap staked-ETH tokens on secondary markets if immediate liquidity is needed",
+   297→      },
+   298→      references: [
+   299→        { title: "Lido Documentation", url: "https://docs.lido.fi/", publisher: "Lido", notes: "wstETH mechanics, staking rewards and unstake queue" },
+   300→        { title: "Ethereum Staking Overview", url: "https://ethereum.org/en/staking/", publisher: "ethereum.org", notes: "How consensus rewards work at the protocol level" },
+   301→      ],
+   302→      lastReviewedAt: iso("2026-09-08"),
+   303→      depositAssets: [eth],
+   304→      exposureAssets: [wsteth, eth],
+   305→      rewardAssets: [],
+   306→      networks: [ethereum],
+   307→      protocols: [lido],
+   308→    },
+   309→    {
+   310→      strategyId: "STRATEGY_004",
+   311→      name: "Delta-Neutral LP",
+   312→      slug: "delta-neutral-lp",
+   313→      type: "Delta-Neutral",
+   314→      status: "PUBLISHED",
+   315→      summary:
+   316→        "Earn concentrated-liquidity trading fees while hedging directional ETH exposure with a short position.",
+   317→      description:
+   318→        "Delta-Neutral LP pairs a concentrated liquidity position with an offsetting short. You provide ETH/USDC into a tight Uniswap V3 range to harvest trading fees, then neutralize the directional risk by opening an ETH short of equivalent size — for example by borrowing ETH against USDC collateral on a lending market and selling the borrowed ETH.\n\nThe intended result is a position whose net value barely moves with price while the fee income accrues. In practice the hedge is dynamic: as price moves, the LP position's delta drifts and the short must be rebalanced. Borrow costs and potential funding work against you continuously, so the strategy only makes sense when expected fee yield comfortably exceeds the cost of carrying the hedge.\n\nThis is an actively-managed, execution-sensitive strategy for experienced users. It demands monitoring, quick rebalancing discipline, and honest accounting of all costs. Done well it isolates fee income from market direction; done poorly it inherits the risks of both legs plus the costs of frequent adjustments.",
+   319→      marketFit: {
+   320→        regimes: ["SIDEWAYS"],
+   321→        scores: { SIDEWAYS: 90, BULL: 25, BEAR: 25 },
+   322→        secondaryRegimes: ["LOW_VOL_COMPRESSION", "HIGH_VOLATILITY_CHOP"],
+   323→        secondaryScores: { LOW_VOL_COMPRESSION: 90, HIGH_VOLATILITY_CHOP: 70 },
+   324→        explanation:
+   325→          "Sideways markets are the sweet spot: price oscillates inside the LP range generating maximal fees while the hedge stays cheap and stable. In trending markets the strategy deteriorates quickly — the LP delta drifts, the hedge needs frequent costly rebalancing, and one leg always lags the other.",
+   326→      },
+   327→      steps: [
+   328→        { title: "Provide ETH/USDC liquidity in a tight range", description: "Create a concentrated liquidity position around the current price in a high-fee-tier, high-volume pool. This is the fee-generating leg." },
+   329→        { title: "Open the offsetting ETH short", description: "Borrow ETH against USDC collateral on a lending market and sell the borrowed ETH, or use an equivalent short instrument. Size the short to the LP position's current ETH exposure (its delta)." },
+   330→        { title: "Monitor net delta", description: "As price moves, the LP position's composition shifts and the two legs drift out of balance. Track your net delta — the exposure you actually have to price movement." },
+   331→        { title: "Rebalance the hedge", description: "When net delta exceeds your tolerance band, adjust the short size (or the LP range) to re-neutralize. Rebalancing frequency trades hedge accuracy against transaction costs." },
+   332→        { title: "Manage carry costs", description: "Borrow interest (or funding) accrues continuously. Compare it against realized fee income; the strategy only earns while fees exceed carry." },
+   333→        { title: "Exit and unwind both legs", description: "Close the LP position, repay the borrowed ETH (buying back any sold ETH), and settle remaining balances. Unwind in the right order to avoid momentary unhedged exposure." },
+   334→      ],
+   335→      entryConditions: [
+   336→        "Market regime is sideways with no strong trend in either direction",
+   337→        "Pool fee volume is high relative to your position size",
+   338→        "Borrow costs are clearly below expected fee yield",
+   339→        "You have experience operating both LP positions and collateralized borrows",
+   340→        "Sufficient capital (roughly $10,000+) to absorb gas and rebalancing costs",
+   341→      ],
+   342→      exitConditions: [
+   343→        "A trending market emerges in either direction",
+   344→        "Carry costs exceed fee income for a sustained period",
+   345→        "Borrow utilization spikes make the hedge expensive or precarious",
+   346→        "You want to reduce operational load",
+   347→      ],
+   348→      risk: {
+   349→        overallRisk: "HIGH",
+   350→        explanation:
+   351→          "Two protocols must both behave correctly, and the position is execution-sensitive: bad rebalancing can convert a hedged book into an accidental directional bet. The borrow leg adds liquidation risk if collateral value falls. Costs (borrow interest, gas, slippage) can silently exceed income. In fast markets the hedge will lag. This strategy should only be run by users who can monitor it actively.",
+   352→        leverageUsed: true,
+   353→        leverageAmount: "1–3x effective hedge notional",
+   354→        liquidationExposure: "MEDIUM",
+   355→        withdrawalRestrictions: "The hedge should be unwound before fully exiting the LP leg to avoid unhedged exposure",
+   356→        lockupPeriod: "",
+   357→        incentiveReliance: "MEDIUM",
+   358→        smartContractRisk: "HIGH",
+   359→        impermanentLoss: "MEDIUM",
+   360→        assetVolatility: "MEDIUM",
+   361→      },
+   362→      requirements: {
+   363→        minCapital: "$10,000",
+   364→        requiredHoldings: ["ETH", "USDC"],
+   365→        walletSetup: "Ethereum-compatible wallet with healthy gas buffer",
+   366→        other: "Working knowledge of concentrated liquidity and collateralized borrowing; monitoring cadence of at least daily",
+   367→      },
+   368→      references: [
+   369→        { title: "Uniswap V3 Documentation", url: "https://docs.uniswap.org/", publisher: "Uniswap Labs", notes: "Concentrated liquidity positions" },
+   370→        { title: "Aave Documentation", url: "https://docs.aave.com/", publisher: "Aave", notes: "Collateralized borrowing and health factor" },
+   371→      ],
+   372→      lastReviewedAt: iso("2026-09-01"),
+   373→      depositAssets: [eth, usdc],
+   374→      exposureAssets: [eth, usdc],
+   375→      rewardAssets: [],
+   376→      networks: [ethereum],
+   377→      protocols: [uniswap, aave],
+   378→    },
+   379→    {
+   380→      strategyId: "STRATEGY_005",
+   381→      name: "SOL Staking",
+   382→      slug: "sol-staking",
+   383→      type: "Staking",
+   384→      status: "PUBLISHED",
+   385→      summary:
+   386→        "Earn native Solana staking rewards by delegating SOL — directly to validators or via liquid staking.",
+   387→      description:
+   388→        "SOL Staking puts idle Solana to work securing the network and earning protocol issuance rewards. The simplest form is native delegation: you delegate SOL to a validator and rewards compound into your stake account every epoch, with no token wrapper involved.\n\nA liquid variant runs through protocols like Marinade: SOL is staked automatically into a diversified validator set and you receive a liquid representative (mSOL) that accrues value and remains deployable across Solana DeFi. Native delegation is the lowest-complexity path; liquid staking adds composability at the cost of one more smart-contract layer.\n\nEither way, this is a long-SOL position first and a yield position second. The reward stream is meaningful but small relative to SOL's price swings, so the strategy fits investors whose primary conviction is in SOL itself.",
+   389→      marketFit: {
+   390→        regimes: ["BULL", "SIDEWAYS"],
+   391→        scores: { BULL: 85, SIDEWAYS: 75, BEAR: 40 },
+   392→        secondaryRegimes: ["BTC_LED_EXPANSION", "ALT_EXPANSION"],
+   393→        secondaryScores: { BTC_LED_EXPANSION: 70, ALT_EXPANSION: 85 },
+   394→        explanation:
+   395→          "Staking rewards compound best when SOL appreciates or holds its range. In sideways conditions the yield is the primary return and provides a steady drip. In bear markets the strategy still earns, but the dominant risk is price drawdown; capital preservation argues for reducing exposure.",
+   396→      },
+   397→      steps: [
+   398→        { title: "Choose native delegation or liquid staking", description: "Native delegation keeps everything on-chain in stake accounts with no wrapper. Liquid staking via Marinade gives a liquid token and automated validator diversification." },
+   399→        { title: "Stake your SOL", description: "Delegate to a chosen validator (native) or deposit SOL into the liquid staking protocol. Rewards begin accruing from the next epoch." },
+   400→        { title: "Let rewards compound", description: "Native rewards auto-compound into the stake account. Liquid staking value accrues through a slowly rising exchange rate of the representative token." },
+   401→        { title: "Monitor validator performance", description: "For native staking, check the validator's commission, uptime and voting performance. For liquid staking, the protocol manages this for you." },
+   402→        { title: "Unstake when needed", description: "Native unstaking activates after the current epoch ends. Liquid staking tokens can be swapped immediately on Solana DEXes." },
+   403→      ],
+   404→      entryConditions: [
+   405→        "You hold SOL with a long-term conviction",
+   406→        "You are comfortable with Solana network and validator risks",
+   407→        "You want a baseline yield without active management",
+   408→        "You don't need the SOL for spending in the next epoch or two",
+   409→      ],
+   410→      exitConditions: [
+   411→        "You lose conviction on SOL and want to rotate out",
+   412→        "Network instability or validator issues raise concern",
+   413→        "A materially better deployment for the capital appears",
+   414→        "You need liquidity — swap the liquid token or wait for epoch deactivation",
+   415→      ],
+   416→      risk: {
+   417→        overallRisk: "MEDIUM",
+   418→        explanation:
+   419→          "The dominant risk is SOL price volatility. Native delegation carries validator-specific risks (downtime, commission changes) but no smart-contract wrapper. Liquid staking adds protocol contract risk and potential representative-token depeg in stressed markets. Neither variant involves leverage or liquidation.",
+   420→        leverageUsed: false,
+   421→        leverageAmount: "",
+   422→        liquidationExposure: "NONE",
+   423→        withdrawalRestrictions: "Native: epoch-based deactivation (roughly days). Liquid: immediate swap on DEXes, possibly at a small discount",
+   424→        lockupPeriod: "None for liquid variants; epoch delay for native unstaking",
+   425→        incentiveReliance: "LOW",
+   426→        smartContractRisk: "MEDIUM",
+   427→        impermanentLoss: "NONE",
+   428→        assetVolatility: "HIGH",
+   429→      },
+   430→      requirements: {
+   431→        minCapital: "Any (liquid staking viable from small sizes)",
+   432→        requiredHoldings: ["SOL"],
+   433→        walletSetup: "Solana wallet (e.g. Phantom, Solflare)",
+   434→        other: "Basic familiarity with staking UIs on Solana",
+   435→      },
+   436→      references: [
+   437→        { title: "Solana Staking Guide", url: "https://solana.com/staking", publisher: "Solana Labs", notes: "Native delegation and epoch mechanics" },
+   438→        { title: "Marinade Documentation", url: "https://docs.marinade.finance/", publisher: "Marinade", notes: "mSOL liquid staking mechanics" },
+   439→      ],
+   440→      lastReviewedAt: iso("2026-09-12"),
+   441→      depositAssets: [sol],
+   442→      exposureAssets: [sol],
+   443→      rewardAssets: [],
+   444→      networks: [solana],
+   445→      protocols: [marinade],
+   446→    },
+   447→    {
+   448→      strategyId: "STRATEGY_006",
+   449→      name: "Stablecoin Yield Rotation",
+   450→      slug: "stablecoin-yield-rotation",
+   451→      type: "Stablecoin Yield",
+   452→      status: "PUBLISHED",
+   453→      summary:
+   454→        "Rotate idle stablecoins between conservative lending venues to consistently capture the best available rate.",
+   455→      description:
+   456→        "Stablecoin Yield Rotation treats blue-chip lending markets as a single competitive marketplace. You hold USDC and USDT across venues such as Aave, Morpho and Compound, and rotate capital toward whichever venue currently pays a materially better rate once the spread justifies the gas and operational cost.\n\nSpreads between venues persist because liquidity is fragmented: different collateral sets, incentive programs and utilization profiles produce different supply rates at any moment. A disciplined rotation policy harvests those spreads without adding directional risk or leverage.\n\nThe strategy is deliberately conservative in what it touches — only well-established venues — but it concentrates attention on rate monitoring. The practical edge comes from cadence: check often, move only when the spread is worth it, and never chase a headline rate on an unproven venue.",
+   457→      marketFit: {
+   458→        regimes: ["BULL", "SIDEWAYS", "BEAR"],
+   459→        scores: { BULL: 65, SIDEWAYS: 85, BEAR: 90 },
+   460→        secondaryRegimes: ["LATE_BULL_DISTRIBUTION", "CAPITULATION_DELEVERAGING"],
+   461→        secondaryScores: { LATE_BULL_DISTRIBUTION: 85, CAPITULATION_DELEVERAGING: 90 },
+   462→        explanation:
+   463→          "Stablecoin lending demand persists across regimes and often peaks in bear markets as leveraged users switch to borrowing stables. In bull markets the strategy underperforms risk assets but remains the natural parking place for dry powder, where rotation keeps the parking spot paid.",
+   464→      },
+   465→      steps: [
+   466→        { title: "Split capital across two or three venues", description: "Diversify initial deposits across your shortlist of conservative lending markets rather than concentrating on a single rate." },
+   467→        { title: "Track supply rates and utilization", description: "Monitor each venue's supply rate and utilization curve. Note that unusually high rates usually signal elevated risk somewhere in the venue's borrow base." },
+   468→        { title: "Rotate when spreads justify it", description: "Move capital when the rate spread between venues exceeds your threshold for costs — gas, bridge fees if rotating cross-chain, and your time." },
+   469→        { title: "Reassess venue risk continuously", description: "Before any move, re-verify the venue's risk profile: collateral quality, governance changes, oracle integrity, utilization extremes." },
+   470→        { title: "Consolidate when liquidity is needed", description: "When capital is required elsewhere, withdraw from the least advantageous venue first." },
+   471→      ],
+   472→      entryConditions: [
+   473→        "You hold USDC or USDT that can stay deployed for weeks or longer",
+   474→        "You accept smart-contract risk across multiple venues",
+   475→        "You can commit to a monitoring cadence for rates",
+   476→        "Spreads between venues are wide enough to be worth the operations",
+   477→      ],
+   478→      exitConditions: [
+   479→        "Rate spreads compress and no longer justify rotation effort",
+   480→        "You need the capital elsewhere",
+   481→        "A venue in your set shows risk deterioration",
+   482→        "You choose to simplify into a single-venue position",
+   483→      ],
+   484→      risk: {
+   485→        overallRisk: "MEDIUM",
+   486→        explanation:
+   487→          "Each individual venue is conservative, but the strategy multiplies exposure surfaces: several smart-contract stacks, two stablecoin issuers, and frequent transactions that each carry execution risk. The main behavioral risk is chasing rate — the highest number is often compensation for the weakest collateral base. Diversification mitigates but does not eliminate tail risk.",
+   488→        leverageUsed: false,
+   489→        leverageAmount: "",
+   490→        liquidationExposure: "NONE",
+   491→        withdrawalRestrictions: "None per venue beyond standard liquidity availability; each rotation costs gas",
+   492→        lockupPeriod: "",
+   493→        incentiveReliance: "MEDIUM",
+   494→        smartContractRisk: "MEDIUM",
+   495→        impermanentLoss: "NONE",
+   496→        assetVolatility: "LOW",
+   497→      },
+   498→      requirements: {
+   499→        minCapital: "$1,000",
+   500→        requiredHoldings: ["USDC", "USDT"],
+   501→        walletSetup: "Ethereum-compatible wallet; Base wallet if rotating cross-chain",
+   502→        other: "A simple rate-tracking habit — a dashboard or weekly check is enough",
+   503→      },
+   504→      references: [
+   505→        { title: "Aave Documentation", url: "https://docs.aave.com/", publisher: "Aave" },
+   506→        { title: "Morpho Documentation", url: "https://docs.morpho.org/", publisher: "Morpho Labs" },
+   507→        { title: "Compound Documentation", url: "https://docs.compound.finance/", publisher: "Compound Labs" },
+   508→      ],
+   509→      lastReviewedAt: iso("2026-09-14"),
+   510→      depositAssets: [usdc, usdt],
+   511→      exposureAssets: [usdc, usdt],
+   512→      rewardAssets: [],
+   513→      networks: [ethereum, base],
+   514→      protocols: [aave, morpho, compound],
+   515→    },
+   516→    {
+   517→      strategyId: "STRATEGY_007",
+   518→      name: "Pendle PT Fixed Yield",
+   519→      slug: "pendle-pt-fixed-yield",
+   520→      type: "Fixed Income",
+   521→      status: "DRAFT",
+   522→      summary:
+   523→        "Lock a known effective yield on yield-bearing assets by purchasing Pendle principal tokens at a discount.",
+   524→      description:
+   525→        "Pendle splits yield-bearing assets into principal tokens (PT) and yield tokens (YT). Buying PT is functionally buying the asset's principal at a discount: at maturity, each PT redeems for the full underlying, so the purchase discount implies a fixed effective yield for the holder.\n\nThis converts an unknown floating yield into a known number at entry, which behaves like a fixed-income instrument inside a DeFi wrapper. The trade-offs are term commitment (yield is only fully realized at maturity), liquidity risk before maturity, and the protocol's derivative machinery.\n\nDraft entry — internal working notes. Needs: finalized market selection criteria, maturity ladder policy, and a depeg contingency playbook before publication.",
+   526→      marketFit: {
+   527→        regimes: ["BULL", "SIDEWAYS", "BEAR"],
+   528→        scores: { BULL: 60, SIDEWAYS: 80, BEAR: 75 },
+   529→        secondaryRegimes: ["LATE_BULL_DISTRIBUTION", "LOW_VOL_COMPRESSION"],
+   530→        secondaryScores: { LATE_BULL_DISTRIBUTION: 75, LOW_VOL_COMPRESSION: 70 },
+   531→        explanation:
+   532→          "Fixed yield is attractive when floating rates are expected to fall, typically late-cycle or defensive regimes. Draft note: refine scoring with backtested spread data.",
+   533→      },
+   534→      steps: [
+   535→        { title: "Select a PT market and maturity", description: "Choose a yield-bearing underlying (e.g. a staked stablecoin) and a maturity that matches your horizon." },
+   536→        { title: "Purchase PT at a discount", description: "Buy PT on the Pendle market; the implied fixed yield is determined by the discount to face value." },
+   537→        { title: "Hold to maturity or exit early", description: "Holding to maturity redeems PT for the full underlying. Exiting earlier sells at market price, which may be above or below the entry discount." },
+   538→        { title: "Redeem at maturity", description: "After maturity, redeem PT 1:1 for the underlying asset and redeploy." },
+   539→      ],
+   540→      entryConditions: [
+   541→        "Implied fixed yield exceeds the floating yield you forgo",
+   542→        "You can commit capital until the chosen maturity",
+   543→        "You accept Pendle's smart-contract risk",
+   544→        "Draft: define market-quality criteria",
+   545→      ],
+   546→      exitConditions: [
+   547→        "You need liquidity before maturity (sell PT at market)",
+   548→        "A materially better fixed venue appears",
+   549→        "Underlying asset risk changes",
+   550→      ],
+   551→      risk: {
+   552→        overallRisk: "MEDIUM",
+   553→        explanation:
+   554→          "Draft: PT held to maturity avoids floating-yield variability but adds term commitment, pre-maturity liquidity risk, and derivative contract risk.",
+   555→        leverageUsed: false,
+   556→        leverageAmount: "",
+   557→        liquidationExposure: "NONE",
+   558→        withdrawalRestrictions: "Full value only at maturity; early exit at market price",
+   559→        lockupPeriod: "Until chosen maturity (commonly 3–12 months)",
+   560→        incentiveReliance: "MEDIUM",
+   561→        smartContractRisk: "MEDIUM",
+   562→        impermanentLoss: "NONE",
+   563→        assetVolatility: "LOW",
+   564→      },
+   565→      requirements: {
+   566→        minCapital: "$500",
+   567→        requiredHoldings: ["USDC"],
+   568→        walletSetup: "Ethereum-compatible wallet",
+   569→        other: "Understanding of PT/YT mechanics",
+   570→      },
+   571→      references: [
+   572→        { title: "Pendle Documentation", url: "https://guide.pendle.finance/", publisher: "Pendle", notes: "PT/YT mechanics and implied yield" },
+   573→      ],
+   574→      lastReviewedAt: iso("2026-09-05"),
+   575→      depositAssets: [usdc],
+   576→      exposureAssets: [usdc],
+   577→      rewardAssets: [],
+   578→      networks: [ethereum],
+   579→      protocols: [pendle],
+   580→    },
+   581→    {
+   582→      strategyId: "STRATEGY_008",
+   583→      name: "CRV / AERO Liquidity Farming",
+   584→      slug: "crv-aero-liquidity-farming",
+   585→      type: "Yield Farming",
+   586→      status: "ARCHIVED",
+   587→      summary:
+   588→        "Provide stablecoin liquidity on Curve and Aerodrome while farming incentive emissions — archived after incentives compressed.",
+   589→      description:
+   590→        "This strategy provided liquidity to Curve and Aerodrome stable pools and staked the LP tokens to farm CRV and AERO incentive emissions. Total return came from base swap fees plus emissions, which historically dominated the yield.\n\nThe strategy was archived when incentive emissions compressed across both protocols and the maintenance burden (claiming, selling or compounding emissions, monitoring gauge weights) stopped being justified by the residual return. It remains a valid template that can be revived if incentive economics change materially.",
+   591→      marketFit: {
+   592→        regimes: ["BULL", "SIDEWAYS"],
+   593→        scores: { BULL: 55, SIDEWAYS: 70, BEAR: 35 },
+   594→        // Declared without scores — exercises the unscored secondary rendering.
+   595→        secondaryRegimes: ["ALT_EXPANSION", "LATE_BULL_DISTRIBUTION"],
+   596→        explanation:
+   597→          "Farming returns depended heavily on emissions value, which tracks protocol token prices. Archived — maintained for historical reference.",
+   598→      },
+   599→      steps: [
+   600→        { title: "Provide stablecoin liquidity", description: "Deposit stablecoins into Curve / Aerodrome stable pools and receive LP tokens." },
+   601→        { title: "Stake LP tokens in the gauge", description: "Deposit LP tokens into the protocol's gauge to begin earning emissions." },
+   602→        { title: "Harvest emissions periodically", description: "Claim CRV / AERO rewards and either sell or compound them per policy." },
+   603→        { title: "Exit when incentive economics deteriorate", description: "Withdraw liquidity and unstake when emissions no longer justify the position's risk and effort." },
+   604→      ],
+   605→      entryConditions: [
+   606→        "Archived — do not enter",
+   607→        "Historical condition: emissions value exceeded maintenance cost",
+   608→      ],
+   609→      exitConditions: [
+   610→        "Archived — strategy exited",
+   611→        "Revival condition: incentive economics become compelling again",
+   612→      ],
+   613→      risk: {
+   614→        overallRisk: "HIGH",
+   615→        explanation:
+   616→          "Historical: total return relied on incentive token value, adding protocol-token price risk on top of contract and depeg risks. Reward tokens often depreciated faster than they were earned.",
+   617→        leverageUsed: false,
+   618→        leverageAmount: "",
+   619→        liquidationExposure: "NONE",
+   620→        withdrawalRestrictions: "None — standard pool withdrawals",
+   621→        lockupPeriod: "",
+   622→        incentiveReliance: "HIGH",
+   623→        smartContractRisk: "HIGH",
+   624→        impermanentLoss: "LOW",
+   625→        assetVolatility: "MEDIUM",
+   626→      },
+   627→      requirements: {
+   628→        minCapital: "$1,000",
+   629→        requiredHoldings: ["USDC", "USDT"],
+   630→        walletSetup: "Ethereum and Base wallets",
+   631→        other: "Archived — reference template only",
+   632→      },
+   633→      references: [
+   634→        { title: "Curve Documentation", url: "https://docs.curve.fi/", publisher: "Curve" },
+   635→        { title: "Aerodrome Documentation", url: "https://aerodrome.finance/docs", publisher: "Aerodrome" },
+   636→      ],
+   637→      lastReviewedAt: iso("2026-06-20"),
+   638→      depositAssets: [usdc, usdt],
+   639→      exposureAssets: [usdc, usdt],
+   640→      rewardAssets: [crv, aero],
+   641→      networks: [ethereum, base],
+   642→      protocols: [curve, aerodrome],
+   643→    },
+   644→  ]
+   645→
+   646→  for (const s of strategies) {
+   647→    const {
+   648→      depositAssets, exposureAssets, rewardAssets, networks, protocols,
+   649→      lastReviewedAt, references, ...fields
+   650→    } = s
+   651→
+   652→    await db.strategy.create({
+   653→      data: {
+   654→        ...fields,
+   655→        marketFit: JSON.stringify(s.marketFit),
+   656→        steps: JSON.stringify(s.steps),
+   657→        entryConditions: JSON.stringify(s.entryConditions),
+   658→        exitConditions: JSON.stringify(s.exitConditions),
+   659→        risk: JSON.stringify(s.risk),
+   660→        requirements: JSON.stringify(s.requirements),
+   661→        referencesJson: JSON.stringify(s.references),
+   662→        lastReviewedAt,
+   663→        depositAssets: { create: depositAssets.map((a) => ({ assetId: a.id })) },
+   664→        exposureAssets: { create: exposureAssets.map((a) => ({ assetId: a.id })) },
+   665→        rewardAssets: { create: rewardAssets.map((a) => ({ assetId: a.id })) },
+   666→        networks: { create: networks.map((n) => ({ networkId: n.id })) },
+   667→        protocols: { create: protocols.map((p) => ({ protocolId: p.id })) },
+   668→      },
+   669→    })
+   670→  }
+   671→
+   672→  // -----------------------------------------------------------------------
+   673→  // Market observations (live-data layer): 90 days of daily APY/TVL series
+   674→  // per strategy, following the shared mean-reverting walk dynamics. The
+   675→  // archived strategy's series ends at its archive date.
+   676→  // -----------------------------------------------------------------------
+   677→  const OBSERVATION_SPECS: Record<
+   678→    string,
+   679→    { startApy: number; baseline: number; startTvl: number; seed: number; endsAt?: Date }
+   680→  > = {
+   681→    "accumulation-lp": { startApy: 6.4, baseline: 11.6, startTvl: 8_400_000, seed: 11 },
+   682→    "stablecoin-lending": { startApy: 4.9, baseline: 4.1, startTvl: 42_000_000, seed: 22 },
+   683→    "stablecoin-yield-rotation": { startApy: 7.2, baseline: 5.7, startTvl: 12_600_000, seed: 33 },
+   684→    "sol-staking": { startApy: 8.6, baseline: 7.7, startTvl: 9_800_000, seed: 44 },
+   685→    "eth-liquid-staking": { startApy: 2.8, baseline: 3.3, startTvl: 58_000_000, seed: 55 },
+   686→    "delta-neutral-lp": { startApy: 14.9, baseline: 12.9, startTvl: 3_900_000, seed: 66 },
+   687→    "pendle-pt-fixed-yield": { startApy: 11.4, baseline: 11.0, startTvl: 15_400_000, seed: 77 },
+   688→    "crv-aero-liquidity-farming": {
+   689→      startApy: 34.6,
+   690→      baseline: 21.4,
+   691→      startTvl: 5_200_000,
+   692→      seed: 88,
+   693→      endsAt: new Date("2026-06-20T12:00:00Z"),
+   694→    },
+   695→  }
+   696→
+   697→  let obsCount = 0
+   698→  const DAY = 24 * 60 * 60 * 1000
+   699→  for (const s of strategies) {
+   700→    const spec = OBSERVATION_SPECS[s.slug]
+   701→    if (!spec) continue
+   702→    const created = await db.strategy.findUnique({ where: { slug: s.slug }, select: { id: true } })
+   703→    if (!created) continue
+   704→    const series = generateObservationSeries(90, spec.startApy, spec.baseline, spec.startTvl, spec.seed)
+   705→    const end = spec.endsAt ?? new Date()
+   706→    await db.marketObservation.createMany({
+   707→      data: series.map((p) => ({
+   708→        strategyId: created.id,
+   709→        apy: p.apy,
+   710→        tvl: p.tvl,
+   711→        source: "seed",
+   712→        recordedAt: new Date(end.getTime() - p.daysAgo * DAY),
+   713→      })),
+   714→    })
+   715→    obsCount += series.length
+   716→  }
+   717→
+   718→  // Give the two most-edited looking strategies a small revision history
+   719→  // so the admin revision browser is populated on first run.
+   720→  const accumulation = await db.strategy.findUnique({
+   721→    where: { slug: "accumulation-lp" },
+   722→    include: {
+   723→      depositAssets: { include: { asset: true } },
+   724→      exposureAssets: { include: { asset: true } },
+   725→      rewardAssets: { include: { asset: true } },
+   726→      networks: { include: { network: true } },
+   727→      protocols: { include: { protocol: true } },
+   728→    },
+   729→  })
+   730→  if (accumulation) {
+   731→    const earlier = JSON.stringify({
+   732→      id: accumulation.id,
+   733→      strategyId: accumulation.strategyId,
+   734→      name: accumulation.name,
+   735→      slug: accumulation.slug,
+   736→      summary: "Accumulate ETH during weak markets while earning fees in a liquidity range.",
+   737→      description: accumulation.description,
+   738→      type: "Liquidity Provision",
+   739→      status: "PUBLISHED",
+   740→      marketFit: accumulation.marketFit,
+   741→      steps: accumulation.steps,
+   742→      entryConditions: accumulation.entryConditions,
+   743→      exitConditions: accumulation.exitConditions,
+   744→      risk: accumulation.risk,
+   745→      requirements: accumulation.requirements,
+   746→      references: accumulation.referencesJson,
+   747→      lastReviewedAt: accumulation.lastReviewedAt?.toISOString() ?? null,
+   748→      createdAt: accumulation.createdAt.toISOString(),
+   749→      updatedAt: new Date("2026-08-02").toISOString(),
+   750→      depositAssets: [],
+   751→      exposureAssets: [],
+   752→      rewardAssets: [],
+   753→      networks: [],
+   754→      protocols: [],
+   755→    })
+   756→    await db.revision.create({
+   757→      data: {
+   758→        strategyId: accumulation.id,
+   759→        revisionNumber: 1,
+   760→        snapshot: earlier,
+   761→        changeNote: "Initial publication — pre-restructure snapshot",
+   762→      },
+   763→    })
+   764→  }
+   765→
+   766→  const rotation = await db.strategy.findUnique({ where: { slug: "stablecoin-yield-rotation" }, select: { id: true } })
+   767→  if (rotation) {
+   768→    const base = await db.strategy.findUnique({
+   769→      where: { id: rotation.id },
+   770→      include: {
+   771→        depositAssets: { include: { asset: true } },
+   772→        exposureAssets: { include: { asset: true } },
+   773→        rewardAssets: { include: { asset: true } },
+   774→        networks: { include: { network: true } },
+   775→        protocols: { include: { protocol: true } },
+   776→      },
+   777→    })
+   778→    if (base) {
+   779→      const snapshot = JSON.stringify({
+   780→        id: base.id,
+   781→        strategyId: base.strategyId,
+   782→        name: base.name,
+   783→        slug: base.slug,
+   784→        summary: "Rotate idle stablecoins between lending venues for the best conservative rate.",
+   785→        description: base.description,
+   786→        type: base.type,
+   787→        status: "PUBLISHED",
+   788→        marketFit: base.marketFit,
+   789→        steps: base.steps,
+   790→        entryConditions: base.entryConditions,
+   791→        exitConditions: base.exitConditions,
+   792→        risk: base.risk,
+   793→        requirements: base.requirements,
+   794→        references: base.referencesJson,
+   795→        lastReviewedAt: null,
+   796→        createdAt: base.createdAt.toISOString(),
+   797→        updatedAt: new Date("2026-08-18").toISOString(),
+   798→        depositAssets: [],
+   799→        exposureAssets: [],
+   800→        rewardAssets: [],
+   801→        networks: [],
+   802→        protocols: [],
+   803→      })
+   804→      await db.revision.create({
+   805→        data: {
+   806→          strategyId: base.id,
+   807→          revisionNumber: 1,
+   808→          snapshot,
+   809→          changeNote: "Before adding Compound to the venue set",
+   810→        },
+   811→      })
+   812→    }
+   813→  }
+   814→
+   815→  // Touch updatedAt ordering for the admin list (newest updated first).
+   816→  await db.strategy.update({ where: { slug: "accumulation-lp" }, data: { updatedAt: new Date("2026-09-15T10:00:00Z") } })
+   817→  await db.strategy.update({ where: { slug: "stablecoin-yield-rotation" }, data: { updatedAt: new Date("2026-09-14T10:00:00Z") } })
+   818→  await db.strategy.update({ where: { slug: "stablecoin-lending" }, data: { updatedAt: new Date("2026-09-10T10:00:00Z") } })
+   819→  await db.strategy.update({ where: { slug: "sol-staking" }, data: { updatedAt: new Date("2026-09-12T10:00:00Z") } })
+   820→  await db.strategy.update({ where: { slug: "eth-liquid-staking" }, data: { updatedAt: new Date("2026-09-08T10:00:00Z") } })
+   821→  await db.strategy.update({ where: { slug: "delta-neutral-lp" }, data: { updatedAt: new Date("2026-09-01T10:00:00Z") } })
+   822→  await db.strategy.update({ where: { slug: "pendle-pt-fixed-yield" }, data: { updatedAt: new Date("2026-09-05T10:00:00Z") } })
+   823→  await db.strategy.update({ where: { slug: "crv-aero-liquidity-farming" }, data: { updatedAt: new Date("2026-06-20T10:00:00Z") } })
+   824→
+   825→  console.log(`Seeded ${strategies.length} strategies, 9 assets, 9 protocols, 5 networks, ${obsCount} observations.`)
+   826→}
+   827→
+   828→main()
+   829→  .catch((e) => {
+   830→    console.error(e)
+   831→    process.exit(1)
+   832→  })
+   833→  .finally(() => db.$disconnect())
+   834→

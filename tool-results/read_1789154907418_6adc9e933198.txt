@@ -1,0 +1,938 @@
+     1→"use client"
+     2→
+     3→import { ArrowDown, ArrowUp, Check, Plus, Trash2 } from "lucide-react"
+     4→import { Input } from "@/components/ui/input"
+     5→import { Textarea } from "@/components/ui/textarea"
+     6→import { Button } from "@/components/ui/button"
+     7→import { Switch } from "@/components/ui/switch"
+     8→import {
+     9→  Select,
+    10→  SelectContent,
+    11→  SelectItem,
+    12→  SelectTrigger,
+    13→  SelectValue,
+    14→} from "@/components/ui/select"
+    15→import {
+    16→  Field,
+    17→  GroupHeading,
+    18→  SearchMultiSelect,
+    19→  SectionSurface,
+    20→  StringListEditor,
+    21→} from "@/components/admin/form-controls"
+    22→import { AssetIcon, ProtocolIcon, NetworkIcon } from "@/components/shared/icons"
+    23→import { useAssets, useNetworks, useProtocols } from "@/hooks/use-strategy-data"
+    24→import {
+    25→  EXPOSURE_LEVELS,
+    26→  RISK_LEVELS,
+    27→  REGIMES,
+    28→  STRATEGY_STATUSES,
+    29→  type ExposureLevel,
+    30→  type Regime,
+    31→  type RiskLevel,
+    32→  type StrategyStatus,
+    33→} from "@/lib/types"
+    34→import { EXPOSURE_LABELS, RISK_LABELS, REGIME_LABELS, STATUS_LABELS } from "@/lib/format"
+    35→import { slugify } from "@/lib/strategy-form-utils"
+    36→import type { StrategyFormState } from "@/lib/strategy-form"
+    37→import { cn } from "@/lib/utils"
+    38→
+    39→// ---------------------------------------------------------------------------
+    40→// Shared props
+    41→// ---------------------------------------------------------------------------
+    42→
+    43→export interface SectionProps {
+    44→  form: StrategyFormState
+    45→  update: (patch: Partial<StrategyFormState>) => void
+    46→  knownTypes?: string[]
+    47→}
+    48→
+    49→const REGIME_HINTS: Record<Regime, string> = {
+    50→  BULL: "Trending up",
+    51→  SIDEWAYS: "Ranging / choppy",
+    52→  BEAR: "Trending down",
+    53→}
+    54→
+    55→// ---------------------------------------------------------------------------
+    56→// 01 — Overview
+    57→// ---------------------------------------------------------------------------
+    58→
+    59→export function OverviewSection({ form, update, knownTypes = [] }: SectionProps) {
+    60→  const types = Array.from(new Set([...knownTypes, ...(form.type ? [form.type] : [])])).sort()
+    61→  const typeKnown = types.includes(form.type)
+    62→
+    63→  return (
+    64→    <SectionSurface
+    65→      title="Overview"
+    66→      description="Basic identity and public-facing information for this strategy."
+    67→    >
+    68→      <div className="space-y-6">
+    69→        <Field label="Name" htmlFor="strategy-name">
+    70→          <Input
+    71→            id="strategy-name"
+    72→            value={form.name}
+    73→            onChange={(e) => {
+    74→              const name = e.target.value
+    75→              update({
+    76→                name,
+    77→                slug: form.slugLocked ? form.slug : slugify(name),
+    78→              })
+    79→            }}
+    80→            placeholder="e.g. Accumulation LP"
+    81→            className="h-10"
+    82→          />
+    83→        </Field>
+    84→
+    85→        <div className="grid gap-6 sm:grid-cols-2">
+    86→          <Field label="Strategy type" hint="Pick an existing type or choose Custom…">
+    87→            <Select
+    88→              value={typeKnown ? form.type : "__custom"}
+    89→              onValueChange={(v) => update({ type: v === "__custom" ? "" : v })}
+    90→            >
+    91→              <SelectTrigger className="h-10 w-full">
+    92→                <SelectValue placeholder="Select a type" />
+    93→              </SelectTrigger>
+    94→              <SelectContent>
+    95→                {types.map((t) => (
+    96→                  <SelectItem key={t} value={t}>
+    97→                    {t}
+    98→                  </SelectItem>
+    99→                ))}
+   100→                <SelectItem value="__custom">Custom…</SelectItem>
+   101→              </SelectContent>
+   102→            </Select>
+   103→            {!typeKnown && (
+   104→              <Input
+   105→                value={form.type}
+   106→                onChange={(e) => update({ type: e.target.value })}
+   107→                placeholder="Enter a custom type, e.g. Basis Trade"
+   108→                className="mt-2 h-10"
+   109→              />
+   110→            )}
+   111→          </Field>
+   112→
+   113→          <Field label="Strategy ID" hint="Auto-generated when left empty.">
+   114→            <Input
+   115→              value={form.strategyId}
+   116→              onChange={(e) => update({ strategyId: e.target.value })}
+   117→              placeholder="STRATEGY_001"
+   118→              className="h-10 font-mono text-sm"
+   119→            />
+   120→          </Field>
+   121→        </div>
+   122→
+   123→        <Field label="Slug" hint="Public URL key — auto-derived from the name until you edit it.">
+   124→          <Input
+   125→            value={form.slug}
+   126→            onChange={(e) => update({ slug: e.target.value, slugLocked: true })}
+   127→            placeholder="accumulation-lp"
+   128→            className="h-10 font-mono text-sm"
+   129→          />
+   130→        </Field>
+   131→
+   132→        <Field
+   133→          label="Short summary"
+   134→          hint={`One or two sentences shown on archive cards. ${form.summary.length}/240 characters.`}
+   135→        >
+   136→          <Textarea
+   137→            value={form.summary}
+   138→            onChange={(e) => update({ summary: e.target.value.slice(0, 240) })}
+   139→            placeholder="A short explanation of what the strategy does and when it shines."
+   140→            rows={3}
+   141→            className="min-h-[96px] text-sm"
+   142→          />
+   143→        </Field>
+   144→
+   145→        <Field
+   146→          label="Full description"
+   147→          hint="The main body of the detail page. Separate paragraphs with a blank line."
+   148→        >
+   149→          <Textarea
+   150→            value={form.description}
+   151→            onChange={(e) => update({ description: e.target.value })}
+   152→            placeholder="What the strategy is trying to accomplish, how it behaves, and what it trades off…"
+   153→            rows={6}
+   154→            className="min-h-[160px] text-sm leading-relaxed"
+   155→          />
+   156→        </Field>
+   157→      </div>
+   158→    </SectionSurface>
+   159→  )
+   160→}
+   161→
+   162→// ---------------------------------------------------------------------------
+   163→// 02 — Instructions
+   164→// ---------------------------------------------------------------------------
+   165→
+   166→export function InstructionsSection({ form, update }: SectionProps) {
+   167→  const setSteps = (steps: StrategyFormState["steps"]) => update({ steps })
+   168→
+   169→  const moveStep = (index: number, direction: -1 | 1) => {
+   170→    const next = [...form.steps]
+   171→    const target = index + direction
+   172→    if (target < 0 || target >= next.length) return
+   173→    ;[next[index], next[target]] = [next[target], next[index]]
+   174→    setSteps(next)
+   175→  }
+   176→
+   177→  return (
+   178→    <SectionSurface
+   179→      title="Instructions"
+   180→      description="The step-by-step execution flow shown on the strategy detail page."
+   181→    >
+   182→      <div className="space-y-3">
+   183→        {form.steps.map((step, i) => (
+   184→          <div key={i} className="rounded-lg border border-gray-200 bg-gray-50/60">
+   185→            <div className="flex items-center justify-between border-b border-gray-200/70 px-4 py-2">
+   186→              <span className="font-mono text-xs font-semibold text-gray-400">
+   187→                {String(i + 1).padStart(2, "0")}
+   188→              </span>
+   189→              <div className="flex items-center gap-0.5">
+   190→                <Button
+   191→                  type="button"
+   192→                  variant="ghost"
+   193→                  size="icon"
+   194→                  className="size-8 text-gray-400 hover:text-gray-900"
+   195→                  disabled={i === 0}
+   196→                  onClick={() => moveStep(i, -1)}
+   197→                  aria-label="Move step up"
+   198→                >
+   199→                  <ArrowUp className="size-4" />
+   200→                </Button>
+   201→                <Button
+   202→                  type="button"
+   203→                  variant="ghost"
+   204→                  size="icon"
+   205→                  className="size-8 text-gray-400 hover:text-gray-900"
+   206→                  disabled={i === form.steps.length - 1}
+   207→                  onClick={() => moveStep(i, 1)}
+   208→                  aria-label="Move step down"
+   209→                >
+   210→                  <ArrowDown className="size-4" />
+   211→                </Button>
+   212→                <Button
+   213→                  type="button"
+   214→                  variant="ghost"
+   215→                  size="icon"
+   216→                  className="size-8 text-gray-400 hover:bg-red-50 hover:text-red-600"
+   217→                  onClick={() => setSteps(form.steps.filter((_, j) => j !== i))}
+   218→                  aria-label="Delete step"
+   219→                >
+   220→                  <Trash2 className="size-4" />
+   221→                </Button>
+   222→              </div>
+   223→            </div>
+   224→            <div className="space-y-4 p-4">
+   225→              <Field label="Step title">
+   226→                <Input
+   227→                  value={step.title}
+   228→                  onChange={(e) =>
+   229→                    setSteps(form.steps.map((s, j) => (j === i ? { ...s, title: e.target.value } : s)))
+   230→                  }
+   231→                  placeholder="e.g. Deposit ETH and USDC"
+   232→                  className="h-10 bg-white text-sm font-medium"
+   233→                />
+   234→              </Field>
+   235→              <Field label="Description" hint="What happens in this step and what to decide or watch.">
+   236→                <Textarea
+   237→                  value={step.description}
+   238→                  onChange={(e) =>
+   239→                    setSteps(
+   240→                      form.steps.map((s, j) => (j === i ? { ...s, description: e.target.value } : s))
+   241→                    )
+   242→                  }
+   243→                  placeholder="Details for this step…"
+   244→                  rows={3}
+   245→                  className="min-h-[80px] bg-white text-sm"
+   246→                />
+   247→              </Field>
+   248→            </div>
+   249→          </div>
+   250→        ))}
+   251→        <Button
+   252→          type="button"
+   253→          variant="outline"
+   254→          size="sm"
+   255→          className="h-9 w-full border-dashed text-xs text-gray-600"
+   256→          onClick={() => setSteps([...form.steps, { title: "", description: "" }])}
+   257→        >
+   258→          <Plus className="size-3.5" /> Add step
+   259→        </Button>
+   260→      </div>
+   261→
+   262→      <div className="mt-8 border-t border-gray-100 pt-7">
+   263→        <GroupHeading
+   264→          title="Entry conditions"
+   265→          description="When should someone start this strategy?"
+   266→        />
+   267→        <StringListEditor
+   268→          items={form.entryConditions}
+   269→          onChange={(items) => update({ entryConditions: items })}
+   270→          placeholder="e.g. Market regime is Bear or Sideways"
+   271→          addLabel="Add condition"
+   272→        />
+   273→      </div>
+   274→
+   275→      <div className="mt-7 border-t border-gray-100 pt-7">
+   276→        <GroupHeading
+   277→          title="Exit conditions"
+   278→          description="When should someone stop or unwind it?"
+   279→        />
+   280→        <StringListEditor
+   281→          items={form.exitConditions}
+   282→          onChange={(items) => update({ exitConditions: items })}
+   283→          placeholder="e.g. Confirmed bull-regime breakout"
+   284→          addLabel="Add condition"
+   285→        />
+   286→      </div>
+   287→    </SectionSurface>
+   288→  )
+   289→}
+   290→
+   291→// ---------------------------------------------------------------------------
+   292→// 03 — Market fit
+   293→// ---------------------------------------------------------------------------
+   294→
+   295→export function MarketFitSection({ form, update }: SectionProps) {
+   296→  const toggleRegime = (regime: Regime) => {
+   297→    const regimes = form.marketFit.regimes.includes(regime)
+   298→      ? form.marketFit.regimes.filter((r) => r !== regime)
+   299→      : [...form.marketFit.regimes, regime]
+   300→    update({ marketFit: { ...form.marketFit, regimes } })
+   301→  }
+   302→
+   303→  const selectedRegimes = REGIMES.filter((r) => form.marketFit.regimes.includes(r))
+   304→
+   305→  return (
+   306→    <SectionSurface
+   307→      title="Market Fit"
+   308→      description="Which market regimes this strategy is designed for. Optional 0–100 fit scores power future AI matching."
+   309→    >
+   310→      <div className="grid gap-3 sm:grid-cols-3">
+   311→        {REGIMES.map((regime) => {
+   312→          const selected = form.marketFit.regimes.includes(regime)
+   313→          return (
+   314→            <button
+   315→              key={regime}
+   316→              type="button"
+   317→              onClick={() => toggleRegime(regime)}
+   318→              aria-pressed={selected}
+   319→              className={cn(
+   320→                "rounded-lg border p-4 text-left transition-colors",
+   321→                selected
+   322→                  ? "border-gray-900 bg-gray-50"
+   323→                  : "border-gray-200 bg-white hover:border-gray-400"
+   324→              )}
+   325→            >
+   326→              <div className="flex items-center justify-between">
+   327→                <span className="text-sm font-semibold text-gray-900">
+   328→                  {REGIME_LABELS[regime]}
+   329→                </span>
+   330→                <span
+   331→                  className={cn(
+   332→                    "flex size-4 items-center justify-center rounded-full border transition-colors",
+   333→                    selected
+   334→                      ? "border-gray-900 bg-gray-900 text-white"
+   335→                      : "border-gray-300 text-transparent"
+   336→                  )}
+   337→                >
+   338→                  <Check className="size-3" strokeWidth={3} />
+   339→                </span>
+   340→              </div>
+   341→              <p className="mt-1 text-xs text-gray-500">{REGIME_HINTS[regime]}</p>
+   342→            </button>
+   343→          )
+   344→        })}
+   345→      </div>
+   346→
+   347→      {selectedRegimes.length > 0 && (
+   348→        <div className="mt-7">
+   349→          <GroupHeading title="Fit scores" description="0–100 — how well the strategy fits each selected regime." />
+   350→          <div className="max-w-md space-y-3">
+   351→            {selectedRegimes.map((regime) => (
+   352→              <div key={regime} className="flex items-center gap-4">
+   353→                <span className="w-24 shrink-0 text-sm font-medium text-gray-700">
+   354→                  {REGIME_LABELS[regime]}
+   355→                </span>
+   356→                <Input
+   357→                  value={form.marketFit.scores[regime]}
+   358→                  onChange={(e) =>
+   359→                    update({
+   360→                      marketFit: {
+   361→                        ...form.marketFit,
+   362→                        scores: {
+   363→                          ...form.marketFit.scores,
+   364→                          [regime]: e.target.value.replace(/\D/g, "").slice(0, 3),
+   365→                        },
+   366→                      },
+   367→                    })
+   368→                  }
+   369→                  placeholder="0–100"
+   370→                  inputMode="numeric"
+   371→                  className="h-10 w-24 bg-white text-right font-mono text-sm"
+   372→                />
+   373→              </div>
+   374→            ))}
+   375→          </div>
+   376→        </div>
+   377→      )}
+   378→
+   379→      <div className="mt-8 border-t border-gray-100 pt-7">
+   380→        <Field
+   381→          label="Why does this strategy fit these regimes?"
+   382→          hint="Shown on the detail page under Market Fit."
+   383→        >
+   384→          <Textarea
+   385→            value={form.marketFit.explanation}
+   386→            onChange={(e) =>
+   387→              update({ marketFit: { ...form.marketFit, explanation: e.target.value } })
+   388→            }
+   389→            placeholder="Explain why the strategy suits these regimes (and not the others)…"
+   390→            rows={4}
+   391→            className="min-h-[128px] text-sm leading-relaxed"
+   392→          />
+   393→        </Field>
+   394→      </div>
+   395→    </SectionSurface>
+   396→  )
+   397→}
+   398→
+   399→// ---------------------------------------------------------------------------
+   400→// 04 — Assets
+   401→// ---------------------------------------------------------------------------
+   402→
+   403→function AssetRoleGroup({
+   404→  label,
+   405→  hint,
+   406→  role,
+   407→  form,
+   408→  update,
+   409→  list,
+   410→}: {
+   411→  label: string
+   412→  hint: string
+   413→  role: "depositAssetIds" | "exposureAssetIds" | "rewardAssetIds"
+   414→  form: StrategyFormState
+   415→  update: (patch: Partial<StrategyFormState>) => void
+   416→  list: { id: string; symbol: string; name: string; category: string | null; iconUrl: string | null; active: boolean }[]
+   417→}) {
+   418→  const toggle = (id: string) => {
+   419→    const selected = form[role].includes(id)
+   420→    update({
+   421→      [role]: selected ? form[role].filter((x) => x !== id) : [...form[role], id],
+   422→    } as Partial<StrategyFormState>)
+   423→  }
+   424→
+   425→  return (
+   426→    <div>
+   427→      <GroupHeading title={label} description={hint} />
+   428→      <SearchMultiSelect
+   429→        options={list.map((a) => ({
+   430→          id: a.id,
+   431→          label: a.symbol,
+   432→          sub: a.name,
+   433→          icon: <AssetIcon symbol={a.symbol} category={a.category} iconUrl={a.iconUrl} size={18} />,
+   434→        }))}
+   435→        selected={form[role]}
+   436→        onToggle={toggle}
+   437→        placeholder="Search assets…"
+   438→        searchPlaceholder="Search by symbol or name…"
+   439→        emptyText={list.length === 0 ? "No assets yet — create them under Assets." : "No matches."}
+   440→      />
+   441→    </div>
+   442→  )
+   443→}
+   444→
+   445→export function AssetsSection({ form, update }: SectionProps) {
+   446→  const { data: assets } = useAssets()
+   447→  const list = (assets ?? []).filter((a) => a.active)
+   448→
+   449→  return (
+   450→    <SectionSurface
+   451→      title="Assets"
+   452→      description="Tokens involved in this strategy, grouped by the role they play."
+   453→    >
+   454→      <div className="space-y-8">
+   455→        <AssetRoleGroup
+   456→          label="Deposit assets"
+   457→          hint="What users need to put in."
+   458→          role="depositAssetIds"
+   459→          form={form}
+   460→          update={update}
+   461→          list={list}
+   462→        />
+   463→        <div className="border-t border-gray-100 pt-7">
+   464→          <AssetRoleGroup
+   465→            label="Exposure assets"
+   466→            hint="What the position creates exposure to."
+   467→            role="exposureAssetIds"
+   468→            form={form}
+   469→            update={update}
+   470→            list={list}
+   471→          />
+   472→        </div>
+   473→        <div className="border-t border-gray-100 pt-7">
+   474→          <AssetRoleGroup
+   475→            label="Reward tokens"
+   476→            hint="Incentive tokens the strategy may earn."
+   477→            role="rewardAssetIds"
+   478→            form={form}
+   479→            update={update}
+   480→            list={list}
+   481→          />
+   482→        </div>
+   483→      </div>
+   484→    </SectionSurface>
+   485→  )
+   486→}
+   487→
+   488→// ---------------------------------------------------------------------------
+   489→// 05 — Platforms
+   490→// ---------------------------------------------------------------------------
+   491→
+   492→export function PlatformsSection({ form, update }: SectionProps) {
+   493→  const { data: networks } = useNetworks()
+   494→  const { data: protocols } = useProtocols()
+   495→  const activeNetworks = (networks ?? []).filter((n) => n.active)
+   496→  const activeProtocols = (protocols ?? []).filter((p) => p.active)
+   497→
+   498→  const toggleNetwork = (id: string) => {
+   499→    const selected = form.networkIds.includes(id)
+   500→    update({
+   501→      networkIds: selected ? form.networkIds.filter((x) => x !== id) : [...form.networkIds, id],
+   502→    })
+   503→  }
+   504→
+   505→  const toggleProtocol = (id: string) => {
+   506→    const selected = form.protocolIds.includes(id)
+   507→    update({
+   508→      protocolIds: selected ? form.protocolIds.filter((x) => x !== id) : [...form.protocolIds, id],
+   509→    })
+   510→  }
+   511→
+   512→  return (
+   513→    <SectionSurface
+   514→      title="Platforms"
+   515→      description="Where this strategy runs and which protocols it uses."
+   516→    >
+   517→      <GroupHeading title="Networks" description="Chains the strategy is deployed on." />
+   518→      <SearchMultiSelect
+   519→        options={activeNetworks.map((n) => ({
+   520→          id: n.id,
+   521→          label: n.name,
+   522→          icon: <NetworkIcon name={n.name} iconUrl={n.iconUrl} size={18} />,
+   523→        }))}
+   524→        selected={form.networkIds}
+   525→        onToggle={toggleNetwork}
+   526→        placeholder="Search networks…"
+   527→        searchPlaceholder="Search networks…"
+   528→        emptyText={activeNetworks.length === 0 ? "No networks — add them under Networks." : "No matches."}
+   529→      />
+   530→
+   531→      <div className="mt-8 border-t border-gray-100 pt-7">
+   532→        <GroupHeading title="Protocols" description="Applications the strategy interacts with." />
+   533→        <SearchMultiSelect
+   534→          options={activeProtocols.map((p) => ({
+   535→            id: p.id,
+   536→            label: p.name,
+   537→            icon: <ProtocolIcon name={p.name} iconUrl={p.iconUrl} size={18} />,
+   538→          }))}
+   539→          selected={form.protocolIds}
+   540→          onToggle={toggleProtocol}
+   541→          placeholder="Search protocols…"
+   542→          searchPlaceholder="Search protocols…"
+   543→          emptyText={activeProtocols.length === 0 ? "No protocols — add them under Protocols." : "No matches."}
+   544→        />
+   545→      </div>
+   546→    </SectionSurface>
+   547→  )
+   548→}
+   549→
+   550→// ---------------------------------------------------------------------------
+   551→// 06 — Risk
+   552→// ---------------------------------------------------------------------------
+   553→
+   554→function RiskSelect({
+   555→  label,
+   556→  value,
+   557→  options,
+   558→  onChange,
+   559→}: {
+   560→  label: string
+   561→  value: RiskLevel | ExposureLevel
+   562→  options: { value: string; label: string }[]
+   563→  onChange: (v: string) => void
+   564→}) {
+   565→  return (
+   566→    <Field label={label}>
+   567→      <Select value={value} onValueChange={onChange}>
+   568→        <SelectTrigger className="h-10 w-full">
+   569→          <SelectValue />
+   570→        </SelectTrigger>
+   571→        <SelectContent>
+   572→          {options.map((o) => (
+   573→            <SelectItem key={o.value} value={o.value}>
+   574→              {o.label}
+   575→            </SelectItem>
+   576→          ))}
+   577→        </SelectContent>
+   578→      </Select>
+   579→    </Field>
+   580→  )
+   581→}
+   582→
+   583→export function RiskSection({ form, update }: SectionProps) {
+   584→  const risk = form.risk
+   585→  const setRisk = (patch: Partial<StrategyFormState["risk"]>) =>
+   586→    update({ risk: { ...risk, ...patch } })
+   587→
+   588→  const riskOptions = RISK_LEVELS.map((v) => ({ value: v, label: RISK_LABELS[v] }))
+   589→  const exposureOptions = EXPOSURE_LEVELS.map((v) => ({ value: v, label: EXPOSURE_LABELS[v] }))
+   590→
+   591→  return (
+   592→    <SectionSurface
+   593→      title="Risk"
+   594→      description="Structured risk classification — used by the public filters and future AI matching."
+   595→    >
+   596→      <div className="grid gap-6 sm:grid-cols-2">
+   597→        <RiskSelect
+   598→          label="Overall risk"
+   599→          value={risk.overallRisk}
+   600→          options={riskOptions}
+   601→          onChange={(v) => setRisk({ overallRisk: v as RiskLevel })}
+   602→        />
+   603→        <RiskSelect
+   604→          label="Liquidation exposure"
+   605→          value={risk.liquidationExposure}
+   606→          options={exposureOptions}
+   607→          onChange={(v) => setRisk({ liquidationExposure: v as ExposureLevel })}
+   608→        />
+   609→        <RiskSelect
+   610→          label="Smart contract risk"
+   611→          value={risk.smartContractRisk}
+   612→          options={riskOptions}
+   613→          onChange={(v) => setRisk({ smartContractRisk: v as RiskLevel })}
+   614→        />
+   615→        <RiskSelect
+   616→          label="Impermanent loss"
+   617→          value={risk.impermanentLoss}
+   618→          options={exposureOptions}
+   619→          onChange={(v) => setRisk({ impermanentLoss: v as ExposureLevel })}
+   620→        />
+   621→        <RiskSelect
+   622→          label="Asset volatility"
+   623→          value={risk.assetVolatility}
+   624→          options={exposureOptions}
+   625→          onChange={(v) => setRisk({ assetVolatility: v as ExposureLevel })}
+   626→        />
+   627→        <RiskSelect
+   628→          label="Incentive reliance"
+   629→          value={risk.incentiveReliance}
+   630→          options={exposureOptions}
+   631→          onChange={(v) => setRisk({ incentiveReliance: v as ExposureLevel })}
+   632→        />
+   633→      </div>
+   634→
+   635→      <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-lg border border-gray-200 bg-gray-50/60 p-4 sm:p-5">
+   636→        <div>
+   637→          <div className="text-sm font-medium text-gray-900">Leverage used</div>
+   638→          <div className="mt-0.5 text-xs text-gray-500">
+   639→            Does the strategy borrow or use leverage?
+   640→          </div>
+   641→        </div>
+   642→        <Switch
+   643→          checked={risk.leverageUsed}
+   644→          onCheckedChange={(checked) => setRisk({ leverageUsed: checked })}
+   645→          aria-label="Toggle leverage used"
+   646→        />
+   647→      </div>
+   648→      {risk.leverageUsed && (
+   649→        <div className="mt-4 max-w-sm">
+   650→          <Field label="Leverage amount" hint="e.g. 1–3x effective notional.">
+   651→            <Input
+   652→              value={risk.leverageAmount}
+   653→              onChange={(e) => setRisk({ leverageAmount: e.target.value })}
+   654→              placeholder="1–3x"
+   655→              className="h-10 font-mono text-sm"
+   656→            />
+   657→          </Field>
+   658→        </div>
+   659→      )}
+   660→
+   661→      <div className="mt-8 border-t border-gray-100 pt-7">
+   662→        <Field label="Risk explanation" hint="The narrative shown under the risk table on the detail page.">
+   663→          <Textarea
+   664→            value={risk.explanation}
+   665→            onChange={(e) => setRisk({ explanation: e.target.value })}
+   666→            placeholder="Explain the dominant risks, the tail risks, and what the strategy does NOT protect against…"
+   667→            rows={5}
+   668→            className="min-h-[140px] text-sm leading-relaxed"
+   669→          />
+   670→        </Field>
+   671→      </div>
+   672→
+   673→      <div className="mt-6">
+   674→        <Field label="Withdrawal restrictions" hint="How quickly capital can be withdrawn, if constrained.">
+   675→          <Input
+   676→            value={risk.withdrawalRestrictions}
+   677→            onChange={(e) => setRisk({ withdrawalRestrictions: e.target.value })}
+   678→            placeholder="e.g. Instant via swap; queue for exact value"
+   679→            className="h-10 text-sm"
+   680→          />
+   681→        </Field>
+   682→      </div>
+   683→    </SectionSurface>
+   684→  )
+   685→}
+   686→
+   687→// ---------------------------------------------------------------------------
+   688→// 07 — Requirements
+   689→// ---------------------------------------------------------------------------
+   690→
+   691→export function RequirementsSection({ form, update }: SectionProps) {
+   692→  const req = form.requirements
+   693→  const setReq = (patch: Partial<StrategyFormState["requirements"]>) =>
+   694→    update({ requirements: { ...req, ...patch } })
+   695→  const setRisk = (patch: Partial<StrategyFormState["risk"]>) =>
+   696→    update({ risk: { ...form.risk, ...patch } })
+   697→
+   698→  return (
+   699→    <SectionSurface
+   700→      title="Requirements"
+   701→      description="What a user needs before starting this strategy."
+   702→    >
+   703→      <div className="grid gap-6 sm:grid-cols-2">
+   704→        <Field label="Minimum capital" hint="e.g. $2,000">
+   705→          <Input
+   706→            value={req.minCapital}
+   707→            onChange={(e) => setReq({ minCapital: e.target.value })}
+   708→            placeholder="$2,000"
+   709→            className="h-10 font-mono text-sm"
+   710→          />
+   711→        </Field>
+   712→        <Field label="Lockup period" hint="How long capital is committed.">
+   713→          <Input
+   714→            value={form.risk.lockupPeriod}
+   715→            onChange={(e) => setRisk({ lockupPeriod: e.target.value })}
+   716→            placeholder="e.g. Until maturity (3–12 months)"
+   717→            className="h-10 text-sm"
+   718→          />
+   719→        </Field>
+   720→      </div>
+   721→
+   722→      <div className="mt-7">
+   723→        <GroupHeading title="Required holdings" description="Assets the user must already own." />
+   724→        <StringListEditor
+   725→          items={req.requiredHoldings}
+   726→          onChange={(items) => setReq({ requiredHoldings: items })}
+   727→          placeholder="e.g. ETH"
+   728→          addLabel="Add required holding"
+   729→        />
+   730→      </div>
+   731→
+   732→      <div className="mt-7 border-t border-gray-100 pt-7">
+   733→        <Field label="Wallet / network setup" hint="Wallet and tooling prerequisites.">
+   734→          <Input
+   735→            value={req.walletSetup}
+   736→            onChange={(e) => setReq({ walletSetup: e.target.value })}
+   737→            placeholder="Ethereum-compatible wallet with a gas buffer"
+   738→            className="h-10 text-sm"
+   739→          />
+   740→        </Field>
+   741→      </div>
+   742→
+   743→      <div className="mt-6">
+   744→        <Field label="Other prerequisites" hint="Skills, monitoring cadence, platform access…">
+   745→          <Textarea
+   746→            value={req.other}
+   747→            onChange={(e) => setReq({ other: e.target.value })}
+   748→            placeholder="Must be able to interact with Uniswap V3 and monitor the position weekly…"
+   749→            rows={3}
+   750→            className="min-h-[96px] text-sm"
+   751→          />
+   752→        </Field>
+   753→      </div>
+   754→    </SectionSurface>
+   755→  )
+   756→}
+   757→
+   758→// ---------------------------------------------------------------------------
+   759→// 08 — References
+   760→// ---------------------------------------------------------------------------
+   761→
+   762→export function ReferencesSection({ form, update }: SectionProps) {
+   763→  const refs = form.references
+   764→  const setRefs = (references: StrategyFormState["references"]) => update({ references })
+   765→
+   766→  return (
+   767→    <SectionSurface
+   768→      title="References"
+   769→      description="Primary sources and documentation that back this strategy."
+   770→    >
+   771→      <div className="space-y-3">
+   772→        {refs.map((ref, i) => (
+   773→          <div key={i} className="rounded-lg border border-gray-200 bg-gray-50/60">
+   774→            <div className="flex items-center justify-between border-b border-gray-200/70 px-4 py-2">
+   775→              <span className="font-mono text-xs font-semibold text-gray-400">
+   776→                {String(i + 1).padStart(2, "0")}
+   777→              </span>
+   778→              <Button
+   779→                type="button"
+   780→                variant="ghost"
+   781→                size="sm"
+   782→                className="h-7 gap-1 px-2 text-xs text-gray-400 hover:bg-red-50 hover:text-red-600"
+   783→                onClick={() => setRefs(refs.filter((_, j) => j !== i))}
+   784→              >
+   785→                <Trash2 className="size-3.5" /> Remove
+   786→              </Button>
+   787→            </div>
+   788→            <div className="grid gap-5 p-4 sm:grid-cols-2">
+   789→              <Field label="Title">
+   790→                <Input
+   791→                  value={ref.title}
+   792→                  onChange={(e) =>
+   793→                    setRefs(refs.map((r, j) => (j === i ? { ...r, title: e.target.value } : r)))
+   794→                  }
+   795→                  placeholder="Uniswap V3 Documentation"
+   796→                  className="h-10 bg-white text-sm"
+   797→                />
+   798→              </Field>
+   799→              <Field label="URL">
+   800→                <Input
+   801→                  value={ref.url}
+   802→                  onChange={(e) =>
+   803→                    setRefs(refs.map((r, j) => (j === i ? { ...r, url: e.target.value } : r)))
+   804→                  }
+   805→                  placeholder="https://…"
+   806→                  className="h-10 bg-white font-mono text-sm"
+   807→                />
+   808→              </Field>
+   809→              <Field label="Publisher">
+   810→                <Input
+   811→                  value={ref.publisher}
+   812→                  onChange={(e) =>
+   813→                    setRefs(refs.map((r, j) => (j === i ? { ...r, publisher: e.target.value } : r)))
+   814→                  }
+   815→                  placeholder="Uniswap Labs"
+   816→                  className="h-10 bg-white text-sm"
+   817→                />
+   818→              </Field>
+   819→              <Field label="Notes" hint="What this reference supports.">
+   820→                <Input
+   821→                  value={ref.notes}
+   822→                  onChange={(e) =>
+   823→                    setRefs(refs.map((r, j) => (j === i ? { ...r, notes: e.target.value } : r)))
+   824→                  }
+   825→                  placeholder="Optional"
+   826→                  className="h-10 bg-white text-sm"
+   827→                />
+   828→              </Field>
+   829→            </div>
+   830→          </div>
+   831→        ))}
+   832→        <Button
+   833→          type="button"
+   834→          variant="outline"
+   835→          size="sm"
+   836→          className="h-9 w-full border-dashed text-xs text-gray-600"
+   837→          onClick={() => setRefs([...refs, { title: "", url: "", publisher: "", notes: "" }])}
+   838→        >
+   839→          <Plus className="size-3.5" /> Add reference
+   840→        </Button>
+   841→      </div>
+   842→
+   843→      <div className="mt-8 border-t border-gray-100 pt-7">
+   844→        <Field label="Last reviewed date" hint="Shown publicly as e.g. “Sep 2026”.">
+   845→          <Input
+   846→            type="date"
+   847→            value={form.lastReviewedAt}
+   848→            onChange={(e) => update({ lastReviewedAt: e.target.value })}
+   849→            className="h-10 w-48 font-mono text-sm"
+   850→          />
+   851→        </Field>
+   852→      </div>
+   853→    </SectionSurface>
+   854→  )
+   855→}
+   856→
+   857→// ---------------------------------------------------------------------------
+   858→// 09 — Status
+   859→// ---------------------------------------------------------------------------
+   860→
+   861→const STATUS_EXPLANATIONS: Record<StrategyStatus, string> = {
+   862→  DRAFT: "Admin only.",
+   863→  PUBLISHED: "Visible publicly and available for future agent matching.",
+   864→  ARCHIVED: "Retained but hidden from normal browsing.",
+   865→}
+   866→
+   867→export function StatusSection({
+   868→  form,
+   869→  update,
+   870→  children,
+   871→}: SectionProps & { children?: React.ReactNode }) {
+   872→  return (
+   873→    <div className="space-y-6">
+   874→      <SectionSurface
+   875→        title="Status"
+   876→        description="Control where this strategy is visible."
+   877→      >
+   878→        <div className="grid gap-3 sm:grid-cols-3">
+   879→          {STRATEGY_STATUSES.map((status) => {
+   880→            const active = form.status === status
+   881→            const isPublished = status === "PUBLISHED"
+   882→            return (
+   883→              <button
+   884→                key={status}
+   885→                type="button"
+   886→                onClick={() => update({ status })}
+   887→                aria-pressed={active}
+   888→                className={cn(
+   889→                  "rounded-lg border p-4 text-left transition-colors",
+   890→                  active
+   891→                    ? isPublished
+   892→                      ? "border-emerald-600 bg-emerald-50/50"
+   893→                      : "border-gray-900 bg-gray-50"
+   894→                    : "border-gray-200 bg-white hover:border-gray-400"
+   895→                )}
+   896→              >
+   897→                <div className="flex items-center justify-between">
+   898→                  <span className="text-sm font-semibold text-gray-900">
+   899→                    {STATUS_LABELS[status]}
+   900→                  </span>
+   901→                  {active && (
+   902→                    <Check
+   903→                      className={cn(
+   904→                        "size-4 shrink-0",
+   905→                        isPublished ? "text-emerald-600" : "text-gray-900"
+   906→                      )}
+   907→                      strokeWidth={3}
+   908→                    />
+   909→                  )}
+   910→                </div>
+   911→                <p className="mt-1.5 text-xs leading-relaxed text-gray-500">
+   912→                  {STATUS_EXPLANATIONS[status]}
+   913→                </p>
+   914→              </button>
+   915→            )
+   916→          })}
+   917→        </div>
+   918→
+   919→        <div className="mt-7 border-t border-gray-100 pt-7">
+   920→          <Field
+   921→            label="Revision note"
+   922→            hint="Optional note stored with the snapshot created by this save."
+   923→          >
+   924→            <Input
+   925→              value={form.changeNote}
+   926→              onChange={(e) => update({ changeNote: e.target.value })}
+   927→              placeholder="e.g. Tightened exit conditions after review"
+   928→              className="h-10 text-sm"
+   929→            />
+   930→          </Field>
+   931→        </div>
+   932→      </SectionSurface>
+   933→
+   934→      {children}
+   935→    </div>
+   936→  )
+   937→}
+   938→

@@ -1,0 +1,204 @@
+// Matrix Strategy Archives — Prisma schema
+// Core collections: Strategy (the knowledge base), Asset / Network / Protocol
+// (reusable taxonomy), Revision (immutable history snapshots).
+//
+// NOTE ON JSON STRING FIELDS
+// SQLite (via Prisma) does not support scalar lists or nested objects, so
+// structured strategy sub-documents (steps, risk, market fit, requirements,
+// references, conditions) are stored as JSON strings and (de)serialized in
+// src/lib/server/strategy-serializer.ts. The public/admin API always exposes
+// them as proper structured JSON — never as raw strings.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Taxonomy: Assets (tokens) referenced by strategies
+// ---------------------------------------------------------------------------
+model Asset {
+  id          String   @id @default(cuid())
+  symbol      String   @unique // e.g. "ETH"
+  name        String // e.g. "Ethereum"
+  coingeckoId String? // reserved for future CoinGecko metadata sync
+  iconUrl     String? // optional custom icon; UI falls back to monogram icons
+  category    String? // "native" | "stablecoin" | "lst" | "governance" | custom
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  depositStrategies  StrategyDepositAsset[]
+  exposureStrategies StrategyExposureAsset[]
+  rewardStrategies   StrategyRewardAsset[]
+}
+
+// ---------------------------------------------------------------------------
+// Taxonomy: Networks (Ethereum, Arbitrum, Base, Solana, ...)
+// ---------------------------------------------------------------------------
+model Network {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  chainId   Int? // EVM chain id; null for non-EVM networks (e.g. Solana)
+  iconUrl   String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  strategies StrategyNetwork[]
+}
+
+// ---------------------------------------------------------------------------
+// Taxonomy: Protocols (Aave, Uniswap, Lido, ...)
+// ---------------------------------------------------------------------------
+model Protocol {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  website     String?
+  description String?
+  iconUrl     String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  strategies StrategyProtocol[]
+}
+
+// ---------------------------------------------------------------------------
+// Strategy — the permanent, structured strategy definition.
+//
+// IMPORTANT ARCHITECTURAL NOTE (data separation):
+// Live market data (APY, TVL, prices, current regime, incentives...) must
+// NEVER live here. This model describes *how the strategy works*. Changing
+// market observations will later be attached by Matrix Finance / AI agents
+// through separate tables or services keyed by strategy id.
+// ---------------------------------------------------------------------------
+model Strategy {
+  id          String    @id @default(cuid())
+  strategyId  String    @unique // human reference, e.g. "STRATEGY_001"
+  name        String
+  slug        String    @unique // public URL key, e.g. "accumulation-lp"
+  summary     String    @default("") // short one-liner for cards
+  description String    @default("") // long-form overview
+  type        String // extendable, e.g. "Concentrated Liquidity" (no enum on purpose)
+  status      String    @default("DRAFT") // DRAFT | PUBLISHED | ARCHIVED
+
+  // JSON payloads (see serializer for shapes)
+  marketFit       String @default("{}") // regimes + explanation + optional fit scores
+  objectivesJson  String @default("[]") // user-facing objectives (yield, accumulation, ...)
+  steps           String @default("[]") // ordered steps
+  entryConditions String @default("[]") // list of conditions
+  exitConditions  String @default("[]") // list of conditions
+  risk            String @default("{}") // structured risk profile
+  requirements    String @default("{}") // capital / holdings / prerequisites
+  referencesJson  String @default("[]") // source references
+
+  lastReviewedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  depositAssets  StrategyDepositAsset[]
+  exposureAssets StrategyExposureAsset[]
+  rewardAssets   StrategyRewardAsset[]
+  networks       StrategyNetwork[]
+  protocols      StrategyProtocol[]
+  revisions      Revision[]
+  observations   MarketObservation[]
+}
+
+// --- Explicit join tables (needed because each m:n has a distinct meaning) ---
+
+model StrategyDepositAsset {
+  strategyId String
+  assetId    String
+
+  strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([strategyId, assetId])
+}
+
+model StrategyExposureAsset {
+  strategyId String
+  assetId    String
+
+  strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([strategyId, assetId])
+}
+
+model StrategyRewardAsset {
+  strategyId String
+  assetId    String
+
+  strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([strategyId, assetId])
+}
+
+model StrategyNetwork {
+  strategyId String
+  networkId  String
+
+  strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  network  Network  @relation(fields: [networkId], references: [id], onDelete: Cascade)
+
+  @@id([strategyId, networkId])
+}
+
+model StrategyProtocol {
+  strategyId String
+  protocolId String
+
+  strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  protocol Protocol @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+
+  @@id([strategyId, protocolId])
+}
+
+// ---------------------------------------------------------------------------
+// Revision — immutable snapshot of a strategy taken before each material edit.
+// Enables history inspection and one-click restore.
+// ---------------------------------------------------------------------------
+model Revision {
+  id             String   @id @default(cuid())
+  strategyId     String
+  revisionNumber Int
+  snapshot       String // JSON snapshot of the full StrategyDTO at save time
+  changeNote     String?
+  createdAt      DateTime @default(now())
+
+  strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+
+  @@unique([strategyId, revisionNumber])
+}
+
+// ---------------------------------------------------------------------------
+// MarketObservation — the live-data layer (data-separation rule in action).
+//
+// Strategy rows describe HOW a strategy works and never change with the
+// market. Observations are time-series snapshots of realized market state
+// (APY, TVL) keyed by strategy id, recorded by admin curators or Matrix
+// agents. Latest observations are surfaced on cards / detail pages; the
+// full series feeds the performance charts.
+// ---------------------------------------------------------------------------
+model MarketObservation {
+  id         Int      @id @default(autoincrement())
+  strategyId String
+  apy        Float // annualized percentage yield, e.g. 4.2 == 4.2%
+  tvl        Float // total value locked, USD
+  source     String   @default("admin") // "admin" | "simulated" | "agent" | free-form
+  recordedAt DateTime @default(now())
+
+  strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+
+  @@index([strategyId, recordedAt])
+}

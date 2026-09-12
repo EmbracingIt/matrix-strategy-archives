@@ -1,0 +1,863 @@
+     1→"use client"
+     2→
+     3→import { useEffect, useMemo, useState } from "react"
+     4→import Link from "next/link"
+     5→import { ArrowLeft, ArrowUpRight } from "lucide-react"
+     6→import { useStrategy } from "@/hooks/use-strategy-data"
+     7→import { formatDate, formatMonthYear } from "@/lib/format"
+     8→import { urls } from "@/lib/nav"
+     9→import { objectiveLabels } from "@/lib/strategyObjectives"
+    10→import { secondaryRegimeDef } from "@/lib/secondary-regimes"
+    11→import { ArcAssetIcon, ArcIconStack, ArcNetworkIcon, ArcProtocolIcon } from "@/components/archive/archive-icons"
+    12→import { cn } from "@/lib/utils"
+    13→import type { ExposureLevel, Regime, RiskLevel, StrategyDTO } from "@/lib/types"
+    14→
+    15→/**
+    16→ * STRATEGY RECORD — opening a complete archived record. Editorial layout:
+    17→ * a sticky section index (01–09), big readable text, thin rules, numbered
+    18→ * methodology and research provenance. The index tracks scroll position.
+    19→ */
+    20→
+    21→const SECTIONS = [
+    22→  { id: "overview", code: "01", label: "OVERVIEW" },
+    23→  { id: "instructions", code: "02", label: "INSTRUCTIONS" },
+    24→  { id: "entry-exit", code: "03", label: "ENTRY / EXIT" },
+    25→  { id: "market-fit", code: "04", label: "MARKET FIT" },
+    26→  { id: "risk", code: "05", label: "RISK" },
+    27→  { id: "assets", code: "06", label: "ASSETS" },
+    28→  { id: "platforms", code: "07", label: "PLATFORMS" },
+    29→  { id: "requirements", code: "08", label: "REQUIREMENTS" },
+    30→  { id: "references", code: "09", label: "REFERENCES" },
+    31→] as const
+    32→
+    33→const REGIME_ARROWS: Record<Regime, string> = { BULL: "↗", SIDEWAYS: "→", BEAR: "↘" }
+    34→const REGIME_TEXT: Record<Regime, string> = {
+    35→  BULL: "text-arc-green",
+    36→  SIDEWAYS: "text-arc-amber",
+    37→  BEAR: "text-arc-red",
+    38→}
+    39→const RISK_TEXT: Record<RiskLevel, string> = {
+    40→  LOW: "text-arc-green",
+    41→  MEDIUM: "text-arc-amber",
+    42→  HIGH: "text-arc-red",
+    43→  VERY_HIGH: "text-arc-red",
+    44→}
+    45→const EXPOSURE_TEXT: Record<ExposureLevel, string> = {
+    46→  NONE: "text-arc-green",
+    47→  LOW: "text-arc-green",
+    48→  MEDIUM: "text-arc-amber",
+    49→  HIGH: "text-arc-red",
+    50→}
+    51→
+    52→export function StrategyRecordView({ slug }: { slug: string }) {
+    53→  const { data: strategy, isLoading, isError, refetch } = useStrategy(slug)
+    54→
+    55→  const [activeSection, setActiveSection] = useState<string>("overview")
+    56→
+    57→  // Scrollspy for the record index.
+    58→  useEffect(() => {
+    59→    if (!strategy) return
+    60→    const observer = new IntersectionObserver(
+    61→      (entries) => {
+    62→        for (const entry of entries) {
+    63→          if (entry.isIntersecting) setActiveSection(entry.target.id)
+    64→        }
+    65→      },
+    66→      { rootMargin: "-20% 0px -70% 0px" }
+    67→    )
+    68→    for (const section of SECTIONS) {
+    69→      const element = document.getElementById(section.id)
+    70→      if (element) observer.observe(element)
+    71→    }
+    72→    return () => observer.disconnect()
+    73→  }, [strategy])
+    74→
+    75→  const uniqueAssets = useMemo(() => {
+    76→    if (!strategy) return []
+    77→    return [
+    78→      ...new Map(
+    79→        [...strategy.depositAssets, ...strategy.exposureAssets].map((a) => [a.symbol, a])
+    80→      ).values(),
+    81→    ]
+    82→  }, [strategy])
+    83→
+    84→  if (isLoading) {
+    85→    return (
+    86→      <div className="mx-auto max-w-[1380px] animate-pulse px-4 py-16 sm:px-8">
+    87→        <div className="h-4 w-40 bg-white/5" />
+    88→        <div className="mt-8 h-14 w-2/3 bg-white/5" />
+    89→        <div className="mt-10 h-64 bg-white/[0.03]" />
+    90→      </div>
+    91→    )
+    92→  }
+    93→
+    94→  if (isError || !strategy) {
+    95→    return (
+    96→      <div className="mx-auto max-w-[1380px] px-4 py-16 sm:px-8">
+    97→        <div className="flex flex-col items-center border border-white/10 bg-arc-surface px-6 py-24 text-center">
+    98→          <p className="arc-mono text-arc-red">RECORD NOT FOUND</p>
+    99→          <p className="mt-3 max-w-md text-[14px] text-arc-muted">
+   100→            This record does not exist in the archive, or it has been withdrawn.
+   101→          </p>
+   102→          <Link
+   103→            href={urls.allRecords()}
+   104→            className="arc-mono mt-8 flex h-11 items-center border border-white/15 px-6 text-arc-text transition-colors hover:border-white/40"
+   105→          >
+   106→            ← BACK TO ALL RECORDS
+   107→          </Link>
+   108→        </div>
+   109→      </div>
+   110→    )
+   111→  }
+   112→
+   113→  return (
+   114→    <article>
+   115→      <div className="mx-auto max-w-[1380px] px-4 sm:px-8">
+   116→        {/* Non-published banner */}
+   117→        {strategy.status !== "PUBLISHED" && (
+   118→          <div
+   119→            className={cn(
+   120→              "mt-6 flex items-center gap-3 border px-4 py-3",
+   121→              strategy.status === "DRAFT"
+   122→                ? "border-arc-amber/40 bg-arc-amber/10 text-arc-amber"
+   123→                : "border-white/15 bg-white/5 text-arc-muted"
+   124→            )}
+   125→          >
+   126→            <span className="arc-mono">
+   127→              {strategy.status === "DRAFT" ? "DRAFT RECORD — NOT YET PUBLISHED" : "ARCHIVED RECORD — RETAINED FOR REFERENCE"}
+   128→            </span>
+   129→          </div>
+   130→        )}
+   131→
+   132→        {/* Record header */}
+   133→        <header className="border-b border-white/10 py-10 sm:py-14">
+   134→          <div className="flex flex-wrap items-center gap-4">
+   135→            <Link
+   136→              href={urls.allRecords()}
+   137→              className="arc-mono flex items-center gap-2 text-arc-muted transition-colors hover:text-arc-text"
+   138→            >
+   139→              <ArrowLeft className="size-3.5" aria-hidden /> ALL RECORDS
+   140→            </Link>
+   141→            <span className="arc-mono text-arc-dim">ARCHIVE RECORD / {strategy.strategyId}</span>
+   142→          </div>
+   143→
+   144→          <h1 className="mt-6 max-w-4xl font-serif text-[clamp(2.4rem,5.5vw,4.4rem)] font-light leading-[1.02] tracking-[-0.02em] text-arc-text">
+   145→            {strategy.name}
+   146→          </h1>
+   147→
+   148→          <p className="arc-mono mt-5 text-[11px] text-arc-dim">
+   149→            {(objectiveLabels(strategy).join(" / ") || strategy.type).toUpperCase()} ·{" "}
+   150→            {strategy.type.toUpperCase()}
+   151→          </p>
+   152→
+   153→          {/* Composition */}
+   154→          <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-4 border-y border-white/[0.07] py-5">
+   155→            {uniqueAssets.length > 0 && (
+   156→              <span className="flex items-center gap-3">
+   157→                <ArcIconStack ringClass="ring-arc-bg">
+   158→                  {uniqueAssets.slice(0, 4).map((asset) => (
+   159→                    <ArcAssetIcon
+   160→                      key={asset.id}
+   161→                      symbol={asset.symbol}
+   162→                      category={asset.category}
+   163→                      iconUrl={asset.iconUrl}
+   164→                      size={24}
+   165→                    />
+   166→                  ))}
+   167→                </ArcIconStack>
+   168→                <span className="text-[13px] font-medium text-arc-text">
+   169→                  {uniqueAssets.map((a) => a.symbol).join(" / ")}
+   170→                </span>
+   171→              </span>
+   172→            )}
+   173→            {strategy.protocols.length > 0 && (
+   174→              <span className="flex items-center gap-2.5 text-[13px] text-arc-muted">
+   175→                <ArcProtocolIcon
+   176→                  name={strategy.protocols[0].name}
+   177→                  iconUrl={strategy.protocols[0].iconUrl}
+   178→                  size={22}
+   179→                />
+   180→                {strategy.protocols.map((p) => p.name).join(", ")}
+   181→              </span>
+   182→            )}
+   183→            {strategy.networks.length > 0 && (
+   184→              <span className="flex items-center gap-2.5 text-[13px] text-arc-muted">
+   185→                <ArcNetworkIcon
+   186→                  name={strategy.networks[0].name}
+   187→                  iconUrl={strategy.networks[0].iconUrl}
+   188→                  size={22}
+   189→                />
+   190→                {strategy.networks.map((n) => n.name).join(", ")}
+   191→              </span>
+   192→            )}
+   193→            {strategy.latestObservation && (
+   194→              <span className="arc-mono ml-auto text-[11px] text-arc-green">
+   195→                APY {strategy.latestObservation.apy.toFixed(1)}% · TVL{" "}
+   196→                {(strategy.latestObservation.tvl / 1_000_000).toFixed(1)}M
+   197→              </span>
+   198→            )}
+   199→          </div>
+   200→
+   201→          <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
+   202→            {strategy.marketFit?.regimes?.map((regime) => (
+   203→              <span
+   204→                key={regime}
+   205→                className={cn("arc-mono text-[12px]", REGIME_TEXT[regime] ?? "text-arc-muted")}
+   206→              >
+   207→                {REGIME_ARROWS[regime]} {regime}
+   208→              </span>
+   209→            ))}
+   210→            <span className={cn("arc-mono text-[12px]", RISK_TEXT[strategy.risk?.overallRisk ?? "MEDIUM"])}>
+   211→              {strategy.risk?.overallRisk?.replace("_", " ")} RISK
+   212→            </span>
+   213→            <span className="arc-mono text-[12px] text-arc-muted">
+   214→              LAST REVIEWED {formatMonthYear(strategy.lastReviewedAt).toUpperCase()}
+   215→            </span>
+   216→          </div>
+   217→        </header>
+   218→
+   219→        {/* Body: sticky index + editorial sections */}
+   220→        <div className="grid gap-10 py-12 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-16">
+   221→          <RecordIndex active={activeSection} />
+   222→
+   223→          <div className="min-w-0 space-y-16">
+   224→            <OverviewSection strategy={strategy} />
+   225→            <InstructionsSection strategy={strategy} />
+   226→            <EntryExitSection strategy={strategy} />
+   227→            <MarketFitSection strategy={strategy} />
+   228→            <RiskSection strategy={strategy} />
+   229→            <AssetsSection strategy={strategy} />
+   230→            <PlatformsSection strategy={strategy} />
+   231→            <RequirementsSection strategy={strategy} />
+   232→            <ReferencesSection strategy={strategy} />
+   233→          </div>
+   234→        </div>
+   235→
+   236→        {/* Record footer */}
+   237→        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/10 py-8">
+   238→          <p className="arc-mono text-arc-dim">
+   239→            END OF RECORD — {strategy.strategyId}
+   240→          </p>
+   241→          <div className="flex items-center gap-6">
+   242→            <Link href={urls.explore({ step: "market" })} className="arc-mono text-arc-muted transition-colors hover:text-arc-text">
+   243→              NEW RETRIEVAL →
+   244→            </Link>
+   245→            <Link href={urls.allRecords()} className="arc-mono text-arc-muted transition-colors hover:text-arc-text">
+   246→              ALL RECORDS →
+   247→            </Link>
+   248→          </div>
+   249→        </div>
+   250→      </div>
+   251→    </article>
+   252→  )
+   253→}
+   254→
+   255→function RecordIndex({ active }: { active: string }) {
+   256→  return (
+   257→    <>
+   258→      {/* Desktop sticky index */}
+   259→      <nav aria-label="Record sections" className="hidden lg:block">
+   260→        <div className="sticky top-24">
+   261→          <p className="arc-mono mb-4 text-arc-dim">RECORD INDEX</p>
+   262→          <ol className="space-y-0.5 border-l border-white/10">
+   263→            {SECTIONS.map((section) => {
+   264→              const isActive = section.id === active
+   265→              return (
+   266→                <li key={section.id}>
+   267→                  <a
+   268→                    href={`#${section.id}`}
+   269→                    className={cn(
+   270→                      "-ml-px flex items-center gap-3 border-l-2 py-2 pl-4 transition-colors",
+   271→                      isActive
+   272→                        ? "border-arc-green text-arc-text"
+   273→                        : "border-transparent text-arc-muted hover:text-arc-text"
+   274→                    )}
+   275→                  >
+   276→                    <span className="font-mono text-[10px] tabular-nums text-arc-dim">{section.code}</span>
+   277→                    <span className="arc-mono text-[10px]">{section.label}</span>
+   278→                  </a>
+   279→                </li>
+   280→              )
+   281→            })}
+   282→          </ol>
+   283→        </div>
+   284→      </nav>
+   285→
+   286→      {/* Mobile horizontal index */}
+   287→      <nav
+   288→        aria-label="Record sections"
+   289→        className="arc-scroll -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:hidden"
+   290→      >
+   291→        {SECTIONS.map((section) => {
+   292→          const isActive = section.id === active
+   293→          return (
+   294→            <a
+   295→              key={section.id}
+   296→              href={`#${section.id}`}
+   297→              className={cn(
+   298→                "arc-mono shrink-0 border px-3 py-2 text-[10px] transition-colors",
+   299→                isActive
+   300→                  ? "border-arc-green/50 bg-arc-green/10 text-arc-green"
+   301→                  : "border-white/10 text-arc-muted"
+   302→              )}
+   303→            >
+   304→              {section.code} {section.label}
+   305→            </a>
+   306→          )
+   307→        })}
+   308→      </nav>
+   309→    </>
+   310→  )
+   311→}
+   312→
+   313→function SectionRule({ code, title }: { code: string; title: string }) {
+   314→  return (
+   315→    <div className="border-t border-white/10 pt-6">
+   316→      <div className="flex items-baseline gap-4">
+   317→        <span className="arc-mono text-arc-green">{code}</span>
+   318→        <h2 className="font-serif text-[1.55rem] font-light tracking-[-0.01em] text-arc-text">
+   319→          {title}
+   320→        </h2>
+   321→      </div>
+   322→    </div>
+   323→  )
+   324→}
+   325→
+   326→function OverviewSection({ strategy }: { strategy: StrategyDTO }) {
+   327→  const facts: { label: string; value: React.ReactNode }[] = [
+   328→    { label: "TYPE", value: strategy.type },
+   329→    {
+   330→      label: "OBJECTIVES",
+   331→      value: objectiveLabels(strategy).join(" / ") || "—",
+   332→    },
+   333→    {
+   334→      label: "REGIMES",
+   335→      value: strategy.marketFit?.regimes?.join(" · ") ?? "—",
+   336→    },
+   337→    {
+   338→      label: "OVERALL RISK",
+   339→      value: (
+   340→        <span className={RISK_TEXT[strategy.risk?.overallRisk ?? "MEDIUM"]}>
+   341→          {strategy.risk?.overallRisk?.replace("_", " ")}
+   342→        </span>
+   343→      ),
+   344→    },
+   345→    { label: "MIN CAPITAL", value: strategy.requirements?.minCapital || "—" },
+   346→    { label: "RECORD OPENED", value: formatDate(strategy.createdAt) },
+   347→    { label: "LAST REVIEWED", value: formatDate(strategy.lastReviewedAt) },
+   348→  ]
+   349→
+   350→  return (
+   351→    <section id="overview" aria-label="Overview">
+   352→      <SectionRule code="01" title="Overview" />
+   353→      {strategy.summary && (
+   354→        <p className="mt-6 max-w-3xl font-serif text-[clamp(1.2rem,2vw,1.5rem)] font-light leading-[1.5] text-arc-text/90">
+   355→          {strategy.summary}
+   356→        </p>
+   357→      )}
+   358→      {strategy.description && (
+   359→        <p className="mt-6 max-w-3xl whitespace-pre-line text-[15px] leading-[1.75] text-arc-muted">
+   360→          {strategy.description}
+   361→        </p>
+   362→      )}
+   363→
+   364→      <dl className="mt-10 grid grid-cols-2 gap-px border border-white/10 bg-white/10 sm:grid-cols-3 xl:grid-cols-4">
+   365→        {facts.map((fact) => (
+   366→          <div key={fact.label} className="bg-arc-surface px-4 py-4">
+   367→            <dt className="arc-mono text-[10px] text-arc-dim">{fact.label}</dt>
+   368→            <dd className="mt-1.5 text-[13.5px] font-medium text-arc-text">{fact.value}</dd>
+   369→          </div>
+   370→        ))}
+   371→      </dl>
+   372→    </section>
+   373→  )
+   374→}
+   375→
+   376→function InstructionsSection({ strategy }: { strategy: StrategyDTO }) {
+   377→  const steps = strategy.steps ?? []
+   378→  return (
+   379→    <section id="instructions" aria-label="Instructions">
+   380→      <SectionRule code="02" title="Methodology" />
+   381→      {steps.length === 0 ? (
+   382→        <p className="mt-6 text-[14px] text-arc-muted">No methodology documented for this record.</p>
+   383→      ) : (
+   384→        <ol className="mt-8 space-y-0">
+   385→          {steps.map((step, index) => (
+   386→            <li
+   387→              key={index}
+   388→              className="relative grid gap-3 border-l border-white/10 pb-10 pl-10 last:pb-0 sm:grid-cols-[1fr_2fr] sm:gap-8"
+   389→            >
+   390→              <span
+   391→                className="absolute left-0 top-1.5 size-[7px] -translate-x-[4px] bg-arc-green"
+   392→                aria-hidden
+   393→              />
+   394→              <div>
+   395→                <span className="font-mono text-[26px] font-light tabular-nums leading-none text-arc-green/80">
+   396→                  {String(index + 1).padStart(2, "0")}
+   397→                </span>
+   398→                <h3 className="mt-2 text-[15px] font-semibold tracking-tight text-arc-text">
+   399→                  {step.title}
+   400→                </h3>
+   401→              </div>
+   402→              {step.description && (
+   403→                <p className="max-w-2xl text-[14px] leading-[1.7] text-arc-muted">{step.description}</p>
+   404→              )}
+   405→            </li>
+   406→          ))}
+   407→        </ol>
+   408→      )}
+   409→    </section>
+   410→  )
+   411→}
+   412→
+   413→function EntryExitSection({ strategy }: { strategy: StrategyDTO }) {
+   414→  const entry = strategy.entryConditions ?? []
+   415→  const exit = strategy.exitConditions ?? []
+   416→  return (
+   417→    <section id="entry-exit" aria-label="Entry and exit conditions">
+   418→      <SectionRule code="03" title="Entry / Exit" />
+   419→      <div className="mt-8 grid gap-8 lg:grid-cols-2 lg:gap-12">
+   420→        <ConditionColumn
+   421→          title="ENTRY"
+   422→          tone="text-arc-green"
+   423→          marker="bg-arc-green"
+   424→          conditions={entry}
+   425→        />
+   426→        <ConditionColumn
+   427→          title="EXIT"
+   428→          tone="text-arc-red"
+   429→          marker="bg-arc-red"
+   430→          conditions={exit}
+   431→        />
+   432→      </div>
+   433→    </section>
+   434→  )
+   435→}
+   436→
+   437→function ConditionColumn({
+   438→  title,
+   439→  tone,
+   440→  marker,
+   441→  conditions,
+   442→}: {
+   443→  title: string
+   444→  tone: string
+   445→  marker: string
+   446→  conditions: string[]
+   447→}) {
+   448→  return (
+   449→    <div>
+   450→      <p className={cn("arc-mono border-b border-white/10 pb-3", tone)}>{title} CONDITIONS</p>
+   451→      {conditions.length === 0 ? (
+   452→        <p className="mt-5 text-[13.5px] text-arc-dim">None documented.</p>
+   453→      ) : (
+   454→        <ol className="mt-5 space-y-4">
+   455→          {conditions.map((condition, index) => (
+   456→            <li key={index} className="flex gap-4">
+   457→              <span className={cn("mt-[7px] size-1.5 shrink-0", marker)} aria-hidden />
+   458→              <span className="text-[14px] leading-[1.65] text-arc-muted">{condition}</span>
+   459→            </li>
+   460→          ))}
+   461→        </ol>
+   462→      )}
+   463→    </div>
+   464→  )
+   465→}
+   466→
+   467→function MarketFitSection({ strategy }: { strategy: StrategyDTO }) {
+   468→  const regimes: Regime[] = ["BULL", "SIDEWAYS", "BEAR"]
+   469→  const scores = strategy.marketFit?.scores ?? {}
+   470→  const declared = strategy.marketFit?.regimes ?? []
+   471→  const secondary = strategy.marketFit?.secondaryRegimes ?? []
+   472→  const secondaryScores = strategy.marketFit?.secondaryScores ?? {}
+   473→
+   474→  return (
+   475→    <section id="market-fit" aria-label="Market fit">
+   476→      <SectionRule code="04" title="Market Fit" />
+   477→      <div className="mt-8 max-w-2xl space-y-5">
+   478→        {regimes.map((regime) => {
+   479→          const score = scores[regime]
+   480→          const active = declared.includes(regime)
+   481→          return (
+   482→            <div key={regime}>
+   483→              <div className="flex items-baseline justify-between gap-4">
+   484→                <span
+   485→                  className={cn(
+   486→                    "arc-mono text-[11px]",
+   487→                    active ? REGIME_TEXT[regime] : "text-arc-dim"
+   488→                  )}
+   489→                >
+   490→                  {REGIME_ARROWS[regime]} {regime}
+   491→                  {!active && <span className="ml-2 text-arc-dim/70">NOT DESIGNED</span>}
+   492→                </span>
+   493→                <span className="font-mono text-[13px] tabular-nums text-arc-text">
+   494→                  {typeof score === "number" ? score : "—"}
+   495→                </span>
+   496→              </div>
+   497→              <div className="mt-2 h-[3px] w-full bg-white/10" aria-hidden>
+   498→                <span
+   499→                  className={cn(
+   500→                    "block h-full transition-all",
+   501→                    active
+   502→                      ? regime === "BULL"
+   503→                        ? "bg-arc-green"
+   504→                        : regime === "SIDEWAYS"
+   505→                          ? "bg-arc-amber"
+   506→                          : "bg-arc-red"
+   507→                      : "bg-white/15"
+   508→                  )}
+   509→                  style={{ width: `${typeof score === "number" ? score : 4}%` }}
+   510→                />
+   511→              </div>
+   512→            </div>
+   513→          )
+   514→        })}
+   515→      </div>
+   516→      {strategy.marketFit?.explanation && (
+   517→        <p className="mt-8 max-w-2xl text-[14px] leading-[1.75] text-arc-muted">
+   518→          {strategy.marketFit.explanation}
+   519→        </p>
+   520→      )}
+   521→
+   522→      {/* Level-2: only the market phases this record actually declares. */}
+   523→      {secondary.length > 0 && (
+   524→        <div className="mt-10 max-w-2xl border-t border-white/10 pt-6">
+   525→          <p className="arc-mono text-[11px] text-arc-muted">
+   526→            <span className="mr-2 inline-block size-1.5 rounded-full bg-arc-green align-middle" aria-hidden />
+   527→            BEST DURING — MARKET PHASES
+   528→          </p>
+   529→          <div className="mt-5 space-y-6">
+   530→            {secondary.map((value) => {
+   531→              const def = secondaryRegimeDef(value)
+   532→              const score = secondaryScores[value]
+   533→              return (
+   534→                <div key={value}>
+   535→                  <div className="flex items-baseline justify-between gap-4">
+   536→                    <span className="arc-mono text-[11px] text-arc-text">
+   537→                      {def?.label.toUpperCase() ?? value}
+   538→                      <span className="ml-2.5 text-arc-dim">
+   539→                        {def?.parent
+   540→                          ? `INSIDE ${def.parent}`
+   541→                          : def?.transition
+   542→                            ? def.transition.toUpperCase()
+   543→                            : null}
+   544→                      </span>
+   545→                    </span>
+   546→                    {typeof score === "number" ? (
+   547→                      <span className="font-mono text-[13px] tabular-nums text-arc-green">
+   548→                        {score}
+   549→                      </span>
+   550→                    ) : (
+   551→                      <span className="arc-mono text-[10px] text-arc-dim">DECLARED</span>
+   552→                    )}
+   553→                  </div>
+   554→                  {def?.meaning && (
+   555→                    <p className="mt-1.5 max-w-xl text-[13px] leading-[1.6] text-arc-muted">
+   556→                      {def.meaning}
+   557→                    </p>
+   558→                  )}
+   559→                  {typeof score === "number" && (
+   560→                    <div className="mt-2 h-[3px] w-full bg-white/10" aria-hidden>
+   561→                      <span
+   562→                        className="block h-full bg-arc-green transition-all"
+   563→                        style={{ width: `${score}%` }}
+   564→                      />
+   565→                    </div>
+   566→                  )}
+   567→                </div>
+   568→              )
+   569→            })}
+   570→          </div>
+   571→        </div>
+   572→      )}
+   573→    </section>
+   574→  )
+   575→}
+   576→
+   577→function RiskSection({ strategy }: { strategy: StrategyDTO }) {
+   578→  const risk = strategy.risk
+   579→  if (!risk) return null
+   580→
+   581→  const rows: { label: string; value: React.ReactNode }[] = [
+   582→    {
+   583→      label: "Overall",
+   584→      value: <span className={RISK_TEXT[risk.overallRisk]}>{risk.overallRisk?.replace("_", " ")}</span>,
+   585→    },
+   586→    {
+   587→      label: "Leverage",
+   588→      value: risk.leverageUsed ? (
+   589→        <span className="text-arc-red">Yes{risk.leverageAmount ? ` — ${risk.leverageAmount}` : ""}</span>
+   590→      ) : (
+   591→        <span className="text-arc-green">None</span>
+   592→      ),
+   593→    },
+   594→    {
+   595→      label: "Liquidation exposure",
+   596→      value: <span className={EXPOSURE_TEXT[risk.liquidationExposure]}>{risk.liquidationExposure}</span>,
+   597→    },
+   598→    {
+   599→      label: "Impermanent loss",
+   600→      value: <span className={EXPOSURE_TEXT[risk.impermanentLoss]}>{risk.impermanentLoss}</span>,
+   601→    },
+   602→    {
+   603→      label: "Smart contract risk",
+   604→      value: <span className={RISK_TEXT[risk.smartContractRisk]}>{risk.smartContractRisk?.replace("_", " ")}</span>,
+   605→    },
+   606→    {
+   607→      label: "Asset volatility",
+   608→      value: <span className={EXPOSURE_TEXT[risk.assetVolatility]}>{risk.assetVolatility}</span>,
+   609→    },
+   610→    {
+   611→      label: "Incentive reliance",
+   612→      value: <span className={EXPOSURE_TEXT[risk.incentiveReliance]}>{risk.incentiveReliance}</span>,
+   613→    },
+   614→    {
+   615→      label: "Withdrawal restrictions",
+   616→      value: risk.withdrawalRestrictions || <span className="text-arc-green">None</span>,
+   617→    },
+   618→    {
+   619→      label: "Lockup period",
+   620→      value: risk.lockupPeriod || "—",
+   621→    },
+   622→  ]
+   623→
+   624→  return (
+   625→    <section id="risk" aria-label="Risk">
+   626→      <SectionRule code="05" title="Risk" />
+   627→      <dl className="mt-8 max-w-2xl">
+   628→        {rows.map((row) => (
+   629→          <div
+   630→            key={row.label}
+   631→            className="flex items-baseline justify-between gap-6 border-b border-white/[0.07] py-3.5"
+   632→          >
+   633→            <dt className="text-[13.5px] text-arc-muted">{row.label}</dt>
+   634→            <dd className="text-right text-[13.5px] font-medium text-arc-text">{row.value}</dd>
+   635→          </div>
+   636→        ))}
+   637→      </dl>
+   638→      {risk.explanation && (
+   639→        <div className="mt-8 max-w-2xl border-l-2 border-arc-amber/60 pl-5">
+   640→          <p className="arc-mono mb-3 text-[10px] text-arc-amber">RISK EXPLANATION</p>
+   641→          <p className="text-[14px] leading-[1.75] text-arc-muted">{risk.explanation}</p>
+   642→        </div>
+   643→      )}
+   644→    </section>
+   645→  )
+   646→}
+   647→
+   648→function AssetsSection({ strategy }: { strategy: StrategyDTO }) {
+   649→  const groups = [
+   650→    { label: "DEPOSIT ASSETS", assets: strategy.depositAssets, note: "What you put in" },
+   651→    { label: "EXPOSURE ASSETS", assets: strategy.exposureAssets, note: "What you are exposed to" },
+   652→    { label: "REWARD ASSETS", assets: strategy.rewardAssets, note: "What you earn" },
+   653→  ]
+   654→
+   655→  return (
+   656→    <section id="assets" aria-label="Assets">
+   657→      <SectionRule code="06" title="Assets" />
+   658→      <div className="mt-8 space-y-8">
+   659→        {groups.map((group) => (
+   660→          <div key={group.label}>
+   661→            <div className="flex items-center gap-4">
+   662→              <p className="arc-mono text-arc-muted">{group.label}</p>
+   663→              <span className="arc-mono text-arc-dim/70">— {group.note}</span>
+   664→            </div>
+   665→            {group.assets.length === 0 ? (
+   666→              <p className="mt-3 text-[13px] text-arc-dim">None</p>
+   667→            ) : (
+   668→              <div className="mt-3.5 flex flex-wrap gap-2.5">
+   669→                {group.assets.map((asset) => (
+   670→                  <span
+   671→                    key={`${group.label}-${asset.id}`}
+   672→                    className="flex items-center gap-3 rounded-full border border-white/10 bg-arc-surface px-3.5 py-2"
+   673→                  >
+   674→                    <ArcAssetIcon
+   675→                      symbol={asset.symbol}
+   676→                      category={asset.category}
+   677→                      iconUrl={asset.iconUrl}
+   678→                      size={20}
+   679→                    />
+   680→                    <span className="text-[13px] font-medium text-arc-text">{asset.symbol}</span>
+   681→                    <span className="text-[11px] text-arc-dim">{asset.name}</span>
+   682→                  </span>
+   683→                ))}
+   684→              </div>
+   685→            )}
+   686→          </div>
+   687→        ))}
+   688→      </div>
+   689→    </section>
+   690→  )
+   691→}
+   692→
+   693→function PlatformsSection({ strategy }: { strategy: StrategyDTO }) {
+   694→  return (
+   695→    <section id="platforms" aria-label="Platforms">
+   696→      <SectionRule code="07" title="Platforms" />
+   697→
+   698→      <div className="mt-8 grid gap-8 sm:grid-cols-2">
+   699→        <div>
+   700→          <p className="arc-mono border-b border-white/10 pb-3 text-arc-muted">NETWORKS</p>
+   701→          <div className="mt-4 space-y-3">
+   702→            {strategy.networks.map((network) => (
+   703→              <span key={network.id} className="flex items-center gap-3 text-[14px] text-arc-text">
+   704→                <ArcNetworkIcon name={network.name} iconUrl={network.iconUrl} size={20} />
+   705→                {network.name}
+   706→                {network.chainId != null && (
+   707→                  <span className="font-mono text-[11px] text-arc-dim">CHAIN {network.chainId}</span>
+   708→                )}
+   709→              </span>
+   710→            ))}
+   711→            {strategy.networks.length === 0 && <p className="text-[13px] text-arc-dim">None</p>}
+   712→          </div>
+   713→        </div>
+   714→
+   715→        <div>
+   716→          <p className="arc-mono border-b border-white/10 pb-3 text-arc-muted">PROTOCOLS</p>
+   717→          <div className="mt-4 space-y-3">
+   718→            {strategy.protocols.map((protocol) => (
+   719→              <span key={protocol.id} className="flex items-center gap-3 text-[14px] text-arc-text">
+   720→                <ArcProtocolIcon name={protocol.name} iconUrl={protocol.iconUrl} size={20} />
+   721→                {protocol.name}
+   722→                {protocol.website && (
+   723→                  <a
+   724→                    href={protocol.website}
+   725→                    target="_blank"
+   726→                    rel="noreferrer"
+   727→                    className="arc-mono flex items-center gap-1 text-[10px] text-arc-dim transition-colors hover:text-arc-green"
+   728→                  >
+   729→                    SOURCE <ArrowUpRight className="size-3" aria-hidden />
+   730→                  </a>
+   731→                )}
+   732→              </span>
+   733→            ))}
+   734→            {strategy.protocols.length === 0 && <p className="text-[13px] text-arc-dim">None</p>}
+   735→          </div>
+   736→        </div>
+   737→      </div>
+   738→    </section>
+   739→  )
+   740→}
+   741→
+   742→function RequirementsSection({ strategy }: { strategy: StrategyDTO }) {
+   743→  const req = strategy.requirements
+   744→  return (
+   745→    <section id="requirements" aria-label="Requirements">
+   746→      <SectionRule code="08" title="Requirements" />
+   747→      <div className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+   748→        <div>
+   749→          <p className="arc-mono text-arc-dim">MINIMUM CAPITAL</p>
+   750→          <p className="mt-2 font-mono text-[22px] font-medium tabular-nums text-arc-text">
+   751→            {req?.minCapital || "—"}
+   752→          </p>
+   753→        </div>
+   754→        <div>
+   755→          <p className="arc-mono text-arc-dim">REQUIRED HOLDINGS</p>
+   756→          {req?.requiredHoldings?.length ? (
+   757→            <div className="mt-2.5 flex flex-wrap gap-2">
+   758→              {req.requiredHoldings.map((holding) => (
+   759→                <span
+   760→                  key={holding}
+   761→                  className="arc-mono border border-white/15 bg-arc-surface px-2.5 py-1 text-arc-text"
+   762→                >
+   763→                  {holding}
+   764→                </span>
+   765→              ))}
+   766→            </div>
+   767→          ) : (
+   768→            <p className="mt-2.5 text-[13.5px] text-arc-muted">None specified</p>
+   769→          )}
+   770→        </div>
+   771→        <div>
+   772→          <p className="arc-mono text-arc-dim">LOCKUP</p>
+   773→          <p className="mt-2 text-[14px] text-arc-text">
+   774→            {strategy.risk?.lockupPeriod || "No lockup"}
+   775→          </p>
+   776→        </div>
+   777→      </div>
+   778→
+   779→      <div className="mt-8 grid gap-8 border-t border-white/[0.07] pt-8 sm:grid-cols-2">
+   780→        <div>
+   781→          <p className="arc-mono text-arc-dim">WALLET / NETWORK SETUP</p>
+   782→          <p className="mt-2.5 max-w-md text-[14px] leading-relaxed text-arc-muted">
+   783→            {req?.walletSetup || "Standard EVM wallet setup."}
+   784→          </p>
+   785→        </div>
+   786→        <div>
+   787→          <p className="arc-mono text-arc-dim">OTHER PREREQUISITES</p>
+   788→          <p className="mt-2.5 max-w-md text-[14px] leading-relaxed text-arc-muted">
+   789→            {req?.other || "None."}
+   790→          </p>
+   791→        </div>
+   792→      </div>
+   793→    </section>
+   794→  )
+   795→}
+   796→
+   797→function ReferencesSection({ strategy }: { strategy: StrategyDTO }) {
+   798→  const references = strategy.references ?? []
+   799→  return (
+   800→    <section id="references" aria-label="References">
+   801→      <SectionRule code="09" title="References" />
+   802→      {references.length === 0 ? (
+   803→        <p className="mt-6 text-[14px] text-arc-muted">No references documented.</p>
+   804→      ) : (
+   805→        <ol className="mt-8">
+   806→          {references.map((reference, index) => (
+   807→            <li
+   808→              key={`${reference.url}-${index}`}
+   809→              className="grid gap-2 border-t border-white/[0.07] py-6 last:border-b sm:grid-cols-[auto_1fr_auto] sm:gap-8"
+   810→            >
+   811→              <span className="font-mono text-[13px] tabular-nums text-arc-dim">
+   812→                {String(index + 1).padStart(3, "0")}
+   813→              </span>
+   814→              <div className="min-w-0">
+   815→                <p className="text-[15px] font-medium text-arc-text">{reference.title}</p>
+   816→                {reference.publisher && (
+   817→                  <p className="arc-mono mt-1.5 text-[10px] text-arc-dim">
+   818→                    {reference.publisher.toUpperCase()}
+   819→                  </p>
+   820→                )}
+   821→                {reference.notes && (
+   822→                  <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-arc-muted">
+   823→                    {reference.notes}
+   824→                  </p>
+   825→                )}
+   826→              </div>
+   827→              {reference.url && (
+   828→                <a
+   829→                  href={reference.url}
+   830→                  target="_blank"
+   831→                  rel="noreferrer"
+   832→                  className="arc-mono flex h-9 items-center gap-2 self-start border border-white/15 px-4 text-arc-muted transition-colors hover:border-arc-green/50 hover:text-arc-green"
+   833→                >
+   834→                  VIEW SOURCE <ArrowUpRight className="size-3.5" aria-hidden />
+   835→                </a>
+   836→              )}
+   837→            </li>
+   838→          ))}
+   839→        </ol>
+   840→      )}
+   841→
+   842→      <div className="mt-10 flex flex-wrap items-center gap-4 border border-dashed border-white/15 bg-arc-surface/50 px-5 py-4">
+   843→        <span className="arc-barcode h-5 w-14 opacity-50" aria-hidden />
+   844→        <div>
+   845→          <p className="arc-mono text-arc-dim">LAST REVIEWED</p>
+   846→          <p className="mt-1 font-mono text-[15px] font-medium uppercase text-arc-text">
+   847→            {strategy.lastReviewedAt
+   848→              ? new Date(strategy.lastReviewedAt).toLocaleDateString("en-GB", {
+   849→                  day: "2-digit",
+   850→                  month: "short",
+   851→                  year: "numeric",
+   852→                })
+   853→              : "NOT YET REVIEWED"}
+   854→          </p>
+   855→        </div>
+   856→        <p className="arc-mono ml-auto hidden text-arc-dim sm:block">
+   857→          RESEARCH PROVENANCE — MATRIX FINANCE
+   858→        </p>
+   859→      </div>
+   860→    </section>
+   861→  )
+   862→}
+   863→

@@ -1,0 +1,1455 @@
+     1→     1→I now want to populate Matrix Strategy Archives with the INITIAL OFFICIAL STRATEGY COLLECTION.
+     2→     2→
+     3→     3→Do not add dozens of strategies yet.
+     4→     4→
+     5→     5→For now, the Archive should contain ONLY the 19 strategy archetypes defined below as the official initial collection.
+     6→     6→
+     7→     7→The goal is not quantity.
+     8→     8→
+     9→     9→The goal is that every strategy is deeply documented, logically classified, genuinely appropriate for its assigned market regimes/phases, and written to the same quality standard as the existing Accumulation LP record.
+    10→    10→
+    11→    11→Do NOT create shallow placeholder records.
+    12→    12→
+    13→    13→Do NOT create one-sentence descriptions simply to populate the UI.
+    14→    14→
+    15→    15→Each strategy must read like a researched Matrix Strategy Archive record.
+    16→    16→
+    17→    17→==================================================
+    18→    18→IMPORTANT BACKEND RULES
+    19→    19→==================================================
+    20→    20→
+    21→    21→Preserve the existing:
+    22→    22→
+    23→    23→- Prisma database
+    24→    24→- strategy schema
+    25→    25→- admin interface
+    26→    26→- revision history
+    27→    27→- assets
+    28→    28→- protocols
+    29→    29→- networks
+    30→    30→- APIs
+    31→    31→- publishing logic
+    32→    32→- primary regimes
+    33→    33→- secondary regimes / Market Phases
+    34→    34→- Archive discovery flow
+    35→    35→
+    36→    36→Do not rebuild the backend.
+    37→    37→
+    38→    38→Use the existing models and extend them only where required.
+    39→    39→
+    40→    40→If some of these strategies require additional assets, protocols, or networks that are not currently in the database, add them through the existing Asset / Protocol / Network models rather than hardcoding strings into the frontend.
+    41→    41→
+    42→    42→Do not create duplicate assets/protocols/networks if they already exist.
+    43→    43→
+    44→    44→For existing old SEED strategies that conflict with this collection:
+    45→    45→
+    46→    46→- replace/update obvious old seed records where appropriate
+    47→    47→- do NOT destructively delete genuine user-created records
+    48→    48→- if necessary, archive obsolete example seed strategies rather than deleting arbitrary database records
+    49→    49→
+    50→    50→The seed script should be safe to run repeatedly using upsert behavior where practical.
+    51→    51→
+    52→    52→==================================================
+    53→    53→ONLY THESE 19 STRATEGIES FOR NOW
+    54→    54→==================================================
+    55→    55→
+    56→    56→Use sequential Archive IDs:
+    57→    57→
+    58→    58→STRATEGY_001
+    59→    59→Accumulation LP
+    60→    60→
+    61→    61→STRATEGY_002
+    62→    62→Stablecoin DCA Into Crypto
+    63→    63→
+    64→    64→STRATEGY_003
+    65→    65→Yield-Funded Accumulation
+    66→    66→
+    67→    67→STRATEGY_004
+    68→    68→Blue-Chip Asset Lending
+    69→    69→
+    70→    70→STRATEGY_005
+    71→    71→Borrow Against BTC
+    72→    72→
+    73→    73→STRATEGY_006
+    74→    74→Bull-Market Hold + Yield
+    75→    75→
+    76→    76→STRATEGY_007
+    77→    77→ETH Liquid Staking
+    78→    78→
+    79→    79→STRATEGY_008
+    80→    80→SOL Liquid Staking
+    81→    81→
+    82→    82→STRATEGY_009
+    83→    83→Distribution LP
+    84→    84→
+    85→    85→STRATEGY_010
+    86→    86→Covered Call Yield
+    87→    87→
+    88→    88→STRATEGY_011
+    89→    89→Stablecoin Yield Rotation
+    90→    90→
+    91→    91→STRATEGY_012
+    92→    92→Deleveraging Into Weakness
+    93→    93→
+    94→    94→STRATEGY_013
+    95→    95→Stablecoin Reserve Strategy
+    96→    96→
+    97→    97→STRATEGY_014
+    98→    98→Capital-Preservation DeFi Portfolio
+    99→    99→
+   100→   100→STRATEGY_015
+   101→   101→Range-Bound Yield LP
+   102→   102→
+   103→   103→STRATEGY_016
+   104→   104→Concentrated Liquidity Provision
+   105→   105→
+   106→   106→STRATEGY_017
+   107→   107→Delta-Neutral LP
+   108→   108→
+   109→   109→STRATEGY_018
+   110→   110→Hedged Concentrated Liquidity
+   111→   111→
+   112→   112→STRATEGY_019
+   113→   113→Market-Neutral Yield Stack
+   114→   114→
+   115→   115→Do NOT automatically generate more strategies beyond these 19.
+   116→   116→
+   117→   117→==================================================
+   118→   118→DOCUMENTATION QUALITY STANDARD
+   119→   119→==================================================
+   120→   120→
+   121→   121→Every strategy must follow the existing Matrix Archive record structure:
+   122→   122→
+   123→   123→01 Overview
+   124→   124→02 Methodology / Instructions
+   125→   125→03 Entry / Exit
+   126→   126→04 Market Fit
+   127→   127→05 Risk
+   128→   128→06 Assets
+   129→   129→07 Platforms
+   130→   130→08 Requirements
+   131→   131→09 References
+   132→   132→
+   133→   133→The existing Accumulation LP documentation should be treated as the QUALITY BENCHMARK.
+   134→   134→
+   135→   135→Each strategy must receive comparable effort.
+   136→   136→
+   137→   137→Do not produce generic template text where only the strategy name changes.
+   138→   138→
+   139→   139→The methodology, entry rules, exit rules, market reasoning, risk reasoning, assets and requirements must be specific to the actual mechanics of that strategy.
+   140→   140→
+   141→   141→==================================================
+   142→   142→01 OVERVIEW
+   143→   143→==================================================
+   144→   144→
+   145→   145→Each record needs:
+   146→   146→
+   147→   147→SHORT SUMMARY
+   148→   148→
+   149→   149→One or two sentences that explain the strategy immediately.
+   150→   150→
+   151→   151→Then a substantial overview explaining:
+   152→   152→
+   153→   153→- what the strategy actually does
+   154→   154→- what economic return it is trying to capture
+   155→   155→- where the yield/return comes from
+   156→   156→- what market conditions make it attractive
+   157→   157→- what trade-off the investor accepts
+   158→   158→- why someone would use it rather than simply holding assets
+   159→   159→- when it may underperform
+   160→   160→- what makes the strategy fundamentally different from similar strategies
+   161→   161→
+   162→   162→Aim for roughly 3–5 useful paragraphs where the strategy warrants it.
+   163→   163→
+   164→   164→Do not write marketing copy.
+   165→   165→
+   166→   166→Write like financial research.
+   167→   167→
+   168→   168→Then include structured metadata:
+   169→   169→
+   170→   170→TYPE
+   171→   171→
+   172→   172→OBJECTIVES
+   173→   173→
+   174→   174→PRIMARY REGIMES
+   175→   175→
+   176→   176→MARKET PHASES
+   177→   177→
+   178→   178→OVERALL RISK
+   179→   179→
+   180→   180→MINIMUM CAPITAL
+   181→   181→
+   182→   182→RECORD OPENED
+   183→   183→
+   184→   184→LAST REVIEWED
+   185→   185→
+   186→   186→Use the actual current seed/import date for dates.
+   187→   187→
+   188→   188→Do not invent future review dates.
+   189→   189→
+   190→   190→==================================================
+   191→   191→02 METHODOLOGY
+   192→   192→==================================================
+   193→   193→
+   194→   194→Every strategy should have approximately 4–7 ordered steps.
+   195→   195→
+   196→   196→Each step must include:
+   197→   197→
+   198→   198→step number
+   199→   199→step title
+   200→   200→explanation
+   201→   201→
+   202→   202→The methodology should explain how the strategy would actually be executed.
+   203→   203→
+   204→   204→Avoid useless steps like:
+   205→   205→
+   206→   206→“Research the strategy.”
+   207→   207→
+   208→   208→Instead explain real actions such as:
+   209→   209→
+   210→   210→- deposit collateral
+   211→   211→- choose market
+   212→   212→- establish hedge
+   213→   213→- select LP range
+   214→   214→- borrow asset
+   215→   215→- rebalance
+   216→   216→- monitor LTV
+   217→   217→- rotate capital
+   218→   218→- compound yield
+   219→   219→- close hedge
+   220→   220→- repay debt
+   221→   221→- exit position
+   222→   222→
+   223→   223→Each step should usually contain 2–4 useful sentences.
+   224→   224→
+   225→   225→==================================================
+   226→   226→03 ENTRY / EXIT
+   227→   227→==================================================
+   228→   228→
+   229→   229→Every strategy needs explicit:
+   230→   230→
+   231→   231→ENTRY CONDITIONS
+   232→   232→
+   233→   233→and:
+   234→   234→
+   235→   235→EXIT CONDITIONS
+   236→   236→
+   237→   237→Aim for approximately 4–6 meaningful conditions on each side.
+   238→   238→
+   239→   239→These should be real decision rules.
+   240→   240→
+   241→   241→Do not use vague statements such as:
+   242→   242→
+   243→   243→“Enter when conditions are good.”
+   244→   244→
+   245→   245→Instead use logic such as:
+   246→   246→
+   247→   247→- selected primary regime is Bull
+   248→   248→- BTC leadership remains intact
+   249→   249→- borrowing LTV remains below predefined comfort threshold
+   250→   250→- volatility is sufficiently low for chosen LP range
+   251→   251→- funding spread remains positive after costs
+   252→   252→- position yield exceeds opportunity cost
+   253→   253→- asset allocation target has not yet been reached
+   254→   254→
+   255→   255→Exit rules should explicitly state what invalidates the strategy.
+   256→   256→
+   257→   257→==================================================
+   258→   258→04 MARKET FIT
+   259→   259→==================================================
+   260→   260→
+   261→   261→Every strategy must have:
+   262→   262→
+   263→   263→Bull fit score 0–100
+   264→   264→
+   265→   265→Sideways fit score 0–100
+   266→   266→
+   267→   267→Bear fit score 0–100
+   268→   268→
+   269→   269→Then only assign the PRIMARY REGIME tags where the strategy genuinely belongs.
+   270→   270→
+   271→   271→A score of 30 does not mean the strategy should necessarily carry that regime tag.
+   272→   272→
+   273→   273→Also assign relevant MARKET PHASES.
+   274→   274→
+   275→   275→Market Phase compatibility must include a 0–100 score where the backend supports it.
+   276→   276→
+   277→   277→Explain WHY the strategy works in its preferred regimes and why it becomes weaker elsewhere.
+   278→   278→
+   279→   279→This explanation is essential.
+   280→   280→
+   281→   281→The Archive must never imply that every strategy works in every market.
+   282→   282→
+   283→   283→==================================================
+   284→   284→MARKET-PHASE COVERAGE REQUIREMENT
+   285→   285→==================================================
+   286→   286→
+   287→   287→The initial collection is deliberately designed so EVERY Market Phase has at least three genuinely suitable strategies.
+   288→   288→
+   289→   289→Use the following as the canonical assignments.
+   290→   290→
+   291→   291→-------------------------
+   292→   292→EARLY RECOVERY
+   293→   293→-------------------------
+   294→   294→
+   295→   295→1. Accumulation LP
+   296→   296→Phase Fit: 95
+   297→   297→
+   298→   298→Reason:
+   299→   299→The market is improving but directional conviction remains uncertain. Accumulation LP allows the investor to continue acquiring the target asset through weakness/ranging while earning fees rather than making one large directional entry.
+   300→   300→
+   301→   301→2. Stablecoin DCA Into Crypto
+   302→   302→Phase Fit: 90
+   303→   303→
+   304→   304→Reason:
+   305→   305→Early recovery is an ideal environment for staged deployment. Conditions have improved enough to justify increasing exposure, but uncertainty remains high enough that gradual purchases are preferable to committing all stablecoin capital immediately.
+   306→   306→
+   307→   307→3. Yield-Funded Accumulation
+   308→   308→Phase Fit: 85
+   309→   309→
+   310→   310→Reason:
+   311→   311→Most capital remains productive while generated yield is gradually redirected into crypto exposure. This gives participation in recovery while preserving a conservative capital base.
+   312→   312→
+   313→   313→-------------------------
+   314→   314→BTC-LED EXPANSION
+   315→   315→-------------------------
+   316→   316→
+   317→   317→1. Blue-Chip Asset Lending
+   318→   318→Phase Fit: 90
+   319→   319→
+   320→   320→Reason:
+   321→   321→BTC and other blue-chip assets can remain held while generating incremental lending yield. The strategy avoids prematurely rotating out of the asset currently leading the market.
+   322→   322→
+   323→   323→2. Borrow Against BTC
+   324→   324→Phase Fit: 95
+   325→   325→
+   326→   326→Reason:
+   327→   327→Allows BTC holders to access stablecoin liquidity without selling the asset that is currently leading the expansion. The primary risk is liquidation if BTC reverses sharply, so conservative LTV management is critical.
+   328→   328→
+   329→   329→3. Bull-Market Hold + Yield
+   330→   330→Phase Fit: 85
+   331→   331→
+   332→   332→Reason:
+   333→   333→During BTC leadership the priority should remain preserving directional upside. Yield components should be additive and should not materially cap participation in the trend.
+   334→   334→
+   335→   335→-------------------------
+   336→   336→ALT EXPANSION
+   337→   337→-------------------------
+   338→   338→
+   339→   339→1. ETH Liquid Staking
+   340→   340→Phase Fit: 90
+   341→   341→
+   342→   342→Reason:
+   343→   343→As capital rotates from BTC toward ETH, liquid staking preserves directional ETH exposure while generating native staking return and retaining DeFi liquidity.
+   344→   344→
+   345→   345→2. SOL Liquid Staking
+   346→   346→Phase Fit: 95
+   347→   347→
+   348→   348→Reason:
+   349→   349→SOL often behaves as a higher-beta asset during broad risk-on expansion. Liquid staking combines directional participation with staking rewards while maintaining composability.
+   350→   350→
+   351→   351→3. Bull-Market Hold + Yield
+   352→   352→Phase Fit: 90
+   353→   353→
+   354→   354→Reason:
+   355→   355→During broad market expansion the largest opportunity cost is capping upside. The strategy focuses on maintaining core directional positions while generating incremental yield where possible.
+   356→   356→
+   357→   357→-------------------------
+   358→   358→LATE BULL / DISTRIBUTION
+   359→   359→-------------------------
+   360→   360→
+   361→   361→1. Distribution LP
+   362→   362→Phase Fit: 95
+   363→   363→
+   364→   364→Reason:
+   365→   365→Liquidity positioned above market can systematically convert appreciated crypto into stablecoins while earning fees, creating a rules-based method for distributing exposure into strength.
+   366→   366→
+   367→   367→2. Covered Call Yield
+   368→   368→Phase Fit: 90
+   369→   369→
+   370→   370→Reason:
+   371→   371→Selling upside optionality becomes more attractive when expected incremental upside is deteriorating and volatility/premium remains elevated. The trade-off of capped upside becomes less costly late in the cycle.
+   372→   372→
+   373→   373→3. Stablecoin Yield Rotation
+   374→   374→Phase Fit: 80
+   375→   375→
+   376→   376→Reason:
+   377→   377→Capital already taken off directional exposure can remain productive by rotating across conservative stablecoin venues rather than sitting completely idle.
+   378→   378→
+   379→   379→-------------------------
+   380→   380→CAPITULATION / DELEVERAGING
+   381→   381→-------------------------
+   382→   382→
+   383→   383→1. Deleveraging Into Weakness
+   384→   384→Phase Fit: 100
+   385→   385→
+   386→   386→Reason:
+   387→   387→The strategy is directly designed for this environment. Falling collateral values and forced liquidations mean the priority is reducing leverage before liquidation thresholds are reached.
+   388→   388→
+   389→   389→2. Stablecoin Reserve Strategy
+   390→   390→Phase Fit: 95
+   391→   391→
+   392→   392→Reason:
+   393→   393→Capital preservation, liquidity and optionality become more valuable than maximizing return during violent deleveraging and protocol stress.
+   394→   394→
+   395→   395→3. Capital-Preservation DeFi Portfolio
+   396→   396→Phase Fit: 90
+   397→   397→
+   398→   398→Reason:
+   399→   399→Diversification across conservative lending, liquid stable reserves and lower-risk venues reduces dependence on one directional asset or one protocol during systemic stress.
+   400→   400→
+   401→   401→-------------------------
+   402→   402→LOW-VOL COMPRESSION
+   403→   403→-------------------------
+   404→   404→
+   405→   405→1. Range-Bound Yield LP
+   406→   406→Phase Fit: 95
+   407→   407→
+   408→   408→Reason:
+   409→   409→A stable trading range allows concentrated liquidity to remain active and earn fees without repeatedly moving out of range.
+   410→   410→
+   411→   411→2. Concentrated Liquidity Provision
+   412→   412→Phase Fit: 90
+   413→   413→
+   414→   414→Reason:
+   415→   415→Lower realized volatility makes tighter ranges more practical, increasing capital efficiency and fee generation per unit of deposited capital.
+   416→   416→
+   417→   417→3. Delta-Neutral LP
+   418→   418→Phase Fit: 85
+   419→   419→
+   420→   420→Reason:
+   421→   421→The strategy can monetize trading activity while reducing directional exposure, making it attractive when the market lacks a persistent trend.
+   422→   422→
+   423→   423→-------------------------
+   424→   424→HIGH-VOLATILITY CHOP
+   425→   425→-------------------------
+   426→   426→
+   427→   427→1. Delta-Neutral LP
+   428→   428→Phase Fit: 90
+   429→   429→
+   430→   430→Reason:
+   431→   431→Large two-way moves create fee opportunities, while the hedge reduces the directional exposure that would otherwise dominate an LP position.
+   432→   432→
+   433→   433→2. Hedged Concentrated Liquidity
+   434→   434→Phase Fit: 95
+   435→   435→
+   436→   436→Reason:
+   437→   437→Concentrated liquidity remains potentially lucrative during active markets, but frequent reversals cause rapidly changing delta. Active hedging is therefore essential.
+   438→   438→
+   439→   439→3. Market-Neutral Yield Stack
+   440→   440→Phase Fit: 90
+   441→   441→
+   442→   442→Reason:
+   443→   443→Repeated directional reversals make outright directional exposure unreliable. A market-neutral stack attempts to isolate yield while offsetting most price exposure.
+   444→   444→
+   445→   445→==================================================
+   446→   446→PRIMARY REGIME GUIDANCE
+   447→   447→==================================================
+   448→   448→
+   449→   449→Use these as the baseline primary-regime assignments.
+   450→   450→
+   451→   451→STRATEGY_001 — Accumulation LP
+   452→   452→Primary:
+   453→   453→Bear
+   454→   454→Sideways
+   455→   455→
+   456→   456→Suggested scores:
+   457→   457→Bull 20
+   458→   458→Sideways 80
+   459→   459→Bear 90
+   460→   460→
+   461→   461→STRATEGY_002 — Stablecoin DCA Into Crypto
+   462→   462→Primary:
+   463→   463→Bear
+   464→   464→Sideways
+   465→   465→
+   466→   466→Suggested scores:
+   467→   467→Bull 35
+   468→   468→Sideways 75
+   469→   469→Bear 85
+   470→   470→
+   471→   471→STRATEGY_003 — Yield-Funded Accumulation
+   472→   472→Primary:
+   473→   473→Bear
+   474→   474→Sideways
+   475→   475→
+   476→   476→Suggested scores:
+   477→   477→Bull 50
+   478→   478→Sideways 80
+   479→   479→Bear 85
+   480→   480→
+   481→   481→STRATEGY_004 — Blue-Chip Asset Lending
+   482→   482→Primary:
+   483→   483→Bull
+   484→   484→Sideways
+   485→   485→
+   486→   486→Suggested scores:
+   487→   487→Bull 85
+   488→   488→Sideways 75
+   489→   489→Bear 55
+   490→   490→
+   491→   491→STRATEGY_005 — Borrow Against BTC
+   492→   492→Primary:
+   493→   493→Bull
+   494→   494→
+   495→   495→Suggested scores:
+   496→   496→Bull 90
+   497→   497→Sideways 60
+   498→   498→Bear 20
+   499→   499→
+   500→   500→STRATEGY_006 — Bull-Market Hold + Yield
+   501→   501→Primary:
+   502→   502→Bull
+   503→   503→
+   504→   504→Suggested scores:
+   505→   505→Bull 95
+   506→   506→Sideways 50
+   507→   507→Bear 20
+   508→   508→
+   509→   509→STRATEGY_007 — ETH Liquid Staking
+   510→   510→Primary:
+   511→   511→Bull
+   512→   512→Sideways
+   513→   513→
+   514→   514→Suggested scores:
+   515→   515→Bull 90
+   516→   516→Sideways 75
+   517→   517→Bear 40
+   518→   518→
+   519→   519→STRATEGY_008 — SOL Liquid Staking
+   520→   520→Primary:
+   521→   521→Bull
+   522→   522→Sideways
+   523→   523→
+   524→   524→Suggested scores:
+   525→   525→Bull 90
+   526→   526→Sideways 70
+   527→   527→Bear 30
+   528→   528→
+   529→   529→STRATEGY_009 — Distribution LP
+   530→   530→Primary:
+   531→   531→Bull
+   532→   532→Sideways
+   533→   533→
+   534→   534→Suggested scores:
+   535→   535→Bull 90
+   536→   536→Sideways 65
+   537→   537→Bear 15
+   538→   538→
+   539→   539→STRATEGY_010 — Covered Call Yield
+   540→   540→Primary:
+   541→   541→Bull
+   542→   542→Sideways
+   543→   543→
+   544→   544→Suggested scores:
+   545→   545→Bull 80
+   546→   546→Sideways 85
+   547→   547→Bear 30
+   548→   548→
+   549→   549→Important:
+   550→   550→Covered calls fit a mature/late Bull better than an early explosive Bull because they cap upside.
+   551→   551→
+   552→   552→STRATEGY_011 — Stablecoin Yield Rotation
+   553→   553→Primary:
+   554→   554→Bull
+   555→   555→Sideways
+   556→   556→Bear
+   557→   557→
+   558→   558→Suggested scores:
+   559→   559→Bull 70
+   560→   560→Sideways 85
+   561→   561→Bear 90
+   562→   562→
+   563→   563→STRATEGY_012 — Deleveraging Into Weakness
+   564→   564→Primary:
+   565→   565→Bear
+   566→   566→
+   567→   567→Suggested scores:
+   568→   568→Bull 20
+   569→   569→Sideways 50
+   570→   570→Bear 100
+   571→   571→
+   572→   572→STRATEGY_013 — Stablecoin Reserve Strategy
+   573→   573→Primary:
+   574→   574→Bear
+   575→   575→Sideways
+   576→   576→
+   577→   577→Suggested scores:
+   578→   578→Bull 40
+   579→   579→Sideways 80
+   580→   580→Bear 95
+   581→   581→
+   582→   582→STRATEGY_014 — Capital-Preservation DeFi Portfolio
+   583→   583→Primary:
+   584→   584→Bear
+   585→   585→Sideways
+   586→   586→
+   587→   587→Suggested scores:
+   588→   588→Bull 45
+   589→   589→Sideways 80
+   590→   590→Bear 95
+   591→   591→
+   592→   592→STRATEGY_015 — Range-Bound Yield LP
+   593→   593→Primary:
+   594→   594→Sideways
+   595→   595→
+   596→   596→Suggested scores:
+   597→   597→Bull 35
+   598→   598→Sideways 95
+   599→   599→Bear 35
+   600→   600→
+   601→   601→STRATEGY_016 — Concentrated Liquidity Provision
+   602→   602→Primary:
+   603→   603→Sideways
+   604→   604→
+   605→   605→Suggested scores:
+   606→   606→Bull 50
+   607→   607→Sideways 95
+   608→   608→Bear 50
+   609→   609→
+   610→   610→STRATEGY_017 — Delta-Neutral LP
+   611→   611→Primary:
+   612→   612→Sideways
+   613→   613→
+   614→   614→Suggested scores:
+   615→   615→Bull 60
+   616→   616→Sideways 95
+   617→   617→Bear 60
+   618→   618→
+   619→   619→STRATEGY_018 — Hedged Concentrated Liquidity
+   620→   620→Primary:
+   621→   621→Sideways
+   622→   622→Bear
+   623→   623→
+   624→   624→Suggested scores:
+   625→   625→Bull 60
+   626→   626→Sideways 90
+   627→   627→Bear 70
+   628→   628→
+   629→   629→STRATEGY_019 — Market-Neutral Yield Stack
+   630→   630→Primary:
+   631→   631→Sideways
+   632→   632→Bear
+   633→   633→
+   634→   634→Suggested scores:
+   635→   635→Bull 70
+   636→   636→Sideways 95
+   637→   637→Bear 80
+   638→   638→
+   639→   639→These numbers are guidelines.
+   640→   640→
+   641→   641→Do not change them arbitrarily just to create variety.
+   642→   642→
+   643→   643→If implementation requires adjusting a score, keep the economic reasoning intact.
+   644→   644→
+   645→   645→==================================================
+   646→   646→OBJECTIVE CLASSIFICATION
+   647→   647→==================================================
+   648→   648→
+   649→   649→Use the existing user-facing Archive objectives.
+   650→   650→
+   651→   651→STRATEGY_001 Accumulation LP
+   652→   652→Accumulation
+   653→   653→Liquidity
+   654→   654→
+   655→   655→STRATEGY_002 Stablecoin DCA Into Crypto
+   656→   656→Accumulation
+   657→   657→Growth
+   658→   658→
+   659→   659→STRATEGY_003 Yield-Funded Accumulation
+   660→   660→Yield
+   661→   661→Accumulation
+   662→   662→
+   663→   663→STRATEGY_004 Blue-Chip Asset Lending
+   664→   664→Yield
+   665→   665→Growth
+   666→   666→
+   667→   667→STRATEGY_005 Borrow Against BTC
+   668→   668→Liquidity
+   669→   669→Growth
+   670→   670→Advanced
+   671→   671→
+   672→   672→STRATEGY_006 Bull-Market Hold + Yield
+   673→   673→Growth
+   674→   674→Yield
+   675→   675→
+   676→   676→STRATEGY_007 ETH Liquid Staking
+   677→   677→Yield
+   678→   678→Growth
+   679→   679→
+   680→   680→STRATEGY_008 SOL Liquid Staking
+   681→   681→Yield
+   682→   682→Growth
+   683→   683→
+   684→   684→STRATEGY_009 Distribution LP
+   685→   685→Capital Preservation
+   686→   686→Liquidity
+   687→   687→Yield
+   688→   688→
+   689→   689→STRATEGY_010 Covered Call Yield
+   690→   690→Yield
+   691→   691→Capital Preservation
+   692→   692→Advanced
+   693→   693→
+   694→   694→STRATEGY_011 Stablecoin Yield Rotation
+   695→   695→Yield
+   696→   696→Capital Preservation
+   697→   697→
+   698→   698→STRATEGY_012 Deleveraging Into Weakness
+   699→   699→Capital Preservation
+   700→   700→Hedging
+   701→   701→
+   702→   702→STRATEGY_013 Stablecoin Reserve Strategy
+   703→   703→Capital Preservation
+   704→   704→Yield
+   705→   705→
+   706→   706→STRATEGY_014 Capital-Preservation DeFi Portfolio
+   707→   707→Capital Preservation
+   708→   708→Yield
+   709→   709→
+   710→   710→STRATEGY_015 Range-Bound Yield LP
+   711→   711→Liquidity
+   712→   712→Yield
+   713→   713→
+   714→   714→STRATEGY_016 Concentrated Liquidity Provision
+   715→   715→Liquidity
+   716→   716→Yield
+   717→   717→
+   718→   718→STRATEGY_017 Delta-Neutral LP
+   719→   719→Yield
+   720→   720→Hedging
+   721→   721→Advanced
+   722→   722→
+   723→   723→STRATEGY_018 Hedged Concentrated Liquidity
+   724→   724→Yield
+   725→   725→Hedging
+   726→   726→Advanced
+   727→   727→
+   728→   728→STRATEGY_019 Market-Neutral Yield Stack
+   729→   729→Yield
+   730→   730→Hedging
+   731→   731→Advanced
+   732→   732→
+   733→   733→==================================================
+   734→   734→05 RISK
+   735→   735→==================================================
+   736→   736→
+   737→   737→Each strategy must contain structured risk data.
+   738→   738→
+   739→   739→Use the existing fields where available:
+   740→   740→
+   741→   741→Overall risk
+   742→   742→
+   743→   743→Leverage
+   744→   744→
+   745→   745→Liquidation exposure
+   746→   746→
+   747→   747→Impermanent loss
+   748→   748→
+   749→   749→Smart contract risk
+   750→   750→
+   751→   751→Asset volatility
+   752→   752→
+   753→   753→Incentive reliance
+   754→   754→
+   755→   755→Withdrawal restrictions
+   756→   756→
+   757→   757→Lockup period
+   758→   758→
+   759→   759→Then write a substantial:
+   760→   760→
+   761→   761→RISK EXPLANATION
+   762→   762→
+   763→   763→The explanation should identify the risks that ACTUALLY matter for that strategy.
+   764→   764→
+   765→   765→Examples:
+   766→   766→
+   767→   767→Borrow Against BTC:
+   768→   768→- liquidation
+   769→   769→- collateral volatility
+   770→   770→- interest-rate changes
+   771→   771→- oracle risk
+   772→   772→- lending-protocol risk
+   773→   773→
+   774→   774→Liquid staking:
+   775→   775→- underlying asset volatility
+   776→   776→- validator/slashing risk
+   777→   777→- LST depeg/liquidity risk
+   778→   778→- smart-contract risk
+   779→   779→
+   780→   780→Covered calls:
+   781→   781→- capped upside
+   782→   782→- option settlement
+   783→   783→- volatility mispricing
+   784→   784→- counterparty/protocol risk
+   785→   785→
+   786→   786→Delta-neutral LP:
+   787→   787→- hedge basis risk
+   788→   788→- funding risk
+   789→   789→- imperfect delta estimation
+   790→   790→- LP impermanent loss
+   791→   791→- execution/rebalancing risk
+   792→   792→- liquidation risk if derivatives use leverage
+   793→   793→
+   794→   794→Do not reuse the same generic risk paragraph across strategies.
+   795→   795→
+   796→   796→==================================================
+   797→   797→06 ASSETS
+   798→   798→==================================================
+   799→   799→
+   800→   800→Every record should distinguish:
+   801→   801→
+   802→   802→DEPOSIT ASSETS
+   803→   803→
+   804→   804→EXPOSURE ASSETS
+   805→   805→
+   806→   806→REWARD ASSETS
+   807→   807→
+   808→   808→Do not confuse what is deposited with what the strategy is economically exposed to.
+   809→   809→
+   810→   810→For generalized strategies, support multiple suitable assets where necessary.
+   811→   811→
+   812→   812→Do not invent reward tokens just to fill the field.
+   813→   813→
+   814→   814→If reward assets are not fundamental:
+   815→   815→
+   816→   816→Reward Assets:
+   817→   817→None / Variable by implementation
+   818→   818→
+   819→   819→==================================================
+   820→   820→07 PLATFORMS
+   821→   821→==================================================
+   822→   822→
+   823→   823→List appropriate:
+   824→   824→
+   825→   825→NETWORKS
+   826→   826→
+   827→   827→PROTOCOLS
+   828→   828→
+   829→   829→Remember these are STRATEGY ARCHETYPES, not advertisements for one protocol.
+   830→   830→
+   831→   831→Example:
+   832→   832→
+   833→   833→Stablecoin Lending may be implemented using:
+   834→   834→Aave
+   835→   835→Morpho
+   836→   836→other suitable established lending markets
+   837→   837→
+   838→   838→But do not create separate strategies called:
+   839→   839→
+   840→   840→Aave Stablecoin Lending
+   841→   841→Morpho Stablecoin Lending
+   842→   842→
+   843→   843→unless the economic mechanism is materially different.
+   844→   844→
+   845→   845→Use representative protocols from the existing database.
+   846→   846→
+   847→   847→Do not claim a protocol supports something if it does not.
+   848→   848→
+   849→   849→==================================================
+   850→   850→08 REQUIREMENTS
+   851→   851→==================================================
+   852→   852→
+   853→   853→Include:
+   854→   854→
+   855→   855→MINIMUM CAPITAL
+   856→   856→
+   857→   857→REQUIRED HOLDINGS
+   858→   858→
+   859→   859→LOCKUP
+   860→   860→
+   861→   861→WALLET / NETWORK SETUP
+   862→   862→
+   863→   863→OTHER PREREQUISITES
+   864→   864→
+   865→   865→Minimum capital should represent a PRACTICAL recommendation rather than pretending a protocol has a hard minimum when it does not.
+   866→   866→
+   867→   867→For example:
+   868→   868→
+   869→   869→Ethereum-mainnet active LP:
+   870→   870→practical minimum may be higher because gas and rebalancing costs matter.
+   871→   871→
+   872→   872→Liquid staking:
+   873→   873→could have effectively no meaningful protocol minimum depending on implementation.
+   874→   874→
+   875→   875→Advanced hedged strategies:
+   876→   876→should generally require more capital because hedge execution and transaction costs matter.
+   877→   877→
+   878→   878→==================================================
+   879→   879→09 REFERENCES
+   880→   880→==================================================
+   881→   881→
+   882→   882→Each strategy should contain approximately 3–5 useful references where available.
+   883→   883→
+   884→   884→Prioritize:
+   885→   885→
+   886→   886→1. official protocol documentation
+   887→   887→2. official technical documentation / whitepapers
+   888→   888→3. high-quality educational material
+   889→   889→4. reputable research
+   890→   890→
+   891→   891→Each reference needs:
+   892→   892→
+   893→   893→number
+   894→   894→
+   895→   895→title
+   896→   896→
+   897→   897→publisher
+   898→   898→
+   899→   899→short description of what the source supports
+   900→   900→
+   901→   901→URL
+   902→   902→
+   903→   903→Do NOT fabricate URLs.
+   904→   904→
+   905→   905→If you are not confident that a URL is correct:
+   906→   906→
+   907→   907→leave it blank / mark it for manual verification rather than inventing a link.
+   908→   908→
+   909→   909→References should support the actual strategy mechanics or risks.
+   910→   910→
+   911→   911→==================================================
+   912→   912→NO STATIC APY CLAIMS
+   913→   913→==================================================
+   914→   914→
+   915→   915→VERY IMPORTANT:
+   916→   916→
+   917→   917→Do NOT permanently store claims such as:
+   918→   918→
+   919→   919→“APY 9.2%”
+   920→   920→
+   921→   921→“Expected return 12%”
+   922→   922→
+   923→   923→inside the permanent strategy definition.
+   924→   924→
+   925→   925→Yield changes constantly.
+   926→   926→
+   927→   927→The architecture already intends changing yields / market observations to live separately from permanent strategy definitions.
+   928→   928→
+   929→   929→If the existing frontend currently displays seeded static APYs, remove that dependency for these new records or clearly treat it as mock/live-data-layer information.
+   930→   930→
+   931→   931→The strategy Archive should explain WHERE returns come from, not pretend a permanent APY exists.
+   932→   932→
+   933→   933→==================================================
+   934→   934→STRATEGY-SPECIFIC REASONING
+   935→   935→==================================================
+   936→   936→
+   937→   937→I want substantial thought put into each record.
+   938→   938→
+   939→   939→Before writing each strategy internally reason through:
+   940→   940→
+   941→   941→1. What economic exposure does the user actually have?
+   942→   942→
+   943→   943→2. Where does the return come from?
+   944→   944→
+   945→   945→3. What is the strategy giving up in exchange?
+   946→   946→
+   947→   947→4. What causes the strategy to outperform simple spot holding?
+   948→   948→
+   949→   949→5. What causes it to underperform?
+   950→   950→
+   951→   951→6. What market environment benefits it?
+   952→   952→
+   953→   953→7. What market environment damages it?
+   954→   954→
+   955→   955→8. Does it introduce leverage?
+   956→   956→
+   957→   957→9. Can it be liquidated?
+   958→   958→
+   959→   959→10. Does it depend on incentives?
+   960→   960→
+   961→   961→11. Does it depend on volatility?
+   962→   962→
+   963→   963→12. Does it depend on funding rates?
+   964→   964→
+   965→   965→13. How much active management is required?
+   966→   966→
+   967→   967→14. What invalidates the strategy?
+   968→   968→
+   969→   969→15. What would make an experienced DeFi user reject this strategy?
+   970→   970→
+   971→   971→Use the answers to create the actual record.
+   972→   972→
+   973→   973→Do not output this reasoning as a hidden/internal reasoning log.
+   974→   974→
+   975→   975→Instead ensure the resulting documentation reflects it.
+   976→   976→
+   977→   977→==================================================
+   978→   978→SPECIAL STRATEGY NOTES
+   979→   979→==================================================
+   980→   980→
+   981→   981→STRATEGY_001 — ACCUMULATION LP
+   982→   982→
+   983→   983→Preserve the strong existing documentation if it already exists.
+   984→   984→
+   985→   985→Core idea:
+   986→   986→
+   987→   987→Use concentrated liquidity at/under spot so stablecoins progressively convert into the target asset during weakness while earning swap fees.
+   988→   988→
+   989→   989→The intentional downward conversion is part of the strategy, not an accidental side effect.
+   990→   990→
+   991→   991→Do not overwrite good existing text with worse generic text.
+   992→   992→
+   993→   993→==================================================
+   994→   994→
+   995→   995→STRATEGY_002 — STABLECOIN DCA INTO CRYPTO
+   996→   996→
+   997→   997→This should NOT simply be:
+   998→   998→
+   999→   999→“Buy $100 of ETH every week.”
+  1000→  1000→
+  1001→  1001→Make it a DeFi capital-allocation strategy.
+  1002→  1002→
+  1003→  1003→Stablecoin capital remains liquid/productive and is systematically deployed into chosen crypto assets according to predetermined sizing/time/risk rules.
+  1004→  1004→
+  1005→  1005→Explain the advantages and disadvantages relative to lump-sum deployment.
+  1006→  1006→
+  1007→  1007→==================================================
+  1008→  1008→
+  1009→  1009→STRATEGY_003 — YIELD-FUNDED ACCUMULATION
+  1010→  1010→
+  1011→  1011→The principal stays primarily inside a yield-producing strategy.
+  1012→  1012→
+  1013→  1013→Generated yield is periodically redirected into BTC/ETH/SOL or another target asset.
+  1014→  1014→
+  1015→  1015→Important distinction:
+  1016→  1016→
+  1017→  1017→The user is primarily accumulating using RETURN GENERATED BY CAPITAL, rather than continuously consuming the principal.
+  1018→  1018→
+  1019→  1019→==================================================
+  1020→  1020→
+  1021→  1021→STRATEGY_004 — BLUE-CHIP ASSET LENDING
+  1022→  1022→
+  1023→  1023→The user already wants to hold BTC/ETH-like exposure.
+  1024→  1024→
+  1025→  1025→Instead of leaving the asset idle, it is supplied to lending markets.
+  1026→  1026→
+  1027→  1027→Explain:
+  1028→  1028→
+  1029→  1029→- incremental return
+  1030→  1030→- utilization/rate variability
+  1031→  1031→- smart-contract risk
+  1032→  1032→- borrower-side mechanics
+  1033→  1033→- why the lender itself generally does not face liquidation merely for lending an unborrowed asset
+  1034→  1034→
+  1035→  1035→Do not confuse lending with leveraged borrowing.
+  1036→  1036→
+  1037→  1037→==================================================
+  1038→  1038→
+  1039→  1039→STRATEGY_005 — BORROW AGAINST BTC
+  1040→  1040→
+  1041→  1041→BTC remains collateral.
+  1042→  1042→
+  1043→  1043→Stablecoins or another asset are borrowed against it.
+  1044→  1044→
+  1045→  1045→The user avoids selling BTC but introduces:
+  1046→  1046→
+  1047→  1047→- debt
+  1048→  1048→- interest cost
+  1049→  1049→- liquidation risk
+  1050→  1050→
+  1051→  1051→This is NOT free liquidity.
+  1052→  1052→
+  1053→  1053→The documentation must strongly emphasize conservative LTV management.
+  1054→  1054→
+  1055→  1055→==================================================
+  1056→  1056→
+  1057→  1057→STRATEGY_006 — BULL-MARKET HOLD + YIELD
+  1058→  1058→
+  1059→  1059→Core philosophy:
+  1060→  1060→
+  1061→  1061→During strong directional trends, strategies that cap upside can underperform simple holding.
+  1062→  1062→
+  1063→  1063→Maintain core directional exposure.
+  1064→  1064→
+  1065→  1065→Only add yield sources that preserve most of that upside.
+  1066→  1066→
+  1067→  1067→Explain why this may outperform aggressive LP/distribution strategies during strong expansion.
+  1068→  1068→
+  1069→  1069→==================================================
+  1070→  1070→
+  1071→  1071→STRATEGY_007 — ETH LIQUID STAKING
+  1072→  1072→
+  1073→  1073→Explain:
+  1074→  1074→
+  1075→  1075→ETH → liquid staking token.
+  1076→  1076→
+  1077→  1077→User earns staking return while retaining a token usable throughout DeFi.
+  1078→  1078→
+  1079→  1079→Risks include:
+  1080→  1080→
+  1081→  1081→- smart-contract risk
+  1082→  1082→- validator/slashing risk
+  1083→  1083→- LST liquidity/depeg risk
+  1084→  1084→- ETH volatility
+  1085→  1085→
+  1086→  1086→==================================================
+  1087→  1087→
+  1088→  1088→STRATEGY_008 — SOL LIQUID STAKING
+  1089→  1089→
+  1090→  1090→Same broad economic concept as ETH LST, but document SOL-specific mechanics independently.
+  1091→  1091→
+  1092→  1092→Do NOT just copy the ETH strategy and replace ETH with SOL.
+  1093→  1093→
+  1094→  1094→Discuss:
+  1095→  1095→
+  1096→  1096→- validator delegation ecosystem
+  1097→  1097→- liquid staking token liquidity
+  1098→  1098→- higher-beta SOL exposure
+  1099→  1099→- protocol-specific smart-contract/liquidity considerations
+  1100→  1100→
+  1101→  1101→==================================================
+  1102→  1102→
+  1103→  1103→STRATEGY_009 — DISTRIBUTION LP
+  1104→  1104→
+  1105→  1105→This should act conceptually as the mirror image of Accumulation LP.
+  1106→  1106→
+  1107→  1107→Place concentrated liquidity at/above current spot so appreciated crypto progressively converts into stablecoins during upward movement.
+  1108→  1108→
+  1109→  1109→Use it as a systematic profit-distribution mechanism while earning fees.
+  1110→  1110→
+  1111→  1111→Strong fit:
+  1112→  1112→Late Bull / Distribution.
+  1113→  1113→
+  1114→  1114→==================================================
+  1115→  1115→
+  1116→  1116→STRATEGY_010 — COVERED CALL YIELD
+  1117→  1117→
+  1118→  1118→Hold the underlying asset while selling calls against part/all of the position.
+  1119→  1119→
+  1120→  1120→Return:
+  1121→  1121→
+  1122→  1122→option premium.
+  1123→  1123→
+  1124→  1124→Trade-off:
+  1125→  1125→
+  1126→  1126→upside above strike is surrendered.
+  1127→  1127→
+  1128→  1128→Explain why this becomes particularly interesting late in a bull cycle or in a sideways market.
+  1129→  1129→
+  1130→  1130→Do not falsely describe a covered call as full downside protection.
+  1131→  1131→
+  1132→  1132→Premium only provides a limited downside buffer.
+  1133→  1133→
+  1134→  1134→==================================================
+  1135→  1135→
+  1136→  1136→STRATEGY_011 — STABLECOIN YIELD ROTATION
+  1137→  1137→
+  1138→  1138→Rotate stablecoins between conservative yield venues when net yield/risk becomes meaningfully more attractive elsewhere.
+  1139→  1139→
+  1140→  1140→Do NOT recommend constantly chasing the highest headline APY.
+  1141→  1141→
+  1142→  1142→Explain evaluation of:
+  1143→  1143→
+  1144→  1144→- protocol risk
+  1145→  1145→- stablecoin risk
+  1146→  1146→- liquidity
+  1147→  1147→- incentives
+  1148→  1148→- transaction/bridge costs
+  1149→  1149→- yield durability
+  1150→  1150→
+  1151→  1151→==================================================
+  1152→  1152→
+  1153→  1153→STRATEGY_012 — DELEVERAGING INTO WEAKNESS
+  1154→  1154→
+  1155→  1155→This is a RISK-MANAGEMENT strategy.
+  1156→  1156→
+  1157→  1157→Not an alpha strategy.
+  1158→  1158→
+  1159→  1159→The objective is systematically reducing leverage as market structure deteriorates.
+  1160→  1160→
+  1161→  1161→Possible actions:
+  1162→  1162→
+  1163→  1163→- repay debt
+  1164→  1164→- add collateral
+  1165→  1165→- reduce directional exposure
+  1166→  1166→- close leveraged loops
+  1167→  1167→
+  1168→  1168→The methodology should prioritize survival over maximizing return.
+  1169→  1169→
+  1170→  1170→==================================================
+  1171→  1171→
+  1172→  1172→STRATEGY_013 — STABLECOIN RESERVE STRATEGY
+  1173→  1173→
+  1174→  1174→Keep capital liquid and defensively positioned while still seeking modest productive return.
+  1175→  1175→
+  1176→  1176→Prioritize:
+  1177→  1177→
+  1178→  1178→capital availability
+  1179→  1179→low complexity
+  1180→  1180→protocol quality
+  1181→  1181→stablecoin diversification
+  1182→  1182→withdrawal liquidity
+  1183→  1183→
+  1184→  1184→Do not optimize purely for APY.
+  1185→  1185→
+  1186→  1186→==================================================
+  1187→  1187→
+  1188→  1188→STRATEGY_014 — CAPITAL-PRESERVATION DEFI PORTFOLIO
+  1189→  1189→
+  1190→  1190→This is a PORTFOLIO strategy rather than one protocol position.
+  1191→  1191→
+  1192→  1192→Diversify capital across conservative DeFi exposures.
+  1193→  1193→
+  1194→  1194→Explain:
+  1195→  1195→
+  1196→  1196→- stablecoin diversification
+  1197→  1197→- protocol diversification
+  1198→  1198→- liquidity tiers
+  1199→  1199→- concentration limits
+  1200→  1200→- risk budgeting
+  1201→  1201→
+  1202→  1202→Do not imply DeFi can ever be literally risk-free.
+  1203→  1203→
+  1204→  1204→==================================================
+  1205→  1205→
+  1206→  1206→STRATEGY_015 — RANGE-BOUND YIELD LP
+  1207→  1207→
+  1208→  1208→Specifically optimized for sideways conditions.
+  1209→  1209→
+  1210→  1210→Unlike generic concentrated liquidity, the strategic thesis is:
+  1211→  1211→
+  1212→  1212→price remains predominantly range-bound.
+  1213→  1213→
+  1214→  1214→Explain how:
+  1215→  1215→
+  1216→  1216→range placement
+  1217→  1217→width
+  1218→  1218→volatility
+  1219→  1219→fee tier
+  1220→  1220→rebalancing
+  1221→  1221→
+  1222→  1222→affect results.
+  1223→  1223→
+  1224→  1224→==================================================
+  1225→  1225→
+  1226→  1226→STRATEGY_016 — CONCENTRATED LIQUIDITY PROVISION
+  1227→  1227→
+  1228→  1228→This is the GENERAL concentrated-liquidity archetype.
+  1229→  1229→
+  1230→  1230→It must be broader than Accumulation LP and Range-Bound Yield LP.
+  1231→  1231→
+  1232→  1232→Explain concentrated liquidity itself:
+  1233→  1233→
+  1234→  1234→- active price ranges
+  1235→  1235→- capital efficiency
+  1236→  1236→- fee generation
+  1237→  1237→- inventory transformation
+  1238→  1238→- out-of-range behavior
+  1239→  1239→- impermanent loss
+  1240→  1240→
+  1241→  1241→==================================================
+  1242→  1242→
+  1243→  1243→STRATEGY_017 — DELTA-NEUTRAL LP
+  1244→  1244→
+  1245→  1245→The LP exposure is paired with a hedge designed to reduce net directional delta.
+  1246→  1246→
+  1247→  1247→Explain clearly:
+  1248→  1248→
+  1249→  1249→LP position
+  1250→  1250→changing delta
+  1251→  1251→hedge
+  1252→  1252→funding costs
+  1253→  1253→hedge rebalancing
+  1254→  1254→basis risk
+  1255→  1255→
+  1256→  1256→Do not claim it is perfectly risk-free or perfectly neutral.
+  1257→  1257→
+  1258→  1258→==================================================
+  1259→  1259→
+  1260→  1260→STRATEGY_018 — HEDGED CONCENTRATED LIQUIDITY
+  1261→  1261→
+  1262→  1262→This is more active/sophisticated than generic Delta-Neutral LP.
+  1263→  1263→
+  1264→  1264→A concentrated LP has rapidly changing delta as price moves through its range.
+  1265→  1265→
+  1266→  1266→The hedge must therefore be actively adjusted.
+  1267→  1267→
+  1268→  1268→High-Volatility Chop is particularly relevant because:
+  1269→  1269→
+  1270→  1270→- trading volume may generate fees
+  1271→  1271→- frequent reversals generate changing directional exposure
+  1272→  1272→- active hedging attempts to control that exposure
+  1273→  1273→
+  1274→  1274→Clearly describe execution complexity.
+  1275→  1275→
+  1276→  1276→==================================================
+  1277→  1277→
+  1278→  1278→STRATEGY_019 — MARKET-NEUTRAL YIELD STACK
+  1279→  1279→
+  1280→  1280→This should be broader than LP hedging.
+  1281→  1281→
+  1282→  1282→Combine one or more yield-bearing exposures with offsetting positions designed to minimize net directional market exposure.
+  1283→  1283→
+  1284→  1284→Possible sources could include:
+  1285→  1285→
+  1286→  1286→staking yield
+  1287→  1287→lending yield
+  1288→  1288→basis/funding spreads
+  1289→  1289→LP fees
+  1290→  1290→
+  1291→  1291→But the record should describe the ARCHETYPE rather than pretending all implementations are identical.
+  1292→  1292→
+  1293→  1293→Main risks:
+  1294→  1294→
+  1295→  1295→basis
+  1296→  1296→funding
+  1297→  1297→counterparty/protocol
+  1298→  1298→liquidation
+  1299→  1299→imperfect hedge
+  1300→  1300→execution
+  1301→  1301→correlation breakdown
+  1302→  1302→
+  1303→  1303→==================================================
+  1304→  1304→COVERAGE VALIDATION
+  1305→  1305→==================================================
+  1306→  1306→
+  1307→  1307→After creating the data, automatically validate that the Archive returns at least:
+  1308→  1308→
+  1309→  1309→EARLY RECOVERY:
+  1310→  1310→3 suitable strategies
+  1311→  1311→
+  1312→  1312→BTC-LED EXPANSION:
+  1313→  1313→3 suitable strategies
+  1314→  1314→
+  1315→  1315→ALT EXPANSION:
+  1316→  1316→3 suitable strategies
+  1317→  1317→
+  1318→  1318→LATE BULL / DISTRIBUTION:
+  1319→  1319→3 suitable strategies
+  1320→  1320→
+  1321→  1321→CAPITULATION / DELEVERAGING:
+  1322→  1322→3 suitable strategies
+  1323→  1323→
+  1324→  1324→LOW-VOL COMPRESSION:
+  1325→  1325→3 suitable strategies
+  1326→  1326→
+  1327→  1327→HIGH-VOLATILITY CHOP:
+  1328→  1328→3 suitable strategies
+  1329→  1329→
+  1330→  1330→Create a simple validation helper/test if appropriate.
+  1331→  1331→
+  1332→  1332→The Market Phase navigation must never show a phase whose corresponding query accidentally returns zero records from the seeded official collection.
+  1333→  1333→
+  1334→  1334→==================================================
+  1335→  1335→PUBLIC RESULTS
+  1336→  1336→==================================================
+  1337→  1337→
+  1338→  1338→All 19 should integrate with the existing Archive matching system.
+  1339→  1339→
+  1340→  1340→When someone searches:
+  1341→  1341→
+  1342→  1342→Bear
+  1343→  1343→→ Early Recovery
+  1344→  1344→→ ETH
+  1345→  1345→→ Accumulation
+  1346→  1346→
+  1347→  1347→Accumulation LP should rank very strongly.
+  1348→  1348→
+  1349→  1349→When someone searches:
+  1350→  1350→
+  1351→  1351→Bull
+  1352→  1352→→ BTC-Led Expansion
+  1353→  1353→→ BTC
+  1354→  1354→→ Liquidity
+  1355→  1355→
+  1356→  1356→Borrow Against BTC should rank strongly.
+  1357→  1357→
+  1358→  1358→When someone searches:
+  1359→  1359→
+  1360→  1360→Bull
+  1361→  1361→→ Alt Expansion
+  1362→  1362→→ ETH
+  1363→  1363→→ Yield
+  1364→  1364→
+  1365→  1365→ETH Liquid Staking should rank strongly.
+  1366→  1366→
+  1367→  1367→When someone searches:
+  1368→  1368→
+  1369→  1369→Bull
+  1370→  1370→→ Late Bull / Distribution
+  1371→  1371→→ ETH
+  1372→  1372→→ Capital Preservation
+  1373→  1373→
+  1374→  1374→Distribution LP / Covered Call-style strategies should rank strongly depending on assets.
+  1375→  1375→
+  1376→  1376→When someone searches:
+  1377→  1377→
+  1378→  1378→Bear
+  1379→  1379→→ Capitulation / Deleveraging
+  1380→  1380→→ All Assets
+  1381→  1381→→ Capital Preservation
+  1382→  1382→
+  1383→  1383→Deleveraging Into Weakness / Stablecoin Reserve / Capital-Preservation Portfolio should dominate.
+  1384→  1384→
+  1385→  1385→When someone searches:
+  1386→  1386→
+  1387→  1387→Sideways
+  1388→  1388→→ Low-Vol Compression
+  1389→  1389→→ ETH + USDC
+  1390→  1390→→ Liquidity
+  1391→  1391→
+  1392→  1392→Range-Bound Yield LP / Concentrated Liquidity should rank strongly.
+  1393→  1393→
+  1394→  1394→When someone searches:
+  1395→  1395→
+  1396→  1396→Sideways
+  1397→  1397→→ High-Volatility Chop
+  1398→  1398→→ ETH + USDC
+  1399→  1399→→ Hedging
+  1400→  1400→
+  1401→  1401→Delta-Neutral LP / Hedged Concentrated Liquidity / Market-Neutral Yield Stack should dominate.
+  1402→  1402→
+  1403→  1403→==================================================
+  1404→  1404→FINAL QUALITY CONTROL
+  1405→  1405→==================================================
+  1406→  1406→
+  1407→  1407→Before finishing, review EVERY strategy individually.
+  1408→  1408→
+  1409→  1409→For each record ask:
+  1410→  1410→
+  1411→  1411→Could the Overview have been pasted into another strategy without changing much?
+  1412→  1412→
+  1413→  1413→If yes:
+  1414→  1414→rewrite it.
+  1415→  1415→
+  1416→  1416→Are the methodology steps specific to the actual mechanics?
+  1417→  1417→
+  1418→  1418→If no:
+  1419→  1419→rewrite them.
+  1420→  1420→
+  1421→  1421→Do the Entry / Exit conditions provide actionable rules?
+  1422→  1422→
+  1423→  1423→If no:
+  1424→  1424→rewrite them.
+  1425→  1425→
+  1426→  1426→Does the Market Fit section explain WHY the strategy belongs in its assigned regimes?
+  1427→  1427→
+  1428→  1428→If no:
+  1429→  1429→rewrite it.
+  1430→  1430→
+  1431→  1431→Does the Risk section identify strategy-specific failure modes?
+  1432→  1432→
+  1433→  1433→If no:
+  1434→  1434→rewrite it.
+  1435→  1435→
+  1436→  1436→Are the references relevant to the actual mechanics?
+  1437→  1437→
+  1438→  1438→If no:
+  1439→  1439→replace them.
+  1440→  1440→
+  1441→  1441→Does the record contain unsupported static APY claims?
+  1442→  1442→
+  1443→  1443→If yes:
+  1444→  1444→remove them.
+  1445→  1445→
+  1446→  1446→Does the record genuinely deserve its assigned Market Phase?
+  1447→  1447→
+  1448→  1448→If no:
+  1449→  1449→fix the assignment instead of forcing it.
+  1450→  1450→
+  1451→  1451→The objective is not merely to have 19 records in the database.
+  1452→  1452→
+  1453→  1453→The objective is to launch the first 19 pieces of a credible DeFi strategy research archive.
+  1454→  1454→
+  1455→  1455→Treat every one as a real piece of Matrix Finance research.

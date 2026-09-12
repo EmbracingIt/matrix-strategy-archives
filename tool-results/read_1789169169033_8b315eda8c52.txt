@@ -1,0 +1,204 @@
+   330→- Public record page (`strategy-record.tsx`): "BEST DURING — SPECIFIC CONDITIONS" block under Market Fit showing ONLY declared conditions (label + INSIDE PARENT / transition + meaning + green score bar; "DECLARED" badge when unscored); hidden entirely when none (legacy records render unchanged)
+   331→- Browse All (`browse-all.tsx`): advanced "CONDITION" facet below MARKET (searchable cmdk menu, facet counts, URL param `condition=`, removable chips) — discovery flow itself stays 3-regime simple (verified no leakage)
+   332→- Seed: all 8 strategies got reasonable secondary regimes per the example mappings (Accumulation LP: Early Recovery 90 + Low-Vol Compression 85; Stablecoin Lending/Rotation: Late Bull + Capitulation; ETH/SOL Staking: BTC-Led + Alt Expansion; Delta-Neutral: Low-Vol 90 + High-Vol Chop 70; Pendle draft: Late Bull + Low-Vol; CRV/AERO archived: declared unscored) — core strategy logic untouched; `bun run db:seed` re-run
+   333→- README: two-layer classification table + JSON example + optional-safe guarantees, secondaryRegime filter + match payload docs, extending notes
+   334→
+   335→Stage Summary:
+   336→- API verified via curl: GET ?secondaryRegime=EARLY_RECOVERY → only Accumulation LP; POST /api/match with secondaryRegime=CAPITULATION_DELEVERAGING → Stablecoin Lending 95 ranks above Accumulation LP 86 (30 "tuned for other conditions") while classic calls return byte-identical 4-factor results; invalid regime → 400
+   337→- Archive matching verified via fixture script: classic query → tie 79/79/79 (legacy behavior); with condition → A(declared 95)=82 + "Best during Capitulation / Deleveraging" reason, C(no data)=76 still included, B(other condition)=72
+   338→- Admin E2E in agent-browser: create (Bull 75 + BTC-Led 80 + Alt 90) → 400 bug found → zod partialRecord fix → create succeeds (STRATEGY_009) → edit (deselect Alt) → Publish → API returns ['BTC_LED_EXPANSION'] {80} → public record shows BEST DURING BTC-LED EXPANSION INSIDE BULL 80 → revision R01 snapshot preserved pre-edit secondary data → deleted cleanly
+   339→- Public verified: record page BEST DURING renders (VLM: clean, no overlap, primary stays dominant via colored bars); Browse All CONDITION facet → EARLY_RECOVERY → "1 OF 6 RECORDS" + chip + shareable URL; unscored path renders DECLARED on archived record; entrance/guided flow/market step/results all unchanged
+   340→- Responsive 390px: no horizontal overflow on browse-all, record page, admin Market Fit; lint 0/0; dev.log clean
+   341→
+   342→## Current project status
+   343→
+   344→Matrix Strategy Archives is **complete and running** at `/` (dev server, port 3000).
+   345→The market classification is now **two-layer**: Level 1 primary regimes
+   346→(BULL / SIDEWAYS / BEAR — unchanged, still the public classification and strongest
+   347→match signal) plus optional Level 2 **secondary regimes** (7 conditions from
+   348→Early Recovery to High-Volatility Chop) stored inside `marketFit` with optional
+   349→fit scores. Admin editor (Market Fit section), public record pages (BEST DURING),
+   350→Browse All (advanced CONDITION facet), both matching engines (5th "Market
+   351→condition" factor) and the REST API all consume the canonical registry in
+   352→`src/lib/secondary-regimes.ts`. Legacy records without secondary data render and
+   353→rank unchanged (null-safe serializer, neutral condition factor).
+   354→
+   355→## Verification results (latest run — Task 12)
+   356→
+   357→- GET /api/strategies?secondaryRegime=… membership filter ✓ · POST /api/match with
+   358→  optional secondaryRegime: 5-factor rankings with notes + reasons; classic calls
+   359→  byte-identical to pre-feature behavior ✓ · invalid values → 400 ✓
+   360→- Admin E2E: create with secondary regimes + scores → publish → edit (deselect) →
+   361→  API round-trip exact → public BEST DURING block → revision snapshot preserved →
+   362→  delete ✓ (zod v4 exhaustive-record bug found & fixed mid-test via z.partialRecord)
+   363→- Browse All CONDITION facet: EARLY_RECOVERY → "1 OF 6 RECORDS" + chip + shareable URL ✓
+   364→- Guided discovery flow & entrance: unchanged, zero secondary leakage ✓
+   365→- Mobile 390px: no overflow (browse-all / record / admin form) ✓ · Lint 0/0 ✓ · dev.log clean ✓
+   366→
+   367→## Unresolved risks / next-phase recommendations (priority order)
+   368→
+   369→1. **Admin authentication** — still open by design; add NextAuth.js gate before deployment.
+   370→2. **Live regime detection service** — the matching infrastructure now accepts
+   371→   `{ regime, secondaryRegime }` from Matrix Finance; build the detector/feed that
+   372→   supplies it, then surface current-market context in the Archive UI.
+   373→3. **Objective DB field** — objectives still derived via lib/strategyObjectives.ts.
+   374→4. **Editor draft persistence** — sessionStorage restore for unsaved admin edits.
+   375→5. **Pagination** — list endpoints return all rows; add cursor pagination before thousands.
+   376→6. **CoinGecko icon sync** — populate Asset.iconUrl from coingeckoId.
+   377→---
+   378→Task ID: 13
+   379→Agent: Main agent (Z.ai Code)
+   380→Task: Public Archive integration of Market Phases (guided step 02) + public frontend visual refinement (circular icons, less-boxy shape language, editorial Best Match)
+   381→
+   382→Work Log:
+   383→- Read worklog + all public flow code (nav, matching, secondary-regimes, explore-flow, all collections, results, featured/record cards, icons, chrome, registries) before touching anything; backend/admin/Prisma/APIs confirmed untouched throughout
+   384→- `src/lib/secondary-regimes.ts` — registry extended with public-facing phase metadata: `slug` (kebab URL slugs: btc-led-expansion…), archival `code` (B01/B02/B03 bull, S01/S02 sideways, D01 capitulation, R01 early-recovery), `keywords` line for phase cards + helpers: secondaryRegimeSlug/Code/Keywords, parseSecondaryRegimeSlug, secondaryRegimesForMarket(market) (bull: BTC-Led/Alt/Late Bull; sideways: Low-Vol/High-Vol Chop; bear: Capitulation/Early-Recovery; all: full registry in narrative cycle order), allPhasesLabel(market); doc now states public language = "Market Phase", internal = secondary regime
+   385→- `src/lib/nav.ts` — ExploreStep adds "phase"; flowParams accepts `phase` (enum OR slug, normalized via registry; "all"/unknown → omitted, never a fake value); urls.explore/results accept phase; parsePhase(?phase=) → SecondaryRegime; parseArchiveQuery returns secondaryRegime; archiveQueryToParams serializes back to slug; phaseDef() helper; re-exported ArchiveQuery/MarketParam types (fixes latent TS error)
+   386→- `src/lib/matching.ts` — doc updated to 5-step journey + hierarchy note; conditionFactor relabeled "Market phase" with public-facing notes ("Best during X — phase fit N/100", "Tuned for other market phases"); buildReasons adds "Eligible across the whole X collection" for phase-eligible records lacking the phase; weights unchanged (regime .45 / phase .15 / assets .25 / objective .15 — primary still dominant)
+   387→- NEW `src/components/archive/market-phase-collection.tsx` — guided step 02: "Where are we inside the market?"; COLLECTION: BULL + CHANGE MARKET → context row; phases as archival sub-collections on a rail (border-l spine): PHASE / B01 code, serif label, keywords (fade in on hover), meaning line, N RECORDS; green accent spine advances on hover; single-selection → assets step with phase; dashed "All Bull/Sideways/Bear/Market Phases" row → no phase param; real per-phase record counts; all-markets view shows all 7 with parent labels
+   388→- `archive-progress.tsx` — 5 stages (01 MARKET / 02 MARKET PHASE / 03 ASSETS / 04 OBJECTIVE / 05 RESULTS), completed stages keep check marks + link back with full state, horizontally scrollable
+   389→- `explore-flow.tsx` — STEP_META for market/phase/assets/objective with new codes + phase copy; market-collection enter() → step "phase"; objective retrieve() → results with phase; entrance spines deep-link to step "phase"; entrance retrieval tagline updated
+   390→- `asset-collection.tsx` — phase-aware reminder row (COLLECTION chip + / PHASE chip + CHANGE/CHOOSE PHASE →), phase passed through continue; premium tiles: rounded-[6px], 34px circular icons (green ring when selected), left accent spine on selection, whole-tile selected state (border/bg + ring + check fades in on hover), min-h 76px targets; sticky bar chips now rounded-full
+   391→- `results-view.tsx` — matchStrategies receives secondaryRegime; archival breadcrumb path BULL / BTC-LED EXPANSION / ETH + USDC / GROWTH with "/" dividers: each crumb is a link to its edit step + hover-reveal × removal (phase removal omits the param); EDIT MARKET/PHASE/ASSETS/OBJECTIVE + NEW SEARCH links; manual useMemo removed (React Compiler auto-memo; fixes preserve-manual-memoization), updateQuery locals de-shadowed; 16px separation before FURTHER RECORDS
+   392→- `archive-icons.tsx` — ALL icons now circular: monogram rounded-full, ArcLogoImage (new) renders iconUrl in circular mask with border + graceful onError fallback to monogram (never broken images); new ArcIconStack overlapping circular stack component (surface-colored rings, z-order); module now "use client"
+   393→- `featured-record.tsx` — editorial Best Match: rounded-[6px] panel, breathing serif title, composition via ArcIconStack + circular protocol/network marks (no inner boxes), score column integrated (52px mono number + rounded bars + WHY IT MATCHES behind a single hairline); MatchScore/MatchChip deleted from archive-match.tsx (scores now render inline per layout)
+   394→- `record-card.tsx` — name dominates (serif 21px), single classification line, circular icon stacks + protocol/network circles in one quiet row, "ARCHIVE MATCH 84%" as quiet text (no chip box), accent spine hover, rounded-[6px]
+   395→- `strategy-record.tsx` — "BEST DURING — MARKET PHASES" public language; composition row uses ArcIconStack + circular protocol/network icons; asset chips rounded-full
+   396→- `browse-all.tsx` — CONDITION facet relabeled "MARKET PHASE" (URL param unchanged → old links still work); search input/toggle/filter menus/chips/empty-state given subtle radius
+   397→- `record-index.tsx` — circular asset icon stack in ASSETS column, rounded-[6px] wrapper
+   398→- Registries (asset/protocol/network browsers) + chrome (header M mark, search buttons, CTAs) + entrance buttons — subtle radius (rounded-[4..6px]) + hover accent spines; spines keep sharp look on desktop (lg:rounded-none)
+   399→- Fixed mid-task: missing `}` in asset-collection GROUPS.map (parse error); latent TS errors (ArchiveQuery import, Regime casts in browse-all/market-collection, objective cast in results-view)
+   400→
+   401→Stage Summary:
+   402→- ACCEPTANCE FLOW 1 verified in agent-browser: Bull → BTC-Led Expansion → ETH → Growth → `?view=results&market=bull&phase=btc-led-expansion&assets=eth&objective=growth` → 1 record (ETH Liquid Staking), ARCHIVE MATCH 90%, factors REGIME 85 / MARKET PHASE 80 / ASSETS 100 / OBJECTIVE 100, reasons incl. "Best during BTC-Led Expansion"; record page shows BEST DURING — MARKET PHASES (BTC-LED/ALT EXPANSION INSIDE BULL)
+   403→- FLOW 2: Bear → All Bear Phases (phase param omitted) → All Assets → Accumulation → `?view=results&market=bear&objective=accumulation` → 1 record
+   404→- FLOW 3: All Markets → All Market Phases (7 phases shown in spec order) → USDC → Yield → `?view=results&assets=usdc&objective=yield` → 3 records
+   405→- URL/state: phase kebab slugs only; "all" never stored; crumb × removal + EDIT links preserve the rest of the path; back/forward + refresh restore exact selections
+   406→- Circular icons verified by VLM across assets/results/record ("perfect circles, no square avatars"); design grades: Market Phase A-, Results A, Asset selection A-, Record A; hover states confirmed premium (accent line advance + metadata fade)
+   407→- Mobile 390px: scrollWidth 390 (zero overflow) on phase/results/assets/record/browse-all; progress nav horizontally scrollable
+   408→- Admin verified untouched (list + editor hydrate STRATEGY_001, Saved indicator); Browse All MARKET PHASE facet + ⌘K search overlay work; lint 0 errors 0 warnings; tsc clean (src); dev.log clean; no live console errors
+   409→
+   410→---
+   411→Task ID: 14-b
+   412→Agent: Strategy record writer (subagent)
+   413→Task: Write seed records STRATEGY_008–013 (official collection, part 2)
+   414→
+   415→Work Log:
+   416→- Read worklog tail (Task 12/13 context: two-layer market classification — secondary regimes/Market Phases live inside marketFit with fit scores), prisma/seed-data/types.ts (SeedStrategy contract), seed.ts STRATEGY_001 Accumulation LP + STRATEGY_004 Delta-Neutral LP benchmarks, and the original collection spec (Pasted Content — strategy definitions, phase-fit reasons, objectives, risk guidance for 008–013)
+   417→- Wrote prisma/seed-data/records-008-013.ts exporting `records: SeedStrategy[]` with exactly 6 deeply-researched records written to the Accumulation LP quality bar (5-paragraph overviews, execution-grade steps, explicit entry/exit invalidation rules, strategy-specific risk explanations, source-of-return not static APY claims)
+   418→- STRATEGY_008 SOL Liquid Staking documented SOL-specific mechanics independently (stake-pool delegation across diversified validator sets, epoch boundaries, missed-credit penalties vs slashing, Jito MEV/priority-fee tips, mSOL/jitoSOL secondary liquidity depth, higher-beta SOL exposure; ALT_EXPANSION 95)
+   419→- STRATEGY_009 Distribution LP written as the deliberate mirror image of Accumulation LP (above-spot range converting ETH→USDC into strength; IL framed as surrendered upside beyond the range plus below-range pure-ETH left tail; LATE_BULL_DISTRIBUTION 95; ethereum+base / uniswap+aerodrome)
+   420→- STRATEGY_010 Covered Call Yield: premium = volatility risk premium + time decay, capped-upside trade-off, explicit "not downside protection" (limited premium buffer only), late-bull/sideways logic, physical vs cash settlement, Aevo/Thetanuts venue mechanics (LATE_BULL_DISTRIBUTION 90)
+   421→- STRATEGY_011 Stablecoin Yield Rotation: full evaluation framework (protocol risk, stablecoin risk, liquidity, incentive durability, tx/bridge costs, yield durability), explicit anti-headline-APY discipline, 6-venue set across ethereum/arbitrum/base (LATE_BULL 80 + CAPITULATION 85)
+   422→- STRATEGY_012 Deleveraging Into Weakness as a risk-management playbook, not alpha: rank positions by liquidation proximity, repay most dangerous debt first, unwind loops in least-slippage order, defensive LTV ceilings that trigger BEFORE thresholds, gas/liquidity reserve, accept realized losses; execution realities (gas spikes, oracle lag, cascade slippage); leverageUsed false explained, liquidationExposure HIGH (CAPITULATION_DELEVERAGING 100)
+   423→- STRATEGY_013 Stablecoin Reserve Strategy: availability/simplicity/protocol-quality/issuer-diversification/withdrawal-liquidity priorities over APY, explicit contrast with Stablecoin Yield Rotation (passive-defensive vs active), honest low-risk inventory incl. tail risk + opportunity cost (CAPITULATION_DELEVERAGING 95)
+   424→- Verified with bun verification script: 6 records, exact strategyId sequence, all mandated regimes/scores/secondaryRegimes/secondaryScores/deposit/exposure/rewards/networks/protocols/lastReviewedAt/risk-field values, 3–5 references per record (all URLs from the whitelist), paragraph/step/condition counts in range, no static APY claims, dates not in the future
+   425→- `bunx tsc --noEmit prisma/seed-data/records-008-013.ts prisma/seed-data/types.ts` → clean, zero errors; no other files touched, db:seed not run, dev server untouched
+   426→
+   427→Stage Summary:
+   428→- File prisma/seed-data/records-008-013.ts created with 6 records: STRATEGY_008 SOL Liquid Staking, STRATEGY_009 Distribution LP, STRATEGY_010 Covered Call Yield, STRATEGY_011 Stablecoin Yield Rotation, STRATEGY_012 Deleveraging Into Weakness, STRATEGY_013 Stablecoin Reserve Strategy — TypeScript-clean, ready for seed-script integration by a follow-up task (records are not yet imported into prisma/seed.ts)
+   429→
+   430→---
+   431→Task ID: 14-c
+   432→Agent: Strategy record writer (subagent)
+   433→Task: Write seed records STRATEGY_014–019 (official collection, part 3)
+   434→
+   435→Work Log:
+   436→- Read worklog tail (Task 12/13 context: two-layer market classification — secondary regimes/Market Phases live inside marketFit with fit scores; Task 14-b wrote records-008-013), prisma/seed-data/types.ts (SeedStrategy contract), seed.ts STRATEGY_001 Accumulation LP + STRATEGY_004 Delta-Neutral LP benchmarks, and the original collection spec (Pasted Content — strategy definitions, LOW-VOL/HIGH-VOL-CHOP phase-fit reasons, regime scores, objectives for 014–019)
+   437→- Wrote prisma/seed-data/records-014-019.ts exporting `records: SeedStrategy[]` with exactly 6 deeply-researched records to the Accumulation LP quality bar (4-paragraph overviews, execution-grade steps, explicit entry/exit invalidation rules, strategy-specific risk explanations, source-of-return framing with zero static APY claims)
+   438→- STRATEGY_014 Capital-Preservation DeFi Portfolio documented as a true PORTFOLIO record: stablecoin issuer diversification (USDC/USDT), protocol diversification, three liquidity tiers (instant money-market / same-day DEX exit / queued native unstake), per-venue/per-stable/per-network concentration limits, risk budgeting for the capped ETH sleeve; risk explanation distinguishes per-venue LOW smart-contract risk from the AGGREGATE sum across sleeves and names systemic-event correlation convergence; never implies DeFi is risk-free (CAPITULATION_DELEVERAGING 90)
+   439→- STRATEGY_015 Range-Bound Yield LP written as the thesis record (range centered on a validated midpoint, contrasting Accumulation LP below-spot and Distribution LP above-spot): range placement, width-vs-realized-vol, fee-tier selection matched to actual flow, pre-committed recentering rules; symmetric thesis-failure risk framing (LOW_VOL_COMPRESSION 95)
+   440→- STRATEGY_016 Concentrated Liquidity Provision written as the umbrella MECHANICS archetype — capital efficiency vs full-range, fee generation, inventory transformation (buying weakness/selling strength inside the band), out-of-range dormancy, IL amplified by concentration (rated HIGH with the mechanical justification; umbrella positioning vs 001/015; multi-network minCapital note)
+   441→- STRATEGY_017 Delta-Neutral LP preserves the seed.ts benchmark record's documentation quality, rebuilt for the USDC-only-deposit construction (borrowed-ETH short against stable collateral): curved LP delta/gamma, hedge basis, carry ledger (fees vs borrow interest), residual liquidation path (rally-inflated debt vs lagging top-ups or LP collapse), LOW liquidationExposure explained honestly (LOW_VOL 85 + HIGH_VOL_CHOP 90)
+   442→- STRATEGY_018 Hedged Concentrated Liquidity as the active escalation of 017: perp shorts on GMX/Hyperliquid sized to LIVE delta with enumerated execution complexity (delta estimation, price-band/delta-drift/funding rebalance triggers, perp margin management, cross-venue capital split, gas+spread costs); MEDIUM liquidationExposure = liquidated hedge becomes naked LP at the worst moment (HIGH_VOL_CHOP 95)
+   443→- STRATEGY_019 Market-Neutral Yield Stack documents the ARCHETYPE not one implementation: building blocks (Aave/Morpho lending, Uniswap fee yield, GMX basis/funding) + two reference constructions (carry stack, basis-heavy), neutrality as a moving target; risk explanation covers basis, funding, cross-stack counterparty, hedged-leg liquidation, tracking error, execution, correlation breakdown in stress (HIGH_VOL_CHOP 90)
+   444→- Verified with a bun fidelity script: 6 records with exact strategyIds, all mandated slugs/types/objectives/regimes/scores/secondaryRegimes/secondaryScores/deposit/exposure/rewards/networks/protocols/lastReviewedAt/minCapital/leverageAmount/risk-enum values, 3–5 references per record (every URL from the whitelist), 3–5 overview paragraphs, 4–7 steps, 4–6 entry/exit conditions, marketFit explanations mentioning all three regimes, no percentage/APY claims, distinct overview openings (swap-test passed)
+   445→- `bunx tsc --noEmit prisma/seed-data/records-014-019.ts prisma/seed-data/types.ts` → clean, zero errors; no other files touched, db:seed not run, dev server untouched
+   446→
+   447→Stage Summary:
+   448→- File prisma/seed-data/records-014-019.ts created with 6 records: STRATEGY_014 Capital-Preservation DeFi Portfolio, STRATEGY_015 Range-Bound Yield LP, STRATEGY_016 Concentrated Liquidity Provision, STRATEGY_017 Delta-Neutral LP, STRATEGY_018 Hedged Concentrated Liquidity, STRATEGY_019 Market-Neutral Yield Stack — TypeScript-clean, ready for seed-script integration by a follow-up task (records are not yet imported into prisma/seed.ts)
+   449→---
+   450→Task ID: 14-a
+   451→Agent: Strategy record writer (subagent)
+   452→Task: Write seed records STRATEGY_001–007 (official collection, part 1)
+   453→
+   454→Work Log:
+   455→- Read worklog tail (Tasks 12/13 context: two-layer market classification, secondaryRegimes/secondaryScores live inside marketFit), prisma/seed-data/types.ts (SeedStrategy contract), prisma/seed.ts lines 1–310 (Accumulation LP + ETH Liquid Staking benchmark records) and the original collection spec sections for STRATEGY_001–007 (primary-regime guidance, phase coverage table, objective classification, special strategy notes)
+   456→- Created prisma/seed-data/records-001-007.ts exporting `records: SeedStrategy[]` with exactly 7 deeply documented records; asset/protocol/network references use SYMBOL/SLUG strings per the seed-data convention (BTC, WBTC, SOL, wstETH, jupiter, jito etc. to be resolved by the seed orchestrator)
+   457→- STRATEGY_001 Accumulation LP and STRATEGY_007 ETH Liquid Staking: PRESERVED the benchmark documentation from seed.ts (descriptions, steps, entry/exit, requirements) with light refinements — 001 gained an explicit "downward conversion is the strategy, not an accident" sentence and a payoff-event exit step sentence; 007 gained reward-rate variability + "first and foremost long ETH" closing in risk.explanation and two step sentences; both marketFit.explanations rewritten to cover all three primary regimes WITH scores plus the canonical phase reasoning (001: Early Recovery 95 / Low-Vol Compression 85; 007: Alt Expansion 90 / BTC-Led 80)
+   458→- New records 002–006 written to the same depth: 002 framed as a DeFi capital-allocation discipline (written deployment plan, productive parking of undeployed stablecoins, honest lump-sum trade-off analysis, explicit contrast with Yield-Funded Accumulation); 003 as a return-on-capital conversion engine (principal preserved in conservative lending, only interest harvested — critical DCA distinction spelled out); 004 with borrower-side overcollateralization mechanics and an explicit "the lender does not face liquidation" clarification (not leveraged borrowing); 005 with strong conservative-LTV discipline throughout (25–50% opening, buffer math vs 30–50% drawdown, prepared contingency, voluntary deleverage) — only HIGH-risk / leverageUsed:true / liquidationExposure:HIGH record in the set; 006 as a strategy of restraint (opportunity-cost arithmetic of capped upside, upside-preserving yield only, hand-off to distribution strategies at the top)
+   459→- Quality gates enforced: 3–5 paragraph overviews (\n\n separated) each strategy-specific (no cross-pastable text), 5–7 steps with 2+ sentences of real execution detail, 4–6 entry + 4–6 exit decision rules, all marketFit.explanations cover BULL/SIDEWAYS/BEAR behavior, all 7 risk.explanations mechanically precise and pairwise distinct, zero static APY/return claims (return sources described instead; only LTV parameters and drawdown-scenario figures appear as percentages), references 3 per record drawn exclusively from the whitelist
+   460→- Verified with `bunx tsc --noEmit prisma/seed-data/records-001-007.ts prisma/seed-data/types.ts` (clean, exit 0) plus a throwaway tsx assertion script (in /tmp, not the repo) checking every mandated field against the spec — slugs, types, objectives, regimes, all three primary scores, secondaryRegimes/secondaryScores, deposit/exposure/reward assets, networks, protocols, lastReviewedAt dates, every risk sub-field, minCapital strings — plus structural gates; all checks passed (7/7)
+   461→- Touched nothing else: no other file modified, no db:seed run, dev server untouched
+   462→
+   463→Stage Summary:
+   464→- File prisma/seed-data/records-001-007.ts created with 7 records: STRATEGY_001 Accumulation LP, STRATEGY_002 Stablecoin DCA Into Crypto, STRATEGY_003 Yield-Funded Accumulation, STRATEGY_004 Blue-Chip Asset Lending, STRATEGY_005 Borrow Against BTC, STRATEGY_006 Bull-Market Hold + Yield, STRATEGY_007 ETH Liquid Staking — TypeScript-clean, ready for seed-script integration by a follow-up task (records are not yet imported into prisma/seed.ts)
+   465→
+   466→---
+   467→Task ID: 15
+   468→Agent: Main agent (Z.ai Code)
+   469→Task: INITIAL OFFICIAL STRATEGY COLLECTION (19 records) + Lenis smooth scrolling for the public Archive
+   470→
+   471→Work Log:
+   472→- Read worklog + spec upload + all core files (schema, serializer, validation, matching, strategyObjectives, form libs, seed, chrome/page/record-index) before touching anything; verified DB contains only seed-generated records (safe to reseed)
+   473→- Additive backend extension — CURATED OBJECTIVES field (the designed swap point from strategyObjectives.ts, needed for exact per-strategy objective classification of the official collection):
+   474→  - `prisma/schema.prisma`: Strategy + `objectivesJson String @default("[]")`; db:push applied (no data loss)
+   475→  - `src/lib/types.ts`: ObjectiveKey union + OBJECTIVE_KEYS; StrategyDTO.objectives / StrategyInput.objectives
+   476→  - `src/lib/strategyObjectives.ts`: objectivesForStrategy now prefers curated DB objectives (canonical order) with the type-derived mapping as fallback; 11 new TYPE_OBJECTIVES entries for the new mechanical types (systematic deployment, collateralized borrowing, options income, risk management, hedged liquidity, market-neutral yield, …)
+   477→  - `src/lib/validation.ts`: objectives array (7-key enum, max 7); serializer normalizeObjectives (unknown keys dropped, canonical order) + isMaterialChange + applyInputForComparison; POST/PUT routes persist objectivesJson
+   478→  - Admin editor: Overview section gains an OBJECTIVES chip selector (7 toggles, aria-pressed, empty = derive); strategy-form state round-trips; verified hydrate shows Accumulation/Liquidity on STRATEGY_001
+   479→- Parallel subagents (Task 14-a/b/c) wrote `prisma/seed-data/records-001-007.ts` / `-008-013.ts` / `-014-019.ts` against a shared `seed-data/types.ts` SeedStrategy contract — 19 deeply documented records with exact canonical regimes/scores, Market Phase fits, objectives, taxonomy links
+   480→- NEW `prisma/seed.ts` orchestrator: taxonomy extended through the existing models (assets +BTC/WBTC/mSOL/jitoSOL; protocols +Jito/Aevo/Thetanuts/GMX/Hyperliquid/Spark/Jupiter; networks +Aevo/Hyperliquid), 19 official PUBLISHED + 2 preserved legacy records (Pendle PT DRAFT, CRV/AERO ARCHIVED — public archive = exactly the official 19), observations for 17 strategies (borrow/risk-management records deliberately get NO APY series), 2 demo revisions, per-review-date updatedAt ordering, and an in-seed COVERAGE VALIDATION (every Market Phase ≥3 strategies — throws on failure)
+   481→- Data fix found via acceptance test: "Bull → BTC-Led → BTC → Liquidity" returned zero records because 004/005 link WBTC only → added BTC to their exposure assets (economic exposure is to Bitcoin itself; WBTC is the instrument)
+   482→- Lenis smooth scrolling (`bun add lenis@1.3.26`):
+   483→  - `src/lib/smooth-scroll.ts`: framework-free singleton (getLenis/setLenisInstance) + smoothScrollTo (element/selector/number, offset, immediate) + scrollToTopImmediate — every helper degrades to native scrolling (instant under prefers-reduced-motion)
+   484→  - `src/components/archive/smooth-scroll.tsx` provider mounted INSIDE ArchiveShell (public only; admin untouched): lerp 0.12 / smoothWheel / syncTouch false (native mobile touch preserved) / wheelMultiplier 1; RAF loop; reduced-motion never initializes (live media-change listener destroys/creates); pauses (lenis.stop) while the global search overlay is open; capture-phase anchor-click handler routes ALL `a[href^="#"]` (the sticky Record Index 01–09, mobile + desktop) through smoothScrollTo with -112px sticky-header offset + replaceState hash sync (no history pollution); hash-landing correction on load re-asserts position ~2.5s to beat the browser's deferred anchor scroll
+   485→  - `globals.css`: official Lenis rules (html.lenis height auto, .lenis-smooth scroll-behavior auto, data-lenis-prevent overscroll contain, .lenis-stopped overflow hidden), scroll-margin-top 7rem on archive sections, prefers-reduced-motion kill-switch for animations
+   486→  - `page.tsx` view-change scroll reset routed through scrollToTopImmediate (Lenis-aware); data-lenis-prevent on the search overlay result list + Browse All facet lists + shared shadcn CommandList
+   487→- README updated: 5-step flow URLs, curated objectives + official collection sections, smooth scrolling architecture notes
+   488→- Card polish from VLM review: record-card breathing room (name mt-3, composition mt-5, summary mt-4)
+   489→
+   490→Stage Summary:
+   491→- SEED: 21 strategies (19 official published + 1 draft + 1 archived), 13 assets, 16 protocols, 7 networks, 1710 observations; every Market Phase ≥3 strategies (ER 3, BTC-led 4, Alt 3, Late-bull 3, Capitulation 4, Low-vol 4, Chop 3)
+   492→- ALL 7 SPEC ACCEPTANCE SEARCHES pass: Bear→EarlyRecovery→ETH→Accumulation = Accumulation LP 95% top · Bull→BTC-Led→BTC→Liquidity = Borrow Against BTC 95% · Bull→AltExpansion→ETH→Yield = 006/007 top · Bull→LateBull→ETH→CapPres = Distribution LP 95 / Covered Call 90 · Bear→Capitulation→All→CapPres = 012/013/014 dominate · Sideways→LowVol→ETH+USDC→Liquidity = Range-Bound 97 / CL 96 · Sideways→Chop→ETH+USDC→Hedging = 017/019/018 at 96/96/95
+   493→- SMOOTH SCROLLING verified in agent-browser: wheel event → 0→694px decelerating curve over ~700ms (fast start, decisive settle, not floaty); Record Index click → smooth scroll + hash + section at 112px below sticky header; view change → instant top reset; search overlay open → lenis-stopped + wheel cannot scroll behind dialog; prefers-reduced-motion emulated → Lenis never initializes + anchor clicks jump instantly; sticky header + IntersectionObserver scrollspy work unchanged; hash deep-links land pixel-correct (#risk, #references, #market-fit); back/forward + mobile 390px (zero overflow) intact
+   494→- Objectives round-trip: PUT with objectives → stored; PUT [] → falls back to derived mapping; admin chips hydrate from DB
+   495→- Full E2E in browser: entrance (19 RECORDS stats) → BULL → BTC-Led Expansion → ETH → Growth → 3 records (96/93/92%) → OPEN RECORD → all 9 sections + BEST DURING phases + curated objectives; Browse All 19 OF 19; admin list 21 rows + editor Saved
+   496→- VLM design review (5 screenshots): entrance A-, phase A, results A+, record A-, browse B+ → overall A-; applied the card-spacing fix
+   497→- lint 0 errors · tsc clean (seed + record files) · dev.log clean · all 11 view URLs 200 · zero console errors
+   498→
+   499→## Current project status
+   500→
+   501→Matrix Strategy Archives is **complete and running** at `/` (dev server, port 3000).
+   502→The Archive now contains the **INITIAL OFFICIAL STRATEGY COLLECTION** — 19
+   503→deeply-documented, published strategy archetypes (STRATEGY_001–019) with curated
+   504→objectives, two-layer market classification (regimes + Market Phase fits), and
+   505→complete taxonomy (13 assets incl. BTC/WBTC/mSOL/jitoSOL, 16 protocols incl.
+   506→Aevo/GMX/Hyperliquid/Spark/Jito, 7 networks). The public frontend has **Lenis
+   507→smooth scrolling** (subtle inertial wheel/trackpad feel, native touch preserved,
+   508→reduced-motion honored, smooth Record Index anchor navigation with sticky-header
+   509→offsets, Lenis-aware view-change resets, search-overlay pause). The admin CMS
+   510→keeps native scrolling and gained an OBJECTIVES selector. All 7 spec acceptance
+   511→searches rank the intended strategies at the top.
+   512→
+   513→## Verification results (latest run — Task 15)
+   514→
+   515→- Seed: 19 official + 2 preserved, coverage validation all-OK (≥3 per phase) ✓
+   516→- 7/7 acceptance searches rank correctly (see Stage Summary) ✓
+   517→- Smooth scrolling: wheel curve, anchor nav + hash, view reset, overlay pause,
+   518→  reduced-motion skip, sticky header + scrollspy, hash deep-links ✓
+   519→- Objectives: API round-trip + admin editor hydrate ✓ · Admin untouched
+   520→  (light theme, 21 rows, Saved indicator) ✓
+   521→- Mobile 390px zero overflow · lint 0/0 · dev.log clean · 0 console errors ✓
+   522→- VLM design review: overall A- ✓
+   523→
+   524→## Unresolved risks / next-phase recommendations (priority order)
+   525→
+   526→1. **Admin authentication** — still open by design; add NextAuth.js gate before deployment.
+   527→2. **Live market data service** — build the detector/feed that supplies
+   528→   { regime, secondaryRegime } + APY/TVL observations (fields and matching
+   529→   infrastructure all in place; observations currently seeded simulations).
+   530→3. **CoinGecko icon sync** — populate Asset.iconUrl from coingeckoId (fields reserved; ArcAssetIcon renders them).
+   531→4. **Pagination** — list endpoints return all rows; fine at 21 records, add cursor pagination before thousands.
+   532→5. **Editor draft persistence** — sessionStorage restore for unsaved admin edits (unchanged risk).
+   533→

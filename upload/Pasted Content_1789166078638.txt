@@ -1,0 +1,1455 @@
+I now want to populate Matrix Strategy Archives with the INITIAL OFFICIAL STRATEGY COLLECTION.
+
+Do not add dozens of strategies yet.
+
+For now, the Archive should contain ONLY the 19 strategy archetypes defined below as the official initial collection.
+
+The goal is not quantity.
+
+The goal is that every strategy is deeply documented, logically classified, genuinely appropriate for its assigned market regimes/phases, and written to the same quality standard as the existing Accumulation LP record.
+
+Do NOT create shallow placeholder records.
+
+Do NOT create one-sentence descriptions simply to populate the UI.
+
+Each strategy must read like a researched Matrix Strategy Archive record.
+
+==================================================
+IMPORTANT BACKEND RULES
+==================================================
+
+Preserve the existing:
+
+- Prisma database
+- strategy schema
+- admin interface
+- revision history
+- assets
+- protocols
+- networks
+- APIs
+- publishing logic
+- primary regimes
+- secondary regimes / Market Phases
+- Archive discovery flow
+
+Do not rebuild the backend.
+
+Use the existing models and extend them only where required.
+
+If some of these strategies require additional assets, protocols, or networks that are not currently in the database, add them through the existing Asset / Protocol / Network models rather than hardcoding strings into the frontend.
+
+Do not create duplicate assets/protocols/networks if they already exist.
+
+For existing old SEED strategies that conflict with this collection:
+
+- replace/update obvious old seed records where appropriate
+- do NOT destructively delete genuine user-created records
+- if necessary, archive obsolete example seed strategies rather than deleting arbitrary database records
+
+The seed script should be safe to run repeatedly using upsert behavior where practical.
+
+==================================================
+ONLY THESE 19 STRATEGIES FOR NOW
+==================================================
+
+Use sequential Archive IDs:
+
+STRATEGY_001
+Accumulation LP
+
+STRATEGY_002
+Stablecoin DCA Into Crypto
+
+STRATEGY_003
+Yield-Funded Accumulation
+
+STRATEGY_004
+Blue-Chip Asset Lending
+
+STRATEGY_005
+Borrow Against BTC
+
+STRATEGY_006
+Bull-Market Hold + Yield
+
+STRATEGY_007
+ETH Liquid Staking
+
+STRATEGY_008
+SOL Liquid Staking
+
+STRATEGY_009
+Distribution LP
+
+STRATEGY_010
+Covered Call Yield
+
+STRATEGY_011
+Stablecoin Yield Rotation
+
+STRATEGY_012
+Deleveraging Into Weakness
+
+STRATEGY_013
+Stablecoin Reserve Strategy
+
+STRATEGY_014
+Capital-Preservation DeFi Portfolio
+
+STRATEGY_015
+Range-Bound Yield LP
+
+STRATEGY_016
+Concentrated Liquidity Provision
+
+STRATEGY_017
+Delta-Neutral LP
+
+STRATEGY_018
+Hedged Concentrated Liquidity
+
+STRATEGY_019
+Market-Neutral Yield Stack
+
+Do NOT automatically generate more strategies beyond these 19.
+
+==================================================
+DOCUMENTATION QUALITY STANDARD
+==================================================
+
+Every strategy must follow the existing Matrix Archive record structure:
+
+01 Overview
+02 Methodology / Instructions
+03 Entry / Exit
+04 Market Fit
+05 Risk
+06 Assets
+07 Platforms
+08 Requirements
+09 References
+
+The existing Accumulation LP documentation should be treated as the QUALITY BENCHMARK.
+
+Each strategy must receive comparable effort.
+
+Do not produce generic template text where only the strategy name changes.
+
+The methodology, entry rules, exit rules, market reasoning, risk reasoning, assets and requirements must be specific to the actual mechanics of that strategy.
+
+==================================================
+01 OVERVIEW
+==================================================
+
+Each record needs:
+
+SHORT SUMMARY
+
+One or two sentences that explain the strategy immediately.
+
+Then a substantial overview explaining:
+
+- what the strategy actually does
+- what economic return it is trying to capture
+- where the yield/return comes from
+- what market conditions make it attractive
+- what trade-off the investor accepts
+- why someone would use it rather than simply holding assets
+- when it may underperform
+- what makes the strategy fundamentally different from similar strategies
+
+Aim for roughly 3–5 useful paragraphs where the strategy warrants it.
+
+Do not write marketing copy.
+
+Write like financial research.
+
+Then include structured metadata:
+
+TYPE
+
+OBJECTIVES
+
+PRIMARY REGIMES
+
+MARKET PHASES
+
+OVERALL RISK
+
+MINIMUM CAPITAL
+
+RECORD OPENED
+
+LAST REVIEWED
+
+Use the actual current seed/import date for dates.
+
+Do not invent future review dates.
+
+==================================================
+02 METHODOLOGY
+==================================================
+
+Every strategy should have approximately 4–7 ordered steps.
+
+Each step must include:
+
+step number
+step title
+explanation
+
+The methodology should explain how the strategy would actually be executed.
+
+Avoid useless steps like:
+
+“Research the strategy.”
+
+Instead explain real actions such as:
+
+- deposit collateral
+- choose market
+- establish hedge
+- select LP range
+- borrow asset
+- rebalance
+- monitor LTV
+- rotate capital
+- compound yield
+- close hedge
+- repay debt
+- exit position
+
+Each step should usually contain 2–4 useful sentences.
+
+==================================================
+03 ENTRY / EXIT
+==================================================
+
+Every strategy needs explicit:
+
+ENTRY CONDITIONS
+
+and:
+
+EXIT CONDITIONS
+
+Aim for approximately 4–6 meaningful conditions on each side.
+
+These should be real decision rules.
+
+Do not use vague statements such as:
+
+“Enter when conditions are good.”
+
+Instead use logic such as:
+
+- selected primary regime is Bull
+- BTC leadership remains intact
+- borrowing LTV remains below predefined comfort threshold
+- volatility is sufficiently low for chosen LP range
+- funding spread remains positive after costs
+- position yield exceeds opportunity cost
+- asset allocation target has not yet been reached
+
+Exit rules should explicitly state what invalidates the strategy.
+
+==================================================
+04 MARKET FIT
+==================================================
+
+Every strategy must have:
+
+Bull fit score 0–100
+
+Sideways fit score 0–100
+
+Bear fit score 0–100
+
+Then only assign the PRIMARY REGIME tags where the strategy genuinely belongs.
+
+A score of 30 does not mean the strategy should necessarily carry that regime tag.
+
+Also assign relevant MARKET PHASES.
+
+Market Phase compatibility must include a 0–100 score where the backend supports it.
+
+Explain WHY the strategy works in its preferred regimes and why it becomes weaker elsewhere.
+
+This explanation is essential.
+
+The Archive must never imply that every strategy works in every market.
+
+==================================================
+MARKET-PHASE COVERAGE REQUIREMENT
+==================================================
+
+The initial collection is deliberately designed so EVERY Market Phase has at least three genuinely suitable strategies.
+
+Use the following as the canonical assignments.
+
+-------------------------
+EARLY RECOVERY
+-------------------------
+
+1. Accumulation LP
+Phase Fit: 95
+
+Reason:
+The market is improving but directional conviction remains uncertain. Accumulation LP allows the investor to continue acquiring the target asset through weakness/ranging while earning fees rather than making one large directional entry.
+
+2. Stablecoin DCA Into Crypto
+Phase Fit: 90
+
+Reason:
+Early recovery is an ideal environment for staged deployment. Conditions have improved enough to justify increasing exposure, but uncertainty remains high enough that gradual purchases are preferable to committing all stablecoin capital immediately.
+
+3. Yield-Funded Accumulation
+Phase Fit: 85
+
+Reason:
+Most capital remains productive while generated yield is gradually redirected into crypto exposure. This gives participation in recovery while preserving a conservative capital base.
+
+-------------------------
+BTC-LED EXPANSION
+-------------------------
+
+1. Blue-Chip Asset Lending
+Phase Fit: 90
+
+Reason:
+BTC and other blue-chip assets can remain held while generating incremental lending yield. The strategy avoids prematurely rotating out of the asset currently leading the market.
+
+2. Borrow Against BTC
+Phase Fit: 95
+
+Reason:
+Allows BTC holders to access stablecoin liquidity without selling the asset that is currently leading the expansion. The primary risk is liquidation if BTC reverses sharply, so conservative LTV management is critical.
+
+3. Bull-Market Hold + Yield
+Phase Fit: 85
+
+Reason:
+During BTC leadership the priority should remain preserving directional upside. Yield components should be additive and should not materially cap participation in the trend.
+
+-------------------------
+ALT EXPANSION
+-------------------------
+
+1. ETH Liquid Staking
+Phase Fit: 90
+
+Reason:
+As capital rotates from BTC toward ETH, liquid staking preserves directional ETH exposure while generating native staking return and retaining DeFi liquidity.
+
+2. SOL Liquid Staking
+Phase Fit: 95
+
+Reason:
+SOL often behaves as a higher-beta asset during broad risk-on expansion. Liquid staking combines directional participation with staking rewards while maintaining composability.
+
+3. Bull-Market Hold + Yield
+Phase Fit: 90
+
+Reason:
+During broad market expansion the largest opportunity cost is capping upside. The strategy focuses on maintaining core directional positions while generating incremental yield where possible.
+
+-------------------------
+LATE BULL / DISTRIBUTION
+-------------------------
+
+1. Distribution LP
+Phase Fit: 95
+
+Reason:
+Liquidity positioned above market can systematically convert appreciated crypto into stablecoins while earning fees, creating a rules-based method for distributing exposure into strength.
+
+2. Covered Call Yield
+Phase Fit: 90
+
+Reason:
+Selling upside optionality becomes more attractive when expected incremental upside is deteriorating and volatility/premium remains elevated. The trade-off of capped upside becomes less costly late in the cycle.
+
+3. Stablecoin Yield Rotation
+Phase Fit: 80
+
+Reason:
+Capital already taken off directional exposure can remain productive by rotating across conservative stablecoin venues rather than sitting completely idle.
+
+-------------------------
+CAPITULATION / DELEVERAGING
+-------------------------
+
+1. Deleveraging Into Weakness
+Phase Fit: 100
+
+Reason:
+The strategy is directly designed for this environment. Falling collateral values and forced liquidations mean the priority is reducing leverage before liquidation thresholds are reached.
+
+2. Stablecoin Reserve Strategy
+Phase Fit: 95
+
+Reason:
+Capital preservation, liquidity and optionality become more valuable than maximizing return during violent deleveraging and protocol stress.
+
+3. Capital-Preservation DeFi Portfolio
+Phase Fit: 90
+
+Reason:
+Diversification across conservative lending, liquid stable reserves and lower-risk venues reduces dependence on one directional asset or one protocol during systemic stress.
+
+-------------------------
+LOW-VOL COMPRESSION
+-------------------------
+
+1. Range-Bound Yield LP
+Phase Fit: 95
+
+Reason:
+A stable trading range allows concentrated liquidity to remain active and earn fees without repeatedly moving out of range.
+
+2. Concentrated Liquidity Provision
+Phase Fit: 90
+
+Reason:
+Lower realized volatility makes tighter ranges more practical, increasing capital efficiency and fee generation per unit of deposited capital.
+
+3. Delta-Neutral LP
+Phase Fit: 85
+
+Reason:
+The strategy can monetize trading activity while reducing directional exposure, making it attractive when the market lacks a persistent trend.
+
+-------------------------
+HIGH-VOLATILITY CHOP
+-------------------------
+
+1. Delta-Neutral LP
+Phase Fit: 90
+
+Reason:
+Large two-way moves create fee opportunities, while the hedge reduces the directional exposure that would otherwise dominate an LP position.
+
+2. Hedged Concentrated Liquidity
+Phase Fit: 95
+
+Reason:
+Concentrated liquidity remains potentially lucrative during active markets, but frequent reversals cause rapidly changing delta. Active hedging is therefore essential.
+
+3. Market-Neutral Yield Stack
+Phase Fit: 90
+
+Reason:
+Repeated directional reversals make outright directional exposure unreliable. A market-neutral stack attempts to isolate yield while offsetting most price exposure.
+
+==================================================
+PRIMARY REGIME GUIDANCE
+==================================================
+
+Use these as the baseline primary-regime assignments.
+
+STRATEGY_001 — Accumulation LP
+Primary:
+Bear
+Sideways
+
+Suggested scores:
+Bull 20
+Sideways 80
+Bear 90
+
+STRATEGY_002 — Stablecoin DCA Into Crypto
+Primary:
+Bear
+Sideways
+
+Suggested scores:
+Bull 35
+Sideways 75
+Bear 85
+
+STRATEGY_003 — Yield-Funded Accumulation
+Primary:
+Bear
+Sideways
+
+Suggested scores:
+Bull 50
+Sideways 80
+Bear 85
+
+STRATEGY_004 — Blue-Chip Asset Lending
+Primary:
+Bull
+Sideways
+
+Suggested scores:
+Bull 85
+Sideways 75
+Bear 55
+
+STRATEGY_005 — Borrow Against BTC
+Primary:
+Bull
+
+Suggested scores:
+Bull 90
+Sideways 60
+Bear 20
+
+STRATEGY_006 — Bull-Market Hold + Yield
+Primary:
+Bull
+
+Suggested scores:
+Bull 95
+Sideways 50
+Bear 20
+
+STRATEGY_007 — ETH Liquid Staking
+Primary:
+Bull
+Sideways
+
+Suggested scores:
+Bull 90
+Sideways 75
+Bear 40
+
+STRATEGY_008 — SOL Liquid Staking
+Primary:
+Bull
+Sideways
+
+Suggested scores:
+Bull 90
+Sideways 70
+Bear 30
+
+STRATEGY_009 — Distribution LP
+Primary:
+Bull
+Sideways
+
+Suggested scores:
+Bull 90
+Sideways 65
+Bear 15
+
+STRATEGY_010 — Covered Call Yield
+Primary:
+Bull
+Sideways
+
+Suggested scores:
+Bull 80
+Sideways 85
+Bear 30
+
+Important:
+Covered calls fit a mature/late Bull better than an early explosive Bull because they cap upside.
+
+STRATEGY_011 — Stablecoin Yield Rotation
+Primary:
+Bull
+Sideways
+Bear
+
+Suggested scores:
+Bull 70
+Sideways 85
+Bear 90
+
+STRATEGY_012 — Deleveraging Into Weakness
+Primary:
+Bear
+
+Suggested scores:
+Bull 20
+Sideways 50
+Bear 100
+
+STRATEGY_013 — Stablecoin Reserve Strategy
+Primary:
+Bear
+Sideways
+
+Suggested scores:
+Bull 40
+Sideways 80
+Bear 95
+
+STRATEGY_014 — Capital-Preservation DeFi Portfolio
+Primary:
+Bear
+Sideways
+
+Suggested scores:
+Bull 45
+Sideways 80
+Bear 95
+
+STRATEGY_015 — Range-Bound Yield LP
+Primary:
+Sideways
+
+Suggested scores:
+Bull 35
+Sideways 95
+Bear 35
+
+STRATEGY_016 — Concentrated Liquidity Provision
+Primary:
+Sideways
+
+Suggested scores:
+Bull 50
+Sideways 95
+Bear 50
+
+STRATEGY_017 — Delta-Neutral LP
+Primary:
+Sideways
+
+Suggested scores:
+Bull 60
+Sideways 95
+Bear 60
+
+STRATEGY_018 — Hedged Concentrated Liquidity
+Primary:
+Sideways
+Bear
+
+Suggested scores:
+Bull 60
+Sideways 90
+Bear 70
+
+STRATEGY_019 — Market-Neutral Yield Stack
+Primary:
+Sideways
+Bear
+
+Suggested scores:
+Bull 70
+Sideways 95
+Bear 80
+
+These numbers are guidelines.
+
+Do not change them arbitrarily just to create variety.
+
+If implementation requires adjusting a score, keep the economic reasoning intact.
+
+==================================================
+OBJECTIVE CLASSIFICATION
+==================================================
+
+Use the existing user-facing Archive objectives.
+
+STRATEGY_001 Accumulation LP
+Accumulation
+Liquidity
+
+STRATEGY_002 Stablecoin DCA Into Crypto
+Accumulation
+Growth
+
+STRATEGY_003 Yield-Funded Accumulation
+Yield
+Accumulation
+
+STRATEGY_004 Blue-Chip Asset Lending
+Yield
+Growth
+
+STRATEGY_005 Borrow Against BTC
+Liquidity
+Growth
+Advanced
+
+STRATEGY_006 Bull-Market Hold + Yield
+Growth
+Yield
+
+STRATEGY_007 ETH Liquid Staking
+Yield
+Growth
+
+STRATEGY_008 SOL Liquid Staking
+Yield
+Growth
+
+STRATEGY_009 Distribution LP
+Capital Preservation
+Liquidity
+Yield
+
+STRATEGY_010 Covered Call Yield
+Yield
+Capital Preservation
+Advanced
+
+STRATEGY_011 Stablecoin Yield Rotation
+Yield
+Capital Preservation
+
+STRATEGY_012 Deleveraging Into Weakness
+Capital Preservation
+Hedging
+
+STRATEGY_013 Stablecoin Reserve Strategy
+Capital Preservation
+Yield
+
+STRATEGY_014 Capital-Preservation DeFi Portfolio
+Capital Preservation
+Yield
+
+STRATEGY_015 Range-Bound Yield LP
+Liquidity
+Yield
+
+STRATEGY_016 Concentrated Liquidity Provision
+Liquidity
+Yield
+
+STRATEGY_017 Delta-Neutral LP
+Yield
+Hedging
+Advanced
+
+STRATEGY_018 Hedged Concentrated Liquidity
+Yield
+Hedging
+Advanced
+
+STRATEGY_019 Market-Neutral Yield Stack
+Yield
+Hedging
+Advanced
+
+==================================================
+05 RISK
+==================================================
+
+Each strategy must contain structured risk data.
+
+Use the existing fields where available:
+
+Overall risk
+
+Leverage
+
+Liquidation exposure
+
+Impermanent loss
+
+Smart contract risk
+
+Asset volatility
+
+Incentive reliance
+
+Withdrawal restrictions
+
+Lockup period
+
+Then write a substantial:
+
+RISK EXPLANATION
+
+The explanation should identify the risks that ACTUALLY matter for that strategy.
+
+Examples:
+
+Borrow Against BTC:
+- liquidation
+- collateral volatility
+- interest-rate changes
+- oracle risk
+- lending-protocol risk
+
+Liquid staking:
+- underlying asset volatility
+- validator/slashing risk
+- LST depeg/liquidity risk
+- smart-contract risk
+
+Covered calls:
+- capped upside
+- option settlement
+- volatility mispricing
+- counterparty/protocol risk
+
+Delta-neutral LP:
+- hedge basis risk
+- funding risk
+- imperfect delta estimation
+- LP impermanent loss
+- execution/rebalancing risk
+- liquidation risk if derivatives use leverage
+
+Do not reuse the same generic risk paragraph across strategies.
+
+==================================================
+06 ASSETS
+==================================================
+
+Every record should distinguish:
+
+DEPOSIT ASSETS
+
+EXPOSURE ASSETS
+
+REWARD ASSETS
+
+Do not confuse what is deposited with what the strategy is economically exposed to.
+
+For generalized strategies, support multiple suitable assets where necessary.
+
+Do not invent reward tokens just to fill the field.
+
+If reward assets are not fundamental:
+
+Reward Assets:
+None / Variable by implementation
+
+==================================================
+07 PLATFORMS
+==================================================
+
+List appropriate:
+
+NETWORKS
+
+PROTOCOLS
+
+Remember these are STRATEGY ARCHETYPES, not advertisements for one protocol.
+
+Example:
+
+Stablecoin Lending may be implemented using:
+Aave
+Morpho
+other suitable established lending markets
+
+But do not create separate strategies called:
+
+Aave Stablecoin Lending
+Morpho Stablecoin Lending
+
+unless the economic mechanism is materially different.
+
+Use representative protocols from the existing database.
+
+Do not claim a protocol supports something if it does not.
+
+==================================================
+08 REQUIREMENTS
+==================================================
+
+Include:
+
+MINIMUM CAPITAL
+
+REQUIRED HOLDINGS
+
+LOCKUP
+
+WALLET / NETWORK SETUP
+
+OTHER PREREQUISITES
+
+Minimum capital should represent a PRACTICAL recommendation rather than pretending a protocol has a hard minimum when it does not.
+
+For example:
+
+Ethereum-mainnet active LP:
+practical minimum may be higher because gas and rebalancing costs matter.
+
+Liquid staking:
+could have effectively no meaningful protocol minimum depending on implementation.
+
+Advanced hedged strategies:
+should generally require more capital because hedge execution and transaction costs matter.
+
+==================================================
+09 REFERENCES
+==================================================
+
+Each strategy should contain approximately 3–5 useful references where available.
+
+Prioritize:
+
+1. official protocol documentation
+2. official technical documentation / whitepapers
+3. high-quality educational material
+4. reputable research
+
+Each reference needs:
+
+number
+
+title
+
+publisher
+
+short description of what the source supports
+
+URL
+
+Do NOT fabricate URLs.
+
+If you are not confident that a URL is correct:
+
+leave it blank / mark it for manual verification rather than inventing a link.
+
+References should support the actual strategy mechanics or risks.
+
+==================================================
+NO STATIC APY CLAIMS
+==================================================
+
+VERY IMPORTANT:
+
+Do NOT permanently store claims such as:
+
+“APY 9.2%”
+
+“Expected return 12%”
+
+inside the permanent strategy definition.
+
+Yield changes constantly.
+
+The architecture already intends changing yields / market observations to live separately from permanent strategy definitions.
+
+If the existing frontend currently displays seeded static APYs, remove that dependency for these new records or clearly treat it as mock/live-data-layer information.
+
+The strategy Archive should explain WHERE returns come from, not pretend a permanent APY exists.
+
+==================================================
+STRATEGY-SPECIFIC REASONING
+==================================================
+
+I want substantial thought put into each record.
+
+Before writing each strategy internally reason through:
+
+1. What economic exposure does the user actually have?
+
+2. Where does the return come from?
+
+3. What is the strategy giving up in exchange?
+
+4. What causes the strategy to outperform simple spot holding?
+
+5. What causes it to underperform?
+
+6. What market environment benefits it?
+
+7. What market environment damages it?
+
+8. Does it introduce leverage?
+
+9. Can it be liquidated?
+
+10. Does it depend on incentives?
+
+11. Does it depend on volatility?
+
+12. Does it depend on funding rates?
+
+13. How much active management is required?
+
+14. What invalidates the strategy?
+
+15. What would make an experienced DeFi user reject this strategy?
+
+Use the answers to create the actual record.
+
+Do not output this reasoning as a hidden/internal reasoning log.
+
+Instead ensure the resulting documentation reflects it.
+
+==================================================
+SPECIAL STRATEGY NOTES
+==================================================
+
+STRATEGY_001 — ACCUMULATION LP
+
+Preserve the strong existing documentation if it already exists.
+
+Core idea:
+
+Use concentrated liquidity at/under spot so stablecoins progressively convert into the target asset during weakness while earning swap fees.
+
+The intentional downward conversion is part of the strategy, not an accidental side effect.
+
+Do not overwrite good existing text with worse generic text.
+
+==================================================
+
+STRATEGY_002 — STABLECOIN DCA INTO CRYPTO
+
+This should NOT simply be:
+
+“Buy $100 of ETH every week.”
+
+Make it a DeFi capital-allocation strategy.
+
+Stablecoin capital remains liquid/productive and is systematically deployed into chosen crypto assets according to predetermined sizing/time/risk rules.
+
+Explain the advantages and disadvantages relative to lump-sum deployment.
+
+==================================================
+
+STRATEGY_003 — YIELD-FUNDED ACCUMULATION
+
+The principal stays primarily inside a yield-producing strategy.
+
+Generated yield is periodically redirected into BTC/ETH/SOL or another target asset.
+
+Important distinction:
+
+The user is primarily accumulating using RETURN GENERATED BY CAPITAL, rather than continuously consuming the principal.
+
+==================================================
+
+STRATEGY_004 — BLUE-CHIP ASSET LENDING
+
+The user already wants to hold BTC/ETH-like exposure.
+
+Instead of leaving the asset idle, it is supplied to lending markets.
+
+Explain:
+
+- incremental return
+- utilization/rate variability
+- smart-contract risk
+- borrower-side mechanics
+- why the lender itself generally does not face liquidation merely for lending an unborrowed asset
+
+Do not confuse lending with leveraged borrowing.
+
+==================================================
+
+STRATEGY_005 — BORROW AGAINST BTC
+
+BTC remains collateral.
+
+Stablecoins or another asset are borrowed against it.
+
+The user avoids selling BTC but introduces:
+
+- debt
+- interest cost
+- liquidation risk
+
+This is NOT free liquidity.
+
+The documentation must strongly emphasize conservative LTV management.
+
+==================================================
+
+STRATEGY_006 — BULL-MARKET HOLD + YIELD
+
+Core philosophy:
+
+During strong directional trends, strategies that cap upside can underperform simple holding.
+
+Maintain core directional exposure.
+
+Only add yield sources that preserve most of that upside.
+
+Explain why this may outperform aggressive LP/distribution strategies during strong expansion.
+
+==================================================
+
+STRATEGY_007 — ETH LIQUID STAKING
+
+Explain:
+
+ETH → liquid staking token.
+
+User earns staking return while retaining a token usable throughout DeFi.
+
+Risks include:
+
+- smart-contract risk
+- validator/slashing risk
+- LST liquidity/depeg risk
+- ETH volatility
+
+==================================================
+
+STRATEGY_008 — SOL LIQUID STAKING
+
+Same broad economic concept as ETH LST, but document SOL-specific mechanics independently.
+
+Do NOT just copy the ETH strategy and replace ETH with SOL.
+
+Discuss:
+
+- validator delegation ecosystem
+- liquid staking token liquidity
+- higher-beta SOL exposure
+- protocol-specific smart-contract/liquidity considerations
+
+==================================================
+
+STRATEGY_009 — DISTRIBUTION LP
+
+This should act conceptually as the mirror image of Accumulation LP.
+
+Place concentrated liquidity at/above current spot so appreciated crypto progressively converts into stablecoins during upward movement.
+
+Use it as a systematic profit-distribution mechanism while earning fees.
+
+Strong fit:
+Late Bull / Distribution.
+
+==================================================
+
+STRATEGY_010 — COVERED CALL YIELD
+
+Hold the underlying asset while selling calls against part/all of the position.
+
+Return:
+
+option premium.
+
+Trade-off:
+
+upside above strike is surrendered.
+
+Explain why this becomes particularly interesting late in a bull cycle or in a sideways market.
+
+Do not falsely describe a covered call as full downside protection.
+
+Premium only provides a limited downside buffer.
+
+==================================================
+
+STRATEGY_011 — STABLECOIN YIELD ROTATION
+
+Rotate stablecoins between conservative yield venues when net yield/risk becomes meaningfully more attractive elsewhere.
+
+Do NOT recommend constantly chasing the highest headline APY.
+
+Explain evaluation of:
+
+- protocol risk
+- stablecoin risk
+- liquidity
+- incentives
+- transaction/bridge costs
+- yield durability
+
+==================================================
+
+STRATEGY_012 — DELEVERAGING INTO WEAKNESS
+
+This is a RISK-MANAGEMENT strategy.
+
+Not an alpha strategy.
+
+The objective is systematically reducing leverage as market structure deteriorates.
+
+Possible actions:
+
+- repay debt
+- add collateral
+- reduce directional exposure
+- close leveraged loops
+
+The methodology should prioritize survival over maximizing return.
+
+==================================================
+
+STRATEGY_013 — STABLECOIN RESERVE STRATEGY
+
+Keep capital liquid and defensively positioned while still seeking modest productive return.
+
+Prioritize:
+
+capital availability
+low complexity
+protocol quality
+stablecoin diversification
+withdrawal liquidity
+
+Do not optimize purely for APY.
+
+==================================================
+
+STRATEGY_014 — CAPITAL-PRESERVATION DEFI PORTFOLIO
+
+This is a PORTFOLIO strategy rather than one protocol position.
+
+Diversify capital across conservative DeFi exposures.
+
+Explain:
+
+- stablecoin diversification
+- protocol diversification
+- liquidity tiers
+- concentration limits
+- risk budgeting
+
+Do not imply DeFi can ever be literally risk-free.
+
+==================================================
+
+STRATEGY_015 — RANGE-BOUND YIELD LP
+
+Specifically optimized for sideways conditions.
+
+Unlike generic concentrated liquidity, the strategic thesis is:
+
+price remains predominantly range-bound.
+
+Explain how:
+
+range placement
+width
+volatility
+fee tier
+rebalancing
+
+affect results.
+
+==================================================
+
+STRATEGY_016 — CONCENTRATED LIQUIDITY PROVISION
+
+This is the GENERAL concentrated-liquidity archetype.
+
+It must be broader than Accumulation LP and Range-Bound Yield LP.
+
+Explain concentrated liquidity itself:
+
+- active price ranges
+- capital efficiency
+- fee generation
+- inventory transformation
+- out-of-range behavior
+- impermanent loss
+
+==================================================
+
+STRATEGY_017 — DELTA-NEUTRAL LP
+
+The LP exposure is paired with a hedge designed to reduce net directional delta.
+
+Explain clearly:
+
+LP position
+changing delta
+hedge
+funding costs
+hedge rebalancing
+basis risk
+
+Do not claim it is perfectly risk-free or perfectly neutral.
+
+==================================================
+
+STRATEGY_018 — HEDGED CONCENTRATED LIQUIDITY
+
+This is more active/sophisticated than generic Delta-Neutral LP.
+
+A concentrated LP has rapidly changing delta as price moves through its range.
+
+The hedge must therefore be actively adjusted.
+
+High-Volatility Chop is particularly relevant because:
+
+- trading volume may generate fees
+- frequent reversals generate changing directional exposure
+- active hedging attempts to control that exposure
+
+Clearly describe execution complexity.
+
+==================================================
+
+STRATEGY_019 — MARKET-NEUTRAL YIELD STACK
+
+This should be broader than LP hedging.
+
+Combine one or more yield-bearing exposures with offsetting positions designed to minimize net directional market exposure.
+
+Possible sources could include:
+
+staking yield
+lending yield
+basis/funding spreads
+LP fees
+
+But the record should describe the ARCHETYPE rather than pretending all implementations are identical.
+
+Main risks:
+
+basis
+funding
+counterparty/protocol
+liquidation
+imperfect hedge
+execution
+correlation breakdown
+
+==================================================
+COVERAGE VALIDATION
+==================================================
+
+After creating the data, automatically validate that the Archive returns at least:
+
+EARLY RECOVERY:
+3 suitable strategies
+
+BTC-LED EXPANSION:
+3 suitable strategies
+
+ALT EXPANSION:
+3 suitable strategies
+
+LATE BULL / DISTRIBUTION:
+3 suitable strategies
+
+CAPITULATION / DELEVERAGING:
+3 suitable strategies
+
+LOW-VOL COMPRESSION:
+3 suitable strategies
+
+HIGH-VOLATILITY CHOP:
+3 suitable strategies
+
+Create a simple validation helper/test if appropriate.
+
+The Market Phase navigation must never show a phase whose corresponding query accidentally returns zero records from the seeded official collection.
+
+==================================================
+PUBLIC RESULTS
+==================================================
+
+All 19 should integrate with the existing Archive matching system.
+
+When someone searches:
+
+Bear
+→ Early Recovery
+→ ETH
+→ Accumulation
+
+Accumulation LP should rank very strongly.
+
+When someone searches:
+
+Bull
+→ BTC-Led Expansion
+→ BTC
+→ Liquidity
+
+Borrow Against BTC should rank strongly.
+
+When someone searches:
+
+Bull
+→ Alt Expansion
+→ ETH
+→ Yield
+
+ETH Liquid Staking should rank strongly.
+
+When someone searches:
+
+Bull
+→ Late Bull / Distribution
+→ ETH
+→ Capital Preservation
+
+Distribution LP / Covered Call-style strategies should rank strongly depending on assets.
+
+When someone searches:
+
+Bear
+→ Capitulation / Deleveraging
+→ All Assets
+→ Capital Preservation
+
+Deleveraging Into Weakness / Stablecoin Reserve / Capital-Preservation Portfolio should dominate.
+
+When someone searches:
+
+Sideways
+→ Low-Vol Compression
+→ ETH + USDC
+→ Liquidity
+
+Range-Bound Yield LP / Concentrated Liquidity should rank strongly.
+
+When someone searches:
+
+Sideways
+→ High-Volatility Chop
+→ ETH + USDC
+→ Hedging
+
+Delta-Neutral LP / Hedged Concentrated Liquidity / Market-Neutral Yield Stack should dominate.
+
+==================================================
+FINAL QUALITY CONTROL
+==================================================
+
+Before finishing, review EVERY strategy individually.
+
+For each record ask:
+
+Could the Overview have been pasted into another strategy without changing much?
+
+If yes:
+rewrite it.
+
+Are the methodology steps specific to the actual mechanics?
+
+If no:
+rewrite them.
+
+Do the Entry / Exit conditions provide actionable rules?
+
+If no:
+rewrite them.
+
+Does the Market Fit section explain WHY the strategy belongs in its assigned regimes?
+
+If no:
+rewrite it.
+
+Does the Risk section identify strategy-specific failure modes?
+
+If no:
+rewrite it.
+
+Are the references relevant to the actual mechanics?
+
+If no:
+replace them.
+
+Does the record contain unsupported static APY claims?
+
+If yes:
+remove them.
+
+Does the record genuinely deserve its assigned Market Phase?
+
+If no:
+fix the assignment instead of forcing it.
+
+The objective is not merely to have 19 records in the database.
+
+The objective is to launch the first 19 pieces of a credible DeFi strategy research archive.
+
+Treat every one as a real piece of Matrix Finance research.

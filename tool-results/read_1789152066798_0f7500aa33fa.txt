@@ -1,0 +1,978 @@
+     1→     1→"use client"
+     2→     2→
+     3→     3→import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react"
+     4→     4→import { Input } from "@/components/ui/input"
+     5→     5→import { Textarea } from "@/components/ui/textarea"
+     6→     6→import { Button } from "@/components/ui/button"
+     7→     7→import { Checkbox } from "@/components/ui/checkbox"
+     8→     8→import { Switch } from "@/components/ui/switch"
+     9→     9→import { Label } from "@/components/ui/label"
+    10→    10→import {
+    11→    11→  Select,
+    12→    12→  SelectContent,
+    13→    13→  SelectItem,
+    14→    14→  SelectTrigger,
+    15→    15→  SelectValue,
+    16→    16→} from "@/components/ui/select"
+    17→    17→import { Field, FormCard } from "@/components/admin/form-controls"
+    18→    18→import { AssetIcon, ProtocolIcon, NetworkIcon } from "@/components/shared/icons"
+    19→    19→import { useAssets, useNetworks, useProtocols } from "@/hooks/use-strategy-data"
+    20→    20→import {
+    21→    21→  EXPOSURE_LEVELS,
+    22→    22→  RISK_LEVELS,
+    23→    23→  REGIMES,
+    24→    24→  STRATEGY_STATUSES,
+    25→    25→  type ExposureLevel,
+    26→    26→  type Regime,
+    27→    27→  type RiskLevel,
+    28→    28→  type StrategyStatus,
+    29→    29→} from "@/lib/types"
+    30→    30→import { EXPOSURE_LABELS, RISK_LABELS, REGIME_LABELS, STATUS_LABELS } from "@/lib/format"
+    31→    31→import { slugify } from "@/lib/strategy-form-utils"
+    32→    32→import type { StrategyFormState } from "@/lib/strategy-form"
+    33→    33→import { cn } from "@/lib/utils"
+    34→    34→
+    35→    35→// ---------------------------------------------------------------------------
+    36→    36→// Shared props
+    37→    37→// ---------------------------------------------------------------------------
+    38→    38→
+    39→    39→export interface SectionProps {
+    40→    40→  form: StrategyFormState
+    41→    41→  update: (patch: Partial<StrategyFormState>) => void
+    42→    42→  knownTypes?: string[]
+    43→    43→}
+    44→    44→
+    45→    45→// ---------------------------------------------------------------------------
+    46→    46→// 01 — Overview
+    47→    47→// ---------------------------------------------------------------------------
+    48→    48→
+    49→    49→export function OverviewSection({ form, update, knownTypes = [] }: SectionProps) {
+    50→    50→  const types = Array.from(new Set([...knownTypes, ...(form.type ? [form.type] : [])])).sort()
+    51→    51→  const typeKnown = types.includes(form.type)
+    52→    52→
+    53→    53→  return (
+    54→    54→    <div className="space-y-6">
+    55→    55→      <FormCard title="Identity" description="Name, reference id and public slug.">
+    56→    56→        <div className="grid gap-5 md:grid-cols-2">
+    57→    57→          <Field label="NAME" hint="required">
+    58→    58→            <Input
+    59→    59→              value={form.name}
+    60→    60→              onChange={(e) => {
+    61→    61→                const name = e.target.value
+    62→    62→                update({
+    63→    63→                  name,
+    64→    64→                  slug: form.slugLocked ? form.slug : slugify(name),
+    65→    65→                })
+    66→    66→              }}
+    67→    67→              placeholder="e.g. Accumulation LP"
+    68→    68→              className="h-9"
+    69→    69→            />
+    70→    70→          </Field>
+    71→    71→          <Field label="STRATEGY ID" hint="auto-generated when left empty">
+    72→    72→            <Input
+    73→    73→              value={form.strategyId}
+    74→    74→              onChange={(e) => update({ strategyId: e.target.value })}
+    75→    75→              placeholder="STRATEGY_001"
+    76→    76→              className="h-9 font-mono text-sm"
+    77→    77→            />
+    78→    78→          </Field>
+    79→    79→          <Field label="SLUG" hint="public url key — auto-derived from the name">
+    80→    80→            <Input
+    81→    81→              value={form.slug}
+    82→    82→              onChange={(e) => update({ slug: e.target.value, slugLocked: true })}
+    83→    83→              placeholder="accumulation-lp"
+    84→    84→              className="h-9 font-mono text-sm"
+    85→    85→            />
+    86→    86→          </Field>
+    87→    87→          <Field label="STRATEGY TYPE" hint="required — extendable">
+    88→    88→            <div className="flex gap-2">
+    89→    89→              <Select
+    90→    90→                value={typeKnown ? form.type : "__custom"}
+    91→    91→                onValueChange={(v) => update({ type: v === "__custom" ? "" : v })}
+    92→    92→              >
+    93→    93→                <SelectTrigger className="h-9 flex-1">
+    94→    94→                  <SelectValue placeholder="Select a type" />
+    95→    95→                </SelectTrigger>
+    96→    96→                <SelectContent>
+    97→    97→                  {types.map((t) => (
+    98→    98→                    <SelectItem key={t} value={t}>
+    99→    99→                      {t}
+   100→   100→                    </SelectItem>
+   101→   101→                  ))}
+   102→   102→                  <SelectItem value="__custom">Custom…</SelectItem>
+   103→   103→                </SelectContent>
+   104→   104→              </Select>
+   105→   105→            </div>
+   106→   106→            {!typeKnown && (
+   107→   107→              <Input
+   108→   108→                value={form.type}
+   109→   109→                onChange={(e) => update({ type: e.target.value })}
+   110→   110→                placeholder="e.g. Basis Trade"
+   111→   111→                className="mt-2 h-9"
+   112→   112→              />
+   113→   113→            )}
+   114→   114→          </Field>
+   115→   115→        </div>
+   116→   116→      </FormCard>
+   117→   117→
+   118→   118→      <FormCard title="Content" description="Summary for cards, full description for the detail page.">
+   119→   119→        <div className="space-y-5">
+   120→   120→          <Field label="SHORT SUMMARY" hint={`${form.summary.length}/240`}>
+   121→   121→            <Textarea
+   122→   122→              value={form.summary}
+   123→   123→              onChange={(e) => update({ summary: e.target.value.slice(0, 240) })}
+   124→   124→              placeholder="One or two sentences that explain the strategy at a glance."
+   125→   125→              rows={2}
+   126→   126→              className="text-sm"
+   127→   127→            />
+   128→   128→          </Field>
+   129→   129→          <Field
+   130→   130→            label="FULL DESCRIPTION"
+   131→   131→            hint="separate paragraphs with a blank line"
+   132→   132→          >
+   133→   133→            <Textarea
+   134→   134→              value={form.description}
+   135→   135→              onChange={(e) => update({ description: e.target.value })}
+   136→   136→              placeholder="What the strategy is trying to accomplish, how it behaves, and what it trades off…"
+   137→   137→              rows={12}
+   138→   138→              className="text-sm leading-relaxed"
+   139→   139→            />
+   140→   140→          </Field>
+   141→   141→        </div>
+   142→   142→      </FormCard>
+   143→   143→    </div>
+   144→   144→  )
+   145→   145→}
+   146→   146→
+   147→   147→// ---------------------------------------------------------------------------
+   148→   148→// 02 — Instructions
+   149→   149→// ---------------------------------------------------------------------------
+   150→   150→
+   151→   151→export function InstructionsSection({ form, update }: SectionProps) {
+   152→   152→  const setSteps = (steps: StrategyFormState["steps"]) => update({ steps })
+   153→   153→
+   154→   154→  const moveStep = (index: number, direction: -1 | 1) => {
+   155→   155→    const next = [...form.steps]
+   156→   156→    const target = index + direction
+   157→   157→    if (target < 0 || target >= next.length) return
+   158→   158→    ;[next[index], next[target]] = [next[target], next[index]]
+   159→   159→    setSteps(next)
+   160→   160→  }
+   161→   161→
+   162→   162→  return (
+   163→   163→    <div className="space-y-6">
+   164→   164→      <FormCard title="Execution steps" description="The ordered “How it works” sequence.">
+   165→   165→        <div className="space-y-3">
+   166→   166→          {form.steps.map((step, i) => (
+   167→   167→            <div key={i} className="rounded-lg border border-gray-200 bg-gray-50/50 p-4">
+   168→   168→              <div className="flex items-center justify-between">
+   169→   169→                <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+   170→   170→                  STEP {String(i + 1).padStart(2, "0")}
+   171→   171→                </span>
+   172→   172→                <div className="flex items-center gap-0.5">
+   173→   173→                  <Button
+   174→   174→                    type="button"
+   175→   175→                    variant="ghost"
+   176→   176→                    size="icon"
+   177→   177→                    className="size-7 text-gray-400 hover:text-gray-900"
+   178→   178→                    disabled={i === 0}
+   179→   179→                    onClick={() => moveStep(i, -1)}
+   180→   180→                    aria-label="Move step up"
+   181→   181→                  >
+   182→   182→                    <ChevronUp className="size-3.5" />
+   183→   183→                  </Button>
+   184→   184→                  <Button
+   185→   185→                    type="button"
+   186→   186→                    variant="ghost"
+   187→   187→                    size="icon"
+   188→   188→                    className="size-7 text-gray-400 hover:text-gray-900"
+   189→   189→                    disabled={i === form.steps.length - 1}
+   190→   190→                    onClick={() => moveStep(i, 1)}
+   191→   191→                    aria-label="Move step down"
+   192→   192→                  >
+   193→   193→                    <ChevronDown className="size-3.5" />
+   194→   194→                  </Button>
+   195→   195→                  <Button
+   196→   196→                    type="button"
+   197→   197→                    variant="ghost"
+   198→   198→                    size="icon"
+   199→   199→                    className="size-7 text-gray-400 hover:text-red-600"
+   200→   200→                    onClick={() => setSteps(form.steps.filter((_, j) => j !== i))}
+   201→   201→                    aria-label="Delete step"
+   202→   202→                  >
+   203→   203→                    <Trash2 className="size-3.5" />
+   204→   204→                  </Button>
+   205→   205→                </div>
+   206→   206→              </div>
+   207→   207→              <div className="mt-3 space-y-3">
+   208→   208→                <Input
+   209→   209→                  value={step.title}
+   210→   210→                  onChange={(e) =>
+   211→   211→                    setSteps(form.steps.map((s, j) => (j === i ? { ...s, title: e.target.value } : s)))
+   212→   212→                  }
+   213→   213→                  placeholder="Step title, e.g. Deposit ETH and USDC"
+   214→   214→                  className="h-9 bg-white text-sm font-medium"
+   215→   215→                />
+   216→   216→                <Textarea
+   217→   217→                  value={step.description}
+   218→   218→                  onChange={(e) =>
+   219→   219→                    setSteps(
+   220→   220→                      form.steps.map((s, j) => (j === i ? { ...s, description: e.target.value } : s))
+   221→   221→                    )
+   222→   222→                  }
+   223→   223→                  placeholder="What happens in this step and what the user should decide or watch…"
+   224→   224→                  rows={2}
+   225→   225→                  className="bg-white text-sm"
+   226→   226→                />
+   227→   227→              </div>
+   228→   228→            </div>
+   229→   229→          ))}
+   230→   230→          <Button
+   231→   231→            type="button"
+   232→   232→            variant="outline"
+   233→   233→            size="sm"
+   234→   234→            className="w-full border-dashed"
+   235→   235→            onClick={() => setSteps([...form.steps, { title: "", description: "" }])}
+   236→   236→          >
+   237→   237→            <Plus className="size-3.5" /> Add step
+   238→   238→          </Button>
+   239→   239→        </div>
+   240→   240→      </FormCard>
+   241→   241→
+   242→   242→      <div className="grid gap-6 lg:grid-cols-2">
+   243→   243→        <FormCard title="Entry conditions" description="When should someone start this strategy?">
+   244→   244→          <StringListEditor
+   245→   245→            items={form.entryConditions}
+   246→   246→            onChange={(items) => update({ entryConditions: items })}
+   247→   247→            placeholder="e.g. Market regime is sideways"
+   248→   248→            addLabel="Add entry condition"
+   249→   249→          />
+   250→   250→        </FormCard>
+   251→   251→        <FormCard title="Exit conditions" description="When should someone stop?">
+   252→   252→          <StringListEditor
+   253→   253→            items={form.exitConditions}
+   254→   254→            onChange={(items) => update({ exitConditions: items })}
+   255→   255→            placeholder="e.g. Confirmed bull-regime breakout"
+   256→   256→            addLabel="Add exit condition"
+   257→   257→          />
+   258→   258→        </FormCard>
+   259→   259→      </div>
+   260→   260→    </div>
+   261→   261→  )
+   262→   262→}
+   263→   263→
+   264→   264→// ---------------------------------------------------------------------------
+   265→   265→// 03 — Market fit
+   266→   266→// ---------------------------------------------------------------------------
+   267→   267→
+   268→   268→export function MarketFitSection({ form, update }: SectionProps) {
+   269→   269→  const toggleRegime = (regime: Regime) => {
+   270→   270→    const regimes = form.marketFit.regimes.includes(regime)
+   271→   271→      ? form.marketFit.regimes.filter((r) => r !== regime)
+   272→   272→      : [...form.marketFit.regimes, regime]
+   273→   273→    update({ marketFit: { ...form.marketFit, regimes } })
+   274→   274→  }
+   275→   275→
+   276→   276→  return (
+   277→   277→    <FormCard
+   278→   278→      title="Market regime fit"
+   279→   279→      description="Select the regimes this strategy fits. Optional 0–100 fit scores power future AI matching."
+   280→   280→    >
+   281→   281→      <div className="space-y-2">
+   282→   282→        {REGIMES.map((regime) => {
+   283→   283→          const checked = form.marketFit.regimes.includes(regime)
+   284→   284→          return (
+   285→   285→            <div
+   286→   286→              key={regime}
+   287→   287→              className={cn(
+   288→   288→                "flex items-center gap-3 rounded-lg border p-3 transition-colors",
+   289→   289→                checked ? "border-gray-300 bg-gray-50" : "border-gray-200"
+   290→   290→              )}
+   291→   291→            >
+   292→   292→              <Checkbox
+   293→   293→                checked={checked}
+   294→   294→                onCheckedChange={() => toggleRegime(regime)}
+   295→   295→                className="size-4 data-[state=checked]:border-gray-900 data-[state=checked]:bg-gray-900"
+   296→   296→                id={`regime-${regime}`}
+   297→   297→              />
+   298→   298→              <Label
+   299→   299→                htmlFor={`regime-${regime}`}
+   300→   300→                className="flex-1 cursor-pointer text-sm font-medium text-gray-800"
+   301→   301→              >
+   302→   302→                {REGIME_LABELS[regime]}
+   303→   303→                <span className="ml-2 text-xs font-normal text-gray-400">
+   304→   304→                  {regime === "BULL" ? "trending up" : regime === "BEAR" ? "trending down" : "ranging"}
+   305→   305→                </span>
+   306→   306→              </Label>
+   307→   307→              <div className="flex items-center gap-2">
+   308→   308→                <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-gray-400">
+   309→   309→                  SCORE
+   310→   310→                </span>
+   311→   311→                <Input
+   312→   312→                  value={form.marketFit.scores[regime]}
+   313→   313→                  onChange={(e) =>
+   314→   314→                    update({
+   315→   315→                      marketFit: {
+   316→   316→                        ...form.marketFit,
+   317→   317→                        scores: { ...form.marketFit.scores, [regime]: e.target.value.replace(/\D/g, "").slice(0, 3) },
+   318→   318→                      },
+   319→   319→                    })
+   320→   320→                  }
+   321→   321→                  placeholder="0–100"
+   322→   322→                  disabled={!checked}
+   323→   323→                  className="h-8 w-20 bg-white text-right font-mono text-xs"
+   324→   324→                />
+   325→   325→              </div>
+   326→   326→            </div>
+   327→   327→          )
+   328→   328→        })}
+   329→   329→      </div>
+   330→   330→
+   331→   331→      <div className="mt-5">
+   332→   332→        <Field label="WHY THIS FIT" hint="shown on the detail page under Market Fit">
+   333→   333→          <Textarea
+   334→   334→            value={form.marketFit.explanation}
+   335→   335→            onChange={(e) =>
+   336→   336→              update({ marketFit: { ...form.marketFit, explanation: e.target.value } })
+   337→   337→            }
+   338→   338→            placeholder="Explain why the strategy suits these regimes (and not the others)…"
+   339→   339→            rows={4}
+   340→   340→            className="text-sm"
+   341→   341→          />
+   342→   342→        </Field>
+   343→   343→      </div>
+   344→   344→    </FormCard>
+   345→   345→  )
+   346→   346→}
+   347→   347→
+   348→   348→// ---------------------------------------------------------------------------
+   349→   349→// 04 — Assets
+   350→   350→// ---------------------------------------------------------------------------
+   351→   351→
+   352→   352→function ToggleChip({
+   353→   353→  selected,
+   354→   354→  onToggle,
+   355→   355→  children,
+   356→   356→}: {
+   357→   357→  selected: boolean
+   358→   358→  onToggle: () => void
+   359→   359→  children: React.ReactNode
+   360→   360→}) {
+   361→   361→  return (
+   362→   362→    <button
+   363→   363→      type="button"
+   364→   364→      onClick={onToggle}
+   365→   365→      className={cn(
+   366→   366→        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-medium transition-all",
+   367→   367→        selected
+   368→   368→          ? "border-gray-900 bg-gray-900 text-white shadow-sm"
+   369→   369→          : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+   370→   370→      )}
+   371→   371→    >
+   372→   372→      {children}
+   373→   373→    </button>
+   374→   374→  )
+   375→   375→}
+   376→   376→
+   377→   377→function AssetRoleGroup({
+   378→   378→  label,
+   379→   379→  hint,
+   380→   380→  role,
+   381→   381→  form,
+   382→   382→  update,
+   383→   383→  list,
+   384→   384→}: {
+   385→   385→  label: string
+   386→   386→  hint: string
+   387→   387→  role: "depositAssetIds" | "exposureAssetIds" | "rewardAssetIds"
+   388→   388→  form: StrategyFormState
+   389→   389→  update: (patch: Partial<StrategyFormState>) => void
+   390→   390→  list: { id: string; symbol: string; name: string; category: string | null; iconUrl: string | null; active: boolean }[]
+   391→   391→}) {
+   392→   392→  return (
+   393→   393→    <FormCard title={label} description={hint}>
+   394→   394→      <div className="flex flex-wrap gap-2">
+   395→   395→        {list.map((a) => {
+   396→   396→          const selected = form[role].includes(a.id)
+   397→   397→          return (
+   398→   398→            <button
+   399→   399→              key={a.id}
+   400→   400→              type="button"
+   401→   401→              onClick={() =>
+   402→   402→                update({
+   403→   403→                  [role]: selected ? form[role].filter((x) => x !== a.id) : [...form[role], a.id],
+   404→   404→                } as Partial<StrategyFormState>)
+   405→   405→              }
+   406→   406→              className={cn(
+   407→   407→                "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-medium transition-all",
+   408→   408→                selected
+   409→   409→                  ? "border-gray-900 bg-gray-900 text-white shadow-sm"
+   410→   410→                  : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+   411→   411→              )}
+   412→   412→            >
+   413→   413→              <AssetIcon symbol={a.symbol} category={a.category} iconUrl={a.iconUrl} size={16} />
+   414→   414→              <span className="font-mono">{a.symbol}</span>
+   415→   415→            </button>
+   416→   416→          )
+   417→   417→        })}
+   418→   418→        {list.length === 0 && (
+   419→   419→          <p className="text-xs text-gray-400">No assets yet — create them under Admin → Assets.</p>
+   420→   420→        )}
+   421→   421→      </div>
+   422→   422→    </FormCard>
+   423→   423→  )
+   424→   424→}
+   425→   425→
+   426→   426→export function AssetsSection({ form, update }: SectionProps) {
+   427→   427→  const { data: assets } = useAssets()
+   428→   428→  const list = (assets ?? []).filter((a) => a.active)
+   429→   429→
+   430→   430→  return (
+   431→   431→    <div className="space-y-6">
+   432→   432→      <AssetRoleGroup
+   433→   433→        label="Deposit assets"
+   434→   434→        hint="What users need to put in."
+   435→   435→        role="depositAssetIds"
+   436→   436→        form={form}
+   437→   437→        update={update}
+   438→   438→        list={list}
+   439→   439→      />
+   440→   440→      <AssetRoleGroup
+   441→   441→        label="Exposure assets"
+   442→   442→        hint="What the position creates exposure to."
+   443→   443→        role="exposureAssetIds"
+   444→   444→        form={form}
+   445→   445→        update={update}
+   446→   446→        list={list}
+   447→   447→      />
+   448→   448→      <AssetRoleGroup
+   449→   449→        label="Reward tokens"
+   450→   450→        hint="Incentive tokens the strategy may earn."
+   451→   451→        role="rewardAssetIds"
+   452→   452→        form={form}
+   453→   453→        update={update}
+   454→   454→        list={list}
+   455→   455→      />
+   456→   456→    </div>
+   457→   457→  )
+   458→   458→}
+   459→   459→
+   460→   460→// ---------------------------------------------------------------------------
+   461→   461→// 05 — Platforms
+   462→   462→// ---------------------------------------------------------------------------
+   463→   463→
+   464→   464→export function PlatformsSection({ form, update }: SectionProps) {
+   465→   465→  const { data: networks } = useNetworks()
+   466→   466→  const { data: protocols } = useProtocols()
+   467→   467→  const activeNetworks = (networks ?? []).filter((n) => n.active)
+   468→   468→  const activeProtocols = (protocols ?? []).filter((p) => p.active)
+   469→   469→
+   470→   470→  return (
+   471→   471→    <div className="space-y-6">
+   472→   472→      <FormCard title="Networks" description="Where this strategy runs.">
+   473→   473→        <div className="flex flex-wrap gap-2">
+   474→   474→          {activeNetworks.map((n) => {
+   475→   475→            const selected = form.networkIds.includes(n.id)
+   476→   476→            return (
+   477→   477→              <ToggleChip
+   478→   478→                key={n.id}
+   479→   479→                selected={selected}
+   480→   480→                onToggle={() =>
+   481→   481→                  update({
+   482→   482→                    networkIds: selected
+   483→   483→                      ? form.networkIds.filter((x) => x !== n.id)
+   484→   484→                      : [...form.networkIds, n.id],
+   485→   485→                  })
+   486→   486→                }
+   487→   487→              >
+   488→   488→                <NetworkIcon name={n.name} iconUrl={n.iconUrl} size={16} />
+   489→   489→                {n.name}
+   490→   490→              </ToggleChip>
+   491→   491→            )
+   492→   492→          })}
+   493→   493→          {activeNetworks.length === 0 && (
+   494→   494→            <p className="text-xs text-gray-400">No networks — add them under Admin → Networks.</p>
+   495→   495→          )}
+   496→   496→        </div>
+   497→   497→      </FormCard>
+   498→   498→
+   499→   499→      <FormCard title="Protocols" description="Which protocols the strategy uses.">
+   500→   500→        <div className="flex flex-wrap gap-2">
+   501→   501→          {activeProtocols.map((p) => {
+   502→   502→            const selected = form.protocolIds.includes(p.id)
+   503→   503→            return (
+   504→   504→              <ToggleChip
+   505→   505→                key={p.id}
+   506→   506→                selected={selected}
+   507→   507→                onToggle={() =>
+   508→   508→                  update({
+   509→   509→                    protocolIds: selected
+   510→   510→                      ? form.protocolIds.filter((x) => x !== p.id)
+   511→   511→                      : [...form.protocolIds, p.id],
+   512→   512→                  })
+   513→   513→                }
+   514→   514→              >
+   515→   515→                <ProtocolIcon name={p.name} iconUrl={p.iconUrl} size={16} />
+   516→   516→                {p.name}
+   517→   517→              </ToggleChip>
+   518→   518→            )
+   519→   519→          })}
+   520→   520→          {activeProtocols.length === 0 && (
+   521→   521→            <p className="text-xs text-gray-400">No protocols — add them under Admin → Protocols.</p>
+   522→   522→          )}
+   523→   523→        </div>
+   524→   524→      </FormCard>
+   525→   525→    </div>
+   526→   526→  )
+   527→   527→}
+   528→   528→
+   529→   529→// ---------------------------------------------------------------------------
+   530→   530→// 06 — Risk
+   531→   531→// ---------------------------------------------------------------------------
+   532→   532→
+   533→   533→export function RiskSection({ form, update }: SectionProps) {
+   534→   534→  const risk = form.risk
+   535→   535→  const setRisk = (patch: Partial<StrategyFormState["risk"]>) =>
+   536→   536→    update({ risk: { ...risk, ...patch } })
+   537→   537→
+   538→   538→  const riskOptions = RISK_LEVELS.map((v) => ({ value: v, label: RISK_LABELS[v] }))
+   539→   539→  const exposureOptions = EXPOSURE_LEVELS.map((v) => ({ value: v, label: EXPOSURE_LABELS[v] }))
+   540→   540→
+   541→   541→  return (
+   542→   542→    <div className="space-y-6">
+   543→   543→      <FormCard title="Risk profile" description="Structured values — used by filters and future AI matching.">
+   544→   544→        <div className="grid gap-5 md:grid-cols-2">
+   545→   545→          <Field label="OVERALL RISK">
+   546→   546→            <Select
+   547→   547→              value={risk.overallRisk}
+   548→   548→              onValueChange={(v) => setRisk({ overallRisk: v as RiskLevel })}
+   549→   549→            >
+   550→   550→              <SelectTrigger className="h-9">
+   551→   551→                <SelectValue />
+   552→   552→              </SelectTrigger>
+   553→   553→              <SelectContent>
+   554→   554→                {riskOptions.map((o) => (
+   555→   555→                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+   556→   556→                ))}
+   557→   557→              </SelectContent>
+   558→   558→            </Select>
+   559→   559→          </Field>
+   560→   560→
+   561→   561→          <Field label="SMART CONTRACT RISK">
+   562→   562→            <Select
+   563→   563→              value={risk.smartContractRisk}
+   564→   564→              onValueChange={(v) => setRisk({ smartContractRisk: v as RiskLevel })}
+   565→   565→            >
+   566→   566→              <SelectTrigger className="h-9">
+   567→   567→                <SelectValue />
+   568→   568→              </SelectTrigger>
+   569→   569→              <SelectContent>
+   570→   570→                {riskOptions.map((o) => (
+   571→   571→                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+   572→   572→                ))}
+   573→   573→              </SelectContent>
+   574→   574→            </Select>
+   575→   575→          </Field>
+   576→   576→
+   577→   577→          <Field label="IMPERMANENT LOSS">
+   578→   578→            <Select
+   579→   579→              value={risk.impermanentLoss}
+   580→   580→              onValueChange={(v) => setRisk({ impermanentLoss: v as ExposureLevel })}
+   581→   581→            >
+   582→   582→              <SelectTrigger className="h-9">
+   583→   583→                <SelectValue />
+   584→   584→              </SelectTrigger>
+   585→   585→              <SelectContent>
+   586→   586→                {exposureOptions.map((o) => (
+   587→   587→                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+   588→   588→                ))}
+   589→   589→              </SelectContent>
+   590→   590→            </Select>
+   591→   591→          </Field>
+   592→   592→
+   593→   593→          <Field label="LIQUIDATION EXPOSURE">
+   594→   594→            <Select
+   595→   595→              value={risk.liquidationExposure}
+   596→   596→              onValueChange={(v) => setRisk({ liquidationExposure: v as ExposureLevel })}
+   597→   597→            >
+   598→   598→              <SelectTrigger className="h-9">
+   599→   599→                <SelectValue />
+   600→   600→              </SelectTrigger>
+   601→   601→              <SelectContent>
+   602→   602→                {exposureOptions.map((o) => (
+   603→   603→                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+   604→   604→                ))}
+   605→   605→              </SelectContent>
+   606→   606→            </Select>
+   607→   607→          </Field>
+   608→   608→
+   609→   609→          <Field label="ASSET VOLATILITY">
+   610→   610→            <Select
+   611→   611→              value={risk.assetVolatility}
+   612→   612→              onValueChange={(v) => setRisk({ assetVolatility: v as ExposureLevel })}
+   613→   613→            >
+   614→   614→              <SelectTrigger className="h-9">
+   615→   615→                <SelectValue />
+   616→   616→              </SelectTrigger>
+   617→   617→              <SelectContent>
+   618→   618→                {exposureOptions.map((o) => (
+   619→   619→                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+   620→   620→                ))}
+   621→   621→              </SelectContent>
+   622→   622→            </Select>
+   623→   623→          </Field>
+   624→   624→
+   625→   625→          <Field label="INCENTIVE RELIANCE">
+   626→   626→            <Select
+   627→   627→              value={risk.incentiveReliance}
+   628→   628→              onValueChange={(v) => setRisk({ incentiveReliance: v as ExposureLevel })}
+   629→   629→            >
+   630→   630→              <SelectTrigger className="h-9">
+   631→   631→                <SelectValue />
+   632→   632→              </SelectTrigger>
+   633→   633→              <SelectContent>
+   634→   634→                {exposureOptions.map((o) => (
+   635→   635→                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+   636→   636→                ))}
+   637→   637→              </SelectContent>
+   638→   638→            </Select>
+   639→   639→          </Field>
+   640→   640→        </div>
+   641→   641→
+   642→   642→        <div className="mt-6 grid gap-5 md:grid-cols-2">
+   643→   643→          <div className="rounded-lg border border-gray-200 p-4">
+   644→   644→            <div className="flex items-center justify-between">
+   645→   645→              <div>
+   646→   646→                <div className="text-sm font-medium text-gray-900">Leverage used</div>
+   647→   647→                <div className="text-xs text-gray-400">Does the strategy borrow or use leverage?</div>
+   648→   648→              </div>
+   649→   649→              <Switch
+   650→   650→                checked={risk.leverageUsed}
+   651→   651→                onCheckedChange={(checked) => setRisk({ leverageUsed: checked })}
+   652→   652→              />
+   653→   653→            </div>
+   654→   654→            {risk.leverageUsed && (
+   655→   655→              <div className="mt-4">
+   656→   656→                <Field label="LEVERAGE AMOUNT" hint="e.g. 1–3x effective notional">
+   657→   657→                  <Input
+   658→   658→                    value={risk.leverageAmount}
+   659→   659→                    onChange={(e) => setRisk({ leverageAmount: e.target.value })}
+   660→   660→                    placeholder="1–3x"
+   661→   661→                    className="h-9 font-mono text-sm"
+   662→   662→                  />
+   663→   663→                </Field>
+   664→   664→              </div>
+   665→   665→            )}
+   666→   666→          </div>
+   667→   667→
+   668→   668→          <div className="space-y-4">
+   669→   669→            <Field label="WITHDRAWAL RESTRICTIONS" hint="optional">
+   670→   670→              <Input
+   671→   671→                value={risk.withdrawalRestrictions}
+   672→   672→                onChange={(e) => setRisk({ withdrawalRestrictions: e.target.value })}
+   673→   673→                placeholder="e.g. Instant via swap; queue for exact value"
+   674→   674→                className="h-9 text-sm"
+   675→   675→              />
+   676→   676→            </Field>
+   677→   677→            <Field label="LOCKUP PERIOD" hint="optional">
+   678→   678→              <Input
+   679→   679→                value={risk.lockupPeriod}
+   680→   680→                onChange={(e) => setRisk({ lockupPeriod: e.target.value })}
+   681→   681→                placeholder="e.g. Until maturity (3–12 months)"
+   682→   682→                className="h-9 text-sm"
+   683→   683→              />
+   684→   684→            </Field>
+   685→   685→          </div>
+   686→   686→        </div>
+   687→   687→      </FormCard>
+   688→   688→
+   689→   689→      <FormCard title="Risk explanation" description="The narrative shown under the risk table.">
+   690→   690→        <Textarea
+   691→   691→          value={risk.explanation}
+   692→   692→          onChange={(e) => setRisk({ explanation: e.target.value })}
+   693→   693→          placeholder="Explain the dominant risks, the tail risks, and what the strategy does NOT protect against…"
+   694→   694→          rows={6}
+   695→   695→          className="text-sm leading-relaxed"
+   696→   696→        />
+   697→   697→      </FormCard>
+   698→   698→    </div>
+   699→   699→  )
+   700→   700→}
+   701→   701→
+   702→   702→// ---------------------------------------------------------------------------
+   703→   703→// 07 — Requirements
+   704→   704→// ---------------------------------------------------------------------------
+   705→   705→
+   706→   706→export function RequirementsSection({ form, update }: SectionProps) {
+   707→   707→  const req = form.requirements
+   708→   708→  const setReq = (patch: Partial<StrategyFormState["requirements"]>) =>
+   709→   709→    update({ requirements: { ...req, ...patch } })
+   710→   710→
+   711→   711→  return (
+   712→   712→    <FormCard
+   713→   713→      title="Requirements"
+   714→   714→      description="Capital, holdings and setup a user needs before starting."
+   715→   715→    >
+   716→   716→      <div className="grid gap-5 md:grid-cols-2">
+   717→   717→        <Field label="MINIMUM CAPITAL" hint="optional — e.g. $2,000">
+   718→   718→          <Input
+   719→   719→            value={req.minCapital}
+   720→   720→            onChange={(e) => setReq({ minCapital: e.target.value })}
+   721→   721→            placeholder="$2,000"
+   722→   722→            className="h-9 font-mono text-sm"
+   723→   723→          />
+   724→   724→        </Field>
+   725→   725→        <Field label="WALLET / SETUP" hint="optional">
+   726→   726→          <Input
+   727→   727→            value={req.walletSetup}
+   728→   728→            onChange={(e) => setReq({ walletSetup: e.target.value })}
+   729→   729→            placeholder="Ethereum-compatible wallet with a gas buffer"
+   730→   730→            className="h-9 text-sm"
+   731→   731→          />
+   732→   732→        </Field>
+   733→   733→      </div>
+   734→   734→
+   735→   735→      <div className="mt-5">
+   736→   736→        <Field label="REQUIRED HOLDINGS" hint="assets the user must already own">
+   737→   737→          <StringListEditor
+   738→   738→            items={req.requiredHoldings}
+   739→   739→            onChange={(items) => setReq({ requiredHoldings: items })}
+   740→   740→            placeholder="e.g. ETH"
+   741→   741→            addLabel="Add required holding"
+   742→   742→          />
+   743→   743→        </Field>
+   744→   744→      </div>
+   745→   745→
+   746→   746→      <div className="mt-5">
+   747→   747→        <Field label="OTHER PREREQUISITES" hint="optional">
+   748→   748→          <Textarea
+   749→   749→            value={req.other}
+   750→   750→            onChange={(e) => setReq({ other: e.target.value })}
+   751→   751→            placeholder="Must be able to interact with Uniswap V3 and monitor the position weekly…"
+   752→   752→            rows={3}
+   753→   753→            className="text-sm"
+   754→   754→          />
+   755→   755→        </Field>
+   756→   756→      </div>
+   757→   757→    </FormCard>
+   758→   758→  )
+   759→   759→}
+   760→   760→
+   761→   761→// ---------------------------------------------------------------------------
+   762→   762→// 08 — References
+   763→   763→// ---------------------------------------------------------------------------
+   764→   764→
+   765→   765→export function ReferencesSection({ form, update }: SectionProps) {
+   766→   766→  const refs = form.references
+   767→   767→  const setRefs = (references: StrategyFormState["references"]) => update({ references })
+   768→   768→
+   769→   769→  return (
+   770→   770→    <div className="space-y-6">
+   771→   771→      <FormCard title="Source references" description="Documentation and primary sources for the strategy.">
+   772→   772→        <div className="space-y-3">
+   773→   773→          {refs.map((ref, i) => (
+   774→   774→            <div key={i} className="rounded-lg border border-gray-200 bg-gray-50/50 p-4">
+   775→   775→              <div className="flex items-center justify-between">
+   776→   776→                <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">
+   777→   777→                  REFERENCE {String(i + 1).padStart(2, "0")}
+   778→   778→                </span>
+   779→   779→                <Button
+   780→   780→                  type="button"
+   781→   781→                  variant="ghost"
+   782→   782→                  size="icon"
+   783→   783→                  className="size-7 text-gray-400 hover:text-red-600"
+   784→   784→                  onClick={() => setRefs(refs.filter((_, j) => j !== i))}
+   785→   785→                  aria-label="Remove reference"
+   786→   786→                >
+   787→   787→                  <Trash2 className="size-3.5" />
+   788→   788→                </Button>
+   789→   789→              </div>
+   790→   790→              <div className="mt-3 grid gap-3 md:grid-cols-2">
+   791→   791→                <Field label="TITLE">
+   792→   792→                  <Input
+   793→   793→                    value={ref.title}
+   794→   794→                    onChange={(e) =>
+   795→   795→                      setRefs(refs.map((r, j) => (j === i ? { ...r, title: e.target.value } : r)))
+   796→   796→                    }
+   797→   797→                    placeholder="Uniswap V3 Documentation"
+   798→   798→                    className="h-9 bg-white text-sm"
+   799→   799→                  />
+   800→   800→                </Field>
+   801→   801→                <Field label="URL">
+   802→   802→                  <Input
+   803→   803→                    value={ref.url}
+   804→   804→                    onChange={(e) =>
+   805→   805→                      setRefs(refs.map((r, j) => (j === i ? { ...r, url: e.target.value } : r)))
+   806→   806→                    }
+   807→   807→                    placeholder="https://…"
+   808→   808→                    className="h-9 bg-white font-mono text-xs"
+   809→   809→                  />
+   810→   810→                </Field>
+   811→   811→                <Field label="PUBLISHER / SOURCE">
+   812→   812→                  <Input
+   813→   813→                    value={ref.publisher}
+   814→   814→                    onChange={(e) =>
+   815→   815→                      setRefs(refs.map((r, j) => (j === i ? { ...r, publisher: e.target.value } : r)))
+   816→   816→                    }
+   817→   817→                    placeholder="Uniswap Labs"
+   818→   818→                    className="h-9 bg-white text-sm"
+   819→   819→                  />
+   820→   820→                </Field>
+   821→   821→                <Field label="NOTES" hint="optional">
+   822→   822→                  <Input
+   823→   823→                    value={ref.notes}
+   824→   824→                    onChange={(e) =>
+   825→   825→                      setRefs(refs.map((r, j) => (j === i ? { ...r, notes: e.target.value } : r)))
+   826→   826→                    }
+   827→   827→                    placeholder="What this reference supports"
+   828→   828→                    className="h-9 bg-white text-sm"
+   829→   829→                  />
+   830→   830→                </Field>
+   831→   831→              </div>
+   832→   832→            </div>
+   833→   833→          ))}
+   834→   834→          <Button
+   835→   835→            type="button"
+   836→   836→            variant="outline"
+   837→   837→            size="sm"
+   838→   838→            className="w-full border-dashed"
+   839→   839→            onClick={() => setRefs([...refs, { title: "", url: "", publisher: "", notes: "" }])}
+   840→   840→          >
+   841→   841→            <Plus className="size-3.5" /> Add reference
+   842→   842→          </Button>
+   843→   843→        </div>
+   844→   844→      </FormCard>
+   845→   845→
+   846→   846→      <FormCard title="Review tracking">
+   847→   847→        <Field label="LAST REVIEWED DATE" hint="shown publicly as e.g. “Sep 2026”">
+   848→   848→          <Input
+   849→   849→            type="date"
+   850→   850→            value={form.lastReviewedAt}
+   851→   851→            onChange={(e) => update({ lastReviewedAt: e.target.value })}
+   852→   852→            className="h-9 w-44 font-mono text-sm"
+   853→   853→          />
+   854→   854→        </Field>
+   855→   855→      </FormCard>
+   856→   856→    </div>
+   857→   857→  )
+   858→   858→}
+   859→   859→
+   860→   860→// ---------------------------------------------------------------------------
+   861→   861→// 09 — Status
+   862→   862→// ---------------------------------------------------------------------------
+   863→   863→
+   864→   864→export function StatusSection({
+   865→   865→  form,
+   866→   866→  update,
+   867→   867→  children,
+   868→   868→}: SectionProps & { children?: React.ReactNode }) {
+   869→   869→  return (
+   870→   870→    <div className="space-y-6">
+   871→   871→      <FormCard
+   872→   872→        title="Publication status"
+   873→   873→        description="Drafts are admin-only. Published strategies appear on the public site. Archived strategies stay in the database but leave public browsing."
+   874→   874→      >
+   875→   875→        <Field label="STATUS">
+   876→   876→          <Select
+   877→   877→            value={form.status}
+   878→   878→            onValueChange={(v) => update({ status: v as StrategyStatus })}
+   879→   879→          >
+   880→   880→            <SelectTrigger className="h-9 w-56">
+   881→   881→              <SelectValue />
+   882→   882→            </SelectTrigger>
+   883→   883→            <SelectContent>
+   884→   884→              {STRATEGY_STATUSES.map((s) => (
+   885→   885→                <SelectItem key={s} value={s}>
+   886→   886→                  {STATUS_LABELS[s]}
+   887→   887→                </SelectItem>
+   888→   888→              ))}
+   889→   889→            </SelectContent>
+   890→   890→          </Select>
+   891→   891→        </Field>
+   892→   892→
+   893→   893→        <div className="mt-4 flex flex-col gap-2 rounded-lg border border-gray-100 bg-gray-50 p-4 text-xs text-gray-500">
+   894→   894→          <div>
+   895→   895→            <span className="font-mono text-[10px] tracking-[0.14em] text-gray-400">DRAFT —</span>{" "}
+   896→   896→            visible only in the admin area.
+   897→   897→          </div>
+   898→   898→          <div>
+   899→   899→            <span className="font-mono text-[10px] tracking-[0.14em] text-gray-400">PUBLISHED —</span>{" "}
+   900→   900→            visible publicly; eligible for future AI agent matching.
+   901→   901→          </div>
+   902→   902→          <div>
+   903→   903→            <span className="font-mono text-[10px] tracking-[0.14em] text-gray-400">ARCHIVED —</span>{" "}
+   904→   904→            hidden from public browsing, retained in the database.
+   905→   905→          </div>
+   906→   906→        </div>
+   907→   907→      </FormCard>
+   908→   908→
+   909→   909→      <FormCard
+   910→   910→        title="Revision note"
+   911→   911→        description="Optional note stored with the revision snapshot created by this save."
+   912→   912→      >
+   913→   913→        <Input
+   914→   914→          value={form.changeNote}
+   915→   915→          onChange={(e) => update({ changeNote: e.target.value })}
+   916→   916→          placeholder="e.g. Tightened exit conditions after review"
+   917→   917→          className="h-9 text-sm"
+   918→   918→        />
+   919→   919→      </FormCard>
+   920→   920→
+   921→   921→      {children}
+   922→   922→    </div>
+   923→   923→  )
+   924→   924→}
+   925→   925→
+   926→   926→// ---------------------------------------------------------------------------
+   927→   927→// Shared string-list editor (conditions, holdings)
+   928→   928→// ---------------------------------------------------------------------------
+   929→   929→
+   930→   930→function StringListEditor({
+   931→   931→  items,
+   932→   932→  onChange,
+   933→   933→  placeholder,
+   934→   934→  addLabel,
+   935→   935→}: {
+   936→   936→  items: string[]
+   937→   937→  onChange: (items: string[]) => void
+   938→   938→  placeholder: string
+   939→   939→  addLabel: string
+   940→   940→}) {
+   941→   941→  return (
+   942→   942→    <div className="space-y-2">
+   943→   943→      {items.map((item, i) => (
+   944→   944→        <div key={i} className="flex gap-2">
+   945→   945→          <span className="w-5 pt-2.5 text-right font-mono text-[10px] text-gray-400">
+   946→   946→            {i + 1}
+   947→   947→          </span>
+   948→   948→          <Input
+   949→   949→            value={item}
+   950→   950→            onChange={(e) => onChange(items.map((it, j) => (j === i ? e.target.value : it)))}
+   951→   951→            placeholder={placeholder}
+   952→   952→            className="h-9 flex-1 text-sm"
+   953→   953→          />
+   954→   954→          <Button
+   955→   955→            type="button"
+   956→   956→            variant="ghost"
+   957→   957→            size="icon"
+   958→   958→            className="size-9 shrink-0 text-gray-400 hover:text-red-600"
+   959→   959→            onClick={() => onChange(items.filter((_, j) => j !== i))}
+   960→   960→            aria-label="Remove item"
+   961→   961→          >
+   962→   962→            <Trash2 className="size-3.5" />
+   963→   963→          </Button>
+   964→   964→        </div>
+   965→   965→      ))}
+   966→   966→      <Button
+   967→   967→        type="button"
+   968→   968→        variant="outline"
+   969→   969→        size="sm"
+   970→   970→        className="w-full border-dashed text-xs"
+   971→   971→        onClick={() => onChange([...items, ""])}
+   972→   972→      >
+   973→   973→        <Plus className="size-3.5" /> {addLabel}
+   974→   974→      </Button>
+   975→   975→    </div>
+   976→   976→  )
+   977→   977→}
+   978→   978→

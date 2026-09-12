@@ -1,0 +1,402 @@
+     1→# Matrix Strategy Archives — Worklog
+     2→
+     3→Project: Matrix Strategy Archives (strategy knowledge base for Matrix Finance)
+     4→Stack: Next.js 16 App Router · TypeScript · Tailwind 4 + shadcn/ui · Prisma + SQLite · TanStack Query · Zustand
+     5→Entry point: `src/app/page.tsx` (single `/` route, views via query params — see `src/lib/nav.ts`)
+     6→
+     7→---
+     8→Task ID: 1
+     9→Agent: Main agent (Z.ai Code)
+    10→Task: Prisma schema — Strategy, Asset, Network, Protocol, join tables, Revision
+    11→
+    12→Work Log:
+    13→- Replaced scaffold User/Post models with the full domain schema in `prisma/schema.prisma`
+    14→- Strategy stores structured sub-documents (marketFit, steps, entry/exitConditions, risk, requirements, references) as JSON strings — SQLite has no scalar lists; serializer in `src/lib/server/strategy-serializer.ts` owns (de)serialization
+    15→- Five explicit join tables: StrategyDepositAsset / StrategyExposureAsset / StrategyRewardAsset / StrategyNetwork / StrategyProtocol
+    16→- Revision model: strategyId + revisionNumber unique, full JSON snapshot + changeNote, cascade delete
+    17→- `bun run db:push` applied; `db:seed` script added to package.json
+    18→
+    19→Stage Summary:
+    20→- Database live at `db/custom.db`; schema is Mongo-portable (JSON sub-documents mirror embedded documents)
+    21→
+    22→---
+    23→Task ID: 2
+    24→Agent: Main agent (Z.ai Code)
+    25→Task: Types, validation, seed data
+    26→
+    27→Work Log:
+    28→- `src/lib/types.ts`: Regime/RiskLevel/ExposureLevel/StrategyStatus enums, MarketFit, RiskProfile, Requirements, StrategyReference, StrategyDTO/Input, taxonomy DTOs, StrategyFilters
+    29→- `src/lib/validation.ts`: zod schemas for strategy/asset/protocol/network inputs (server-side)
+    30→- `prisma/seed.ts`: 5 networks, 9 assets (with coingeckoIds + categories), 9 protocols, 8 strategies (6 published + 1 draft "Pendle PT Fixed Yield" + 1 archived "CRV/AERO Liquidity Farming") with full realistic content; 2 seeded revisions for the history browser
+    31→- Fixed seed bug: `references` had to be destructured out (model column is `referencesJson`)
+    32→
+    33→Stage Summary:
+    34→- `bun run db:seed` → "Seeded 8 strategies, 9 assets, 9 protocols, 5 networks"
+    35→
+    36→---
+    37→Task ID: 3
+    38→Agent: Main agent (Z.ai Code)
+    39→Task: REST API
+    40→
+    41→Work Log:
+    42→- `GET/POST /api/strategies` — filterable list (q/regime/risk/type/network/protocol/asset/leverage/liquidation/status; PUBLISHED-only by default, `status=ALL` for admin) + create with auto STRATEGY_XXX + unique slug
+    43→- `GET/PUT/DELETE /api/strategies/[id]` — accepts id or slug; PUT creates revision snapshot before material edits (isMaterialChange compares content, ignoring volatile fields)
+    44→- `GET /api/strategies/[id]/revisions` + `POST .../revisions/[revId]/restore` — restore auto-snapshots live state first (reversible)
+    45→- Taxonomy CRUD: `/api/assets`, `/api/protocols`, `/api/networks` (+[id]) with strategyCounts; `/api/meta` for types + counters
+    46→- Bug found & fixed via curl E2E: protocol/network search needed the join-hop (`protocols: { some: { protocol: { name } } }`)
+    47→- Full write path verified with a shell script: create → draft hidden from public → update creates revision → restore works → delete cascades
+    48→
+    49→Stage Summary:
+    50→- API is the single consumption point for public site, admin AND future Matrix Finance/AI agents; live market data deliberately absent from strategy definitions
+    51→
+    52→---
+    53→Task ID: 4
+    54→Agent: Main agent (Z.ai Code)
+    55→Task: Design system + app shell
+    56→
+    57→Work Log:
+    58→- `layout.tsx`: Inter + JetBrains Mono via next/font/google (network verified working); Matrix metadata
+    59→- `globals.css`: institutional-finance tokens (bg #F9FAFB, text #111827, border #E5E7EB, emerald #10B981 accent only), `.mono-label`, `.grid-bg`, `.dot-bg`, `.cursor-blink`, `.scroll-thin`, `.card-lift`; radius tightened to 0.5rem
+    60→- `providers.tsx`: TanStack Query + Sonner toaster
+    61→- `src/lib/`: api-client.ts (typed REST), format.ts (labels/dates), nav.ts (view URL builders), strategy-form.ts (form state ↔ DTO/Input), strategy-form-utils.ts (client-safe slugify)
+    62→- `store/ui-store.ts`: Zustand filter store (filters survive detail-page navigation) + focusSearch trigger
+    63→- Header (sticky, blur, green-dot active states, search icon) / Footer (sticky via flex min-h-screen + mt-auto, discreet ADMIN link) / AppShell
+    64→- `page.tsx`: Suspense-wrapped useSearchParams router (archive/strategy/protocols/assets/admin), scroll reset on view change
+    65→
+    66→Stage Summary:
+    67→- Foundation in place: one design language, one data layer, shareable URLs on a single route
+    68→
+    69→---
+    70→Task ID: 5
+    71→Agent: Main agent (Z.ai Code)
+    72→Task: Public site
+    73→
+    74→Work Log:
+    75→- ArchiveView: hero (grid-bg, blinking cursor, stats strip), debounced search ("/" shortcut, Esc clears), desktop filter sidebar + mobile Sheet, facet counts computed client-side, active filter chips with clear-all, card grid + skeletons/empty/error states
+    76→- FilterPanel: regime/risk/type/network/protocol/asset checkbox facets + leverage & liquidation segmented controls
+    77→- StrategyCard: ID + type → name → asset/protocol/network line with monogram icons → summary → regime chips + risk badge → min capital/leverage stats → VIEW STRATEGY CTA (arrow slide on hover)
+    78→- StrategyDetailView: identity header, 10 numbered sections (overview, steps timeline, market-fit score bars, entry/exit conditions, risk definition rows + explanation, asset groups, network/protocol cards, requirements, references with external links), sticky AT A GLANCE sidebar + SIMILAR REGIMES, non-published banner on direct draft links
+    79→- ProtocolBrowser + AssetBrowser: taxonomy grids that pre-filter the archive on click
+    80→
+    81→Stage Summary:
+    82→- Full acceptance flow verified in agent-browser: search "ETH" → 5 results; Bear+Medium+Ethereum → Accumulation LP + Stablecoin Yield Rotation; detail page renders all sections + data
+    83→
+    84→---
+    85→Task ID: 6
+    86→Agent: Main agent (Z.ai Code)
+    87→Task: Admin CMS
+    88→
+    89→Work Log:
+    90→- AdminView: own chrome (no public header), sidebar with counts + database stats, mobile section pills, VIEW SITE link
+    91→- StrategyListPanel: status tabs with counts (ALL/DRAFT/PUBLISHED/ARCHIVED), search, table (name+slug, type, fit chips, risk, status, updated timeAgo), row click → edit; actions dropdown: Edit / View public / Duplicate (as draft) / Archive-Unarchive / Delete (confirm overlay)
+    92→- StrategyForm: 10 tabbed sections (overview/instructions/market-fit/assets/platforms/risk/requirements/references/status/history), sticky action bar with UNSAVED indicator + Cmd/Ctrl+S, auto-slug from name (locks on manual edit), auto STRATEGY_XXX placeholder, steps editor with reorder/delete, dynamic entry/exit/holdings/reference lists, asset & platform chip multi-selects, full structured risk form, status actions (Save Draft/Publish/Save changes/Archive/Delete with confirmations), revision note field
+    93→- RevisionHistory: revision list, snapshot inspector Dialog (identity/fit/risk/steps/composition), restore with confirmation
+    94→- AssetManager/ProtocolManager/NetworkManager: searchable tables with active switches + create/edit dialogs (symbol/category/coingeckoId/iconUrl; name/slug/website/description; name/slug/chainId)
+    95→- E2E verified in agent-browser: created "E2E Test Strategy" (auto STRATEGY_009 + slug) → saved as Draft (absent from public list) → published via Status tab (appeared publicly, count 6→7) → edited summary → revision R01 retained old summary → inspected snapshot → cleaned up
+    96→
+    97→Stage Summary:
+    98→- Complete CMS loop on the same database as the public site; revision history + restore working end-to-end
+    99→
+   100→---
+   101→Task ID: 7
+   102→Agent: Main agent (Z.ai Code)
+   103→Task: QA, polish, responsive fixes
+   104→
+   105→Work Log:
+   106→- `bun run lint` → 0 errors 0 warnings (fixed: inline component in AssetsSection extracted to AssetRoleGroup; removed stale eslint-disable directives)
+   107→- agent-browser E2E across all views (archive/detail/protocols/assets/admin list/form/managers) — zero console/page errors
+   108→- Fixed mobile horizontal overflow: header (compact logo/nav, search icon hidden <sm), admin tabs row (max-w-full + overflow scroll), search input full-width on mobile
+   109→- Footer behavior verified: sticks to viewport bottom on short pages (tall-viewport test), pushed naturally on long pages
+   110→- VLM design review (3 screenshots): verdict **A- Production Ready**; applied its feedback — card CTA now mt-auto (aligned baselines), market-fit inactive labels gray-300→gray-400, admin row hover state, larger action menu target, form label/hint contrast bumps
+   111→- Dev server restarted detached (setsid) — log clean, no runtime errors
+   112→
+   113→Stage Summary:
+   114→- Public + admin verified interactive end-to-end; responsive from 390px to 1440px; lint clean
+   115→
+   116→---
+   117→Task ID: 8
+   118→Agent: Main agent (Z.ai Code)
+   119→Task: README, .env.example, worklog, cron
+   120→
+   121→Work Log:
+   122→- README.md: stack rationale (Next.js/Prisma adaptation of the Express/Mongo plan), run instructions (incl. Windows/PowerShell), folder map, data model + data-separation rule, full API reference, extension guide (CoinGecko, auth, AI matching)
+   123→- .env.example with DATABASE_URL/PORT/CLIENT_URL
+   124→- This worklog.md
+   125→- 15-minute recurring webDevReview cron job created via the cron tool
+   126→
+   127→Stage Summary:
+   128→- Project is documented and self-continuing via scheduled review runs
+   129→
+   130→---
+   131→
+   132→## Current project status
+   133→
+   134→Matrix Strategy Archives MVP is **complete and running** at `/` (dev server, port 3000):
+   135→public archive with search/filters, strategy detail pages, protocol/asset browsers,
+   136→full admin CMS (strategies + 3 taxonomy registries), automatic revision history with
+   137→inspect + restore, REST API for future Matrix Finance/AI consumers. Seeded with 8 realistic
+   138→strategies (6 published, 1 draft, 1 archived). Lint clean, browser-verified, responsive.
+   139→
+   140→## Verification results (latest run)
+   141→
+   142→- Public list API: 6 published strategies; drafts/archived excluded ✓
+   143→- Search "ETH" → 5 results; Bear+Medium+Ethereum filter → correct 2 results ✓
+   144→- Detail page: all 10 sections + sidebar + related strategies render ✓
+   145→- Admin create → draft invisible → publish → public → edit → revision retained ✓ (cleaned up after test)
+   146→- Restore revision: auto-snapshot + rollback ✓ (API test)
+   147→- Mobile 390px: no horizontal scroll on archive/detail/admin ✓
+   148→- Sticky footer on short pages ✓ · VLM design review: A- ✓
+   149→
+   150→## Unresolved risks / next-phase recommendations (priority order)
+   151→
+   152→1. **Admin authentication** — /?view=admin and write endpoints are open by design (MVP); add NextAuth.js gate before any real deployment.
+   153→2. **Strategy form tab persistence** — switching tabs keeps state (single form state object) but a hard refresh loses unsaved edits; consider sessionStorage draft persistence.
+   154→3. **Pagination** — list endpoints return all rows (fine for hundreds; add cursor pagination before thousands).
+   155→4. **Live market data service** — next architectural step per the data-separation rule: a separate table/service for APY/TVL/regime observations keyed by strategy id, feeding an "live data" panel on detail pages.
+   156→5. **AI matching endpoint** — e.g. POST /api/match with portfolio + regime + risk tolerance, scoring on marketFit.scores, risk enums, requiredAssets, minCapital.
+   157→6. **CoinGecko icon sync** — populate Asset.iconUrl from coingeckoId (fields already reserved).
+   158→7. **Real routes** — views are query-param based on `/` (sandbox constraint documented in nav.ts); migrate to /strategies/[slug] etc. when the platform allows.
+   159→
+   160→---
+   161→Task ID: 9
+   162→Agent: Main agent (Z.ai Code)
+   163→Task: Admin strategy editor UX/layout redesign (Create/Edit Strategy) — narrow-column fix + premium CMS layout
+   164→
+   165→Work Log:
+   166→- Diagnosed the broken layout via VLM screenshot review at 1440px: form squeezed into ~50–60% of the panel, uppercase mono labels with 0.14em tracking, helper text squeezed beside labels (wrapping 3 lines), dead space on the right
+   167→- `form-controls.tsx` (full rewrite): `Field` now uses normal Inter labels (text-sm font-medium) with hints UNDER the label (never beside); new `SectionSurface` (single white content surface per section: h2 + subtitle + fields, p-6 md:p-8); `GroupHeading` for sub-groups; `SearchMultiSelect` (Popover+Command/cmdk: searchable dropdown, checkmarks, selected items as compact chips with icon + X remove); `StringListEditor` restyled (h-10 rows, X remove, dashed add)
+   168→- `form-sections.tsx` (full rewrite, data model/API untouched):
+   169→  - Overview: Name full-width → Strategy type / Strategy ID 2-col → Slug → Short summary (min-h 96) → Full description (min-h 160); custom-type input retained
+   170→  - Instructions: numbered step rows (01 mono header + ↑↓/delete + title/description), dashed Add step; Entry + Exit conditions as separate full-width dynamic lists
+   171→  - Market Fit: three large segmented regime cards (Bull/Sideways/Bear, check circle on select); Fit scores rows revealed per selected regime; large explanation textarea
+   172→  - Assets: three role groups (Deposit/Exposure/Rewards) each with SearchMultiSelect + icon chips
+   173→  - Platforms: Networks + Protocols SearchMultiSelects
+   174→  - Risk: 2-col select grid (Overall/Liquidation, Smart contract/Impermanent loss, Volatility/Incentive reliance), leverage toggle + conditional amount, full-width explanation textarea, withdrawal restrictions
+   175→  - Requirements: Minimum capital / Lockup period 2-col (lockup input moved here per spec; still writes form.risk.lockupPeriod), Required holdings list, Wallet/network setup, Other prerequisites
+   176→  - References: numbered repeatable blocks (Title/URL + Publisher/Notes 2-col, Remove), Add reference, Last reviewed date below
+   177→  - Status: three selectable status cards with explanations (Published card uses emerald accent only when selected), revision note; Actions + Danger zone render as a second surface
+   178→  - All inputs h-10 (40px+), textareas 80–160px, only logical 2-col pairs
+   179→- `strategy-form.tsx` (full rewrite): document-style sticky editor header (back ← STRATEGIES link | mono metadata NEW STRATEGY/STRATEGY_ID | large truncate title | Saved/Unsaved-changes indicator with colored dot | context-sensitive actions: Save draft + Create strategy / Publish / View(public link) + Save changes / Unarchive + Save changes; primary stays bg-gray-900); two-column body: sticky 210px section nav (active = subtle gray-100 bg + dark text, numbered 01–09, History 10 below divider, dirty-dot on Status) + 800px main panel; mobile = sticky horizontal scrollable tab strip; Cmd/Ctrl+S retained; all save/publish/archive/delete/revision logic unchanged
+   180→- `admin-view.tsx` (restructure): admin top bar h-14; registry sidebar moved to far-left of viewport (w-60, sticky, border-r, full-height, active = gray-100, DATABASE stats card, SAME DATABASE footnote with mt-auto); main fills remaining width — editor container max-w-[1152px] centered with px-4/6/8; non-edit views get the same centered container; footer mt-auto + flex-col root
+   181→- `revision-history.tsx`: now renders inside a SectionSurface ("History") — internal heading removed, count chip retained
+   182→- Fixed mid-work bugs: (1) 768px header cramming (back text/indicator/status badge now hidden below lg/xl — title gets full space); (2) sticky-footer violation — sidebar's fixed h-[calc(100vh-3.5rem)] pushed the footer below the fold on short pages → changed to max-h + flex stretch (footer now flush at viewport bottom on short pages, dead-space 0)
+   183→
+   184→Stage Summary:
+   185→- Layout acceptance at 1440px: main 1200px · editor container 1152px (spec 1100–1200) · form panel 800px (spec 700–850) · zero horizontal overflow
+   186→- E2E re-verified in agent-browser after redesign: create (auto STRATEGY_009 + slug e2e-redesign-test-strategy) → dirty indicator → Create strategy → redirect to edit view hydrated → Publish → View link → public site shows it with ETH chip + Bear/Sideways regimes → material edit → revision R01 in History → delete via Status danger zone (confirm overlay) → redirect + removed from DB
+   187→- Hydration checks on Accumulation LP: regime cards selected with scores 80/90 revealed, asset chips (ETH/USDC) with "2 selected" triggers, steps/conditions/references all render filled
+   188→- Responsive: 390px (no overflow, stacked fields, scrollable tabs), 768px (no overflow, title fits), 1024px (3-column layout), 1440px (target); sticky footer verified short (networks, 1600px viewport, flush bottom) and long pages
+   189→- VLM design reviews across 8 prompts: no overlaps, no collisions, no narrow-column wrapping; lint clean; dev.log clean
+   190→
+   191→---
+   192→Task ID: 10
+   193→Agent: Main agent (Z.ai Code)
+   194→Task: Cron review round — QA + AI Strategy Matching (endpoint + public Strategy Finder UI)
+   195→
+   196→Work Log:
+   197→- QA pass: public archive/detail/admin editor/managers all render with zero fresh console/page errors (stale HMR entries from Task 9's mid-edit states cleared and re-verified); lint clean; dev.log clean
+   198→- Selected work focus: worklog recommendation #5 — the AI matching endpoint — as this round's feature (plus mandatory styling detail work)
+   199→- Shared refactor: `SearchMultiSelect` extracted from admin form-controls into `src/components/shared/multi-select.tsx` (identical Popover+Command implementation); form-controls re-exports it so all admin imports keep working
+   200→- `src/lib/types.ts`: MatchInput / MatchFactor / MatchResult contracts
+   201→- `src/lib/validation.ts`: matchInputSchema (zod: assetIds[], regime enum, riskTolerance enum, capital ≥ 0 optional)
+   202→- `src/lib/server/match-engine.ts` — deterministic, explainable scoring: composite = regime fit 50% (declared marketFit.scores[regime], fallback 70 curated-unscored / 15 not-designed) + risk alignment 25% (tier diff ≤0 → 100, +1 → 45, ≥2 → 10) + asset overlap 15% (fraction of deposit assets held: 40+60×frac, neutral 60 when unknown) + capital eligibility 10% (0 if below parsed minimum); per-factor notes + generated human-readable reason sentence; parseMinCapital handles "$2,000"-style strings
+   203→- `POST /api/match` route: zod-validated, resolves asset ids OR symbols ("ETH" → id), scores all PUBLISHED strategies, returns ranked MatchResult[] (full DTO per result so agents get complete context); 400 with details on invalid payloads
+   204→- `api-client.ts`: api.match(); `nav.ts`: urls.match() + "match" ViewName; `page.tsx`: /?view=match route; header nav gains MATCH (Strategies · Match · Protocols · Assets)
+   205→- `src/components/public/match-view.tsx` — the Strategy Finder: archive-style hero (grid-bg, MATRIX / MATCHING slash label, blinking cursor), two-column body with sticky 400px profile panel (holdings SearchMultiSelect with AssetIcon chips, 3 regime segmented cards, 4 risk-tolerance buttons 2×2, $-prefixed capital input, black Find strategies CTA + RESET) and results column (idle state with HOW SCORING WORKS weights legend, skeleton loading, error state, empty state); ranked result cards: mono rank (01…), identity + summary + protocol/network line, big mono score (emerald ≥75), animated composite bar, gray WHY reason strip, 2×2 factor breakdown with mini bars + notes, matched asset chips (checkmark) vs missing chips (dashed border + "SYMBOL"), View strategy CTA; runs via TanStack useMutation, auto scrollIntoView after run
+   206→- Bug fixed during testing: parseMinCapital used match[1] on a non-capturing regex → NaN minimums ("$NaN"); corrected to match[0] and re-verified ($2,000/$100/$1,000 minimums all compare correctly)
+   207→- Bug fixed: header overflowed 390px with the 5th nav item (415px scroll) → header now wraps the primary nav onto a compact second row below sm (mono-label text-[10px] + search icon at row end); desktop single row unchanged
+   208→- README: /?view=match view row, POST /api/match endpoint docs with payload example + weight explanation, extending-section updated
+   209→
+   210→Stage Summary:
+   211→- API verified via curl: BEAR+ETH/USDC+MEDIUM+$10k → 95/95/91/70/61/49 ranking with correct factor notes; BULL+LOW profile behaves (risk penalties not hides); invalid payload → 400 with zod details
+   212→- UI verified in agent-browser at 1440px: holdings multi-select (ETH+USDC chips), Bear selection, capital fill, run → 6 ranked cards with scores/WHY/factors/chips/links; View strategy link → detail page; RESET returns to idle; Match nav link + green-dot active state; profile echo "for bear regimes · very high tolerance · 2 holdings · $10,000"
+   213→- Responsive: 390/768/1024/1440px all overflow-free (archive/detail/match re-tested after header fix); VLM design reviews: clean, no overlaps/clipping, emerald reserved for strong matches
+   214→- The product story is now closed end-to-end: strategies are curated in the admin CMS with market-fit scores, and both humans (Strategy Finder) and future Matrix agents (POST /api/match) can consume the auditable matching layer
+   215→
+   216→---
+   217→
+   218→## Current project status
+   219→
+   220→Matrix Strategy Archives is **complete and running** at `/` (dev server, port 3000):
+   221→public archive with search/filters, strategy detail pages, protocol/asset browsers,
+   222→**Strategy Finder (AI matching UI)**, full admin CMS (strategies + 3 taxonomy registries)
+   223→with automatic revision history + restore, and a REST API including the new
+   224→`POST /api/match` agent endpoint with explainable four-factor scoring. Seeded with 8
+   225→realistic strategies (6 published, 1 draft, 1 archived). Admin editor fully redesigned
+   226→(Task 9). Lint clean, browser-verified at 390/768/1024/1440px.
+   227→
+   228→## Verification results (latest run)
+   229→
+   230→- Public list API: 6 published; drafts/archived excluded ✓
+   231→- POST /api/match: deterministic rankings + factor notes + reasons; symbol+id asset input; 400 validation ✓
+   232→- Strategy Finder UI: profile → run → ranked cards → detail navigation → reset ✓
+   233→- Admin editor E2E (create → publish → revise → delete) ✓ (Task 9)
+   234→- Mobile 390px: no horizontal scroll on archive/detail/match/admin ✓
+   235→- Lint: 0 errors 0 warnings · dev.log: clean ✓
+   236→
+   237→## Unresolved risks / next-phase recommendations (priority order)
+   238→
+   239→1. **Admin authentication** — /?view=admin and write endpoints are open by design (MVP); add NextAuth.js gate before any real deployment.
+   240→2. **Strategy form draft persistence** — a hard refresh still loses unsaved editor edits; consider sessionStorage draft restore with a dismissible banner.
+   241→3. **Pagination** — list endpoints return all rows (fine for hundreds; add cursor pagination before thousands).
+   242→4. **Live market data service** — next architectural step per the data-separation rule: a separate table/service for APY/TVL/regime observations keyed by strategy id, feeding a "live data" panel on detail pages and (optionally) regime auto-detection for the Finder.
+   243→5. **Match engine extensions** — weighting profile overrides per call, exposure/reward-asset overlap, network/protocol affinity factors; match result caching.
+   244→6. **CoinGecko icon sync** — populate Asset.iconUrl from coingeckoId (fields already reserved).
+   245→7. **Real routes** — views are query-param based on `/` (sandbox constraint documented in nav.ts); migrate to /strategies/[slug] etc. when the platform allows.
+   246→
+   247→---
+   248→Task ID: 11
+   249→Agent: Main agent (Z.ai Code)
+   250→Task: Public frontend rebuild — MATRIX STRATEGY ARCHIVES (dark digital financial library)
+   251→
+   252→Work Log:
+   253→- Diagnosed: public site was a light SaaS-style filter dashboard (hero, sidebar filters, tiny cards, ~800px centered column, strategies dumped immediately) — no archive identity
+   254→- Design foundation: added Fraunces editorial serif (next/font, `--font-serif`) alongside Inter/JetBrains Mono; `globals.css` gained `@theme` arc tokens (bg #080A0D, surface #0F1217, raised #151920, text #F3F3EF, muted #8C929C, green #19C784, red #EF5B62, amber #E6A33D) + arc utilities: `.arc-mono`, `.arc-grid`, `.arc-barcode`, `.arc-rise` (staggered entrance), `.arc-panel-in` (step transition), `.arc-cursor`, `.arc-scroll`, `.arc-tick`, `.arc-scope` — admin light theme untouched (scoped tokens)
+   255→- New centralized libs (per spec, no logic in components):
+   256→  - `src/lib/strategyObjectives.ts` — 7 user-facing objectives (Yield, Accumulation, Liquidity, Capital Preservation, Growth, Hedging, Advanced) + type→objective mapping table (Lending→Yield/CapPres, Concentrated Liquidity→Liquidity/Accumulation, Delta-Neutral→Yield/Hedging/Advanced, …) + keyword fallback for custom types + structural enrichment (leverage→Advanced, all-stable deposits+no liquidation→Capital Preservation); designed for a future DB `objectives` field
+   257→  - `src/lib/matching.ts` — deterministic archive retrieval: membership filters (regime / asset overlap on deposit∪exposure / objective via mapping) + weighted compatibility score (regime 50% · asset coverage 30% · objective 20%, capped 99) + WHY-IT-MATCHES reasons + `strategyMatchesSearch` full-text search across name/summary/description/type/assets/protocols/networks
+   258→- `nav.ts` rework: urls.entrance/explore/results/allRecords/networks + URL parse helpers (market/assets/objective params, "all" never stored as data); `ui-store.ts` rewritten → `useArchiveUI` (global search overlay state)
+   259→- New chrome (`components/archive/chrome.tsx`): dark sticky header (M mark, STRATEGIES/PROTOCOLS/ASSETS/NETWORKS mono nav, "Search the Archive…" button with `/` + ⌘K shortcuts, green OPEN MATRIX → CTA, mobile second nav row) + dark footer (barcode mark, ALL RECORDS/PROTOCOLS/ASSETS/NETWORKS/REST API/discreet ADMIN, © 2026) + ArchiveShell (min-h-screen flex-col, mt-auto footer, colorScheme dark)
+   260→- PAGE 1 ArchiveEntrance: near-full-viewport catalogue cover — ARCHIVE/001 meta row, huge Fraunces "Matrix Strategy Archives." (green period), italic "Knowledge compounds" with blink cursor, ENTER THE ARCHIVE → + BROWSE ALL RECORDS, three 420px vertical collection spines (BULL/SIDEWAYS/BEAR with real record counts + barcode, click = deep shortcut into flow), full-width stats strip (records/assets/protocols/networks/last reviewed from /api/meta + strategies)
+   261→- ExploreFlow (guided retrieval): ArchiveProgress stepper (01 MARKET → 02 ASSETS → 03 OBJECTIVE → 04 RESULTS, completed stages link back, arc-panel-in transition on step change)
+   262→  - MarketCollection: full-width catalogue rows (serif Bull/Sideways/Bear + COLLECTION 01-03 + keywords + N RECORDS + hover accent spine) + dashed "All markets"
+   263→  - AssetCollection: grouped tiles (NATIVE/STABLECOINS/LIQUID STAKING/GOVERNANCE via real Asset.category) with strategy counts, green selected states, ALL ASSETS option, sticky bottom selection bar (chips + CLEAR + CONTINUE), removable market chip
+   264→  - ObjectiveCollection: 8 human-goal sections (SEC_01-07 + SHOW EVERYTHING) with real per-objective counts from the centralized mapping
+   265→- ResultsView: ARCHIVE / SEARCH RESULT header, removable path chips (market/assets/objective — each removal rewrites the URL), "N records retrieved." serif headline, EDIT/NEW SEARCH, FeaturedRecord best match (dominant panel: identity + composition + WHY IT MATCHES + 3-factor score breakdown with bars + big mono percent) + RecordCard grid for further records; 0-records empty state
+   266→- StrategyRecordView (record page): ARCHIVE RECORD / STRATEGY_001 header, huge serif title, composition row + APY/TVL from latestObservation, sticky RECORD INDEX 01-09 with IntersectionObserver scrollspy (horizontal scrollable on mobile), editorial sections: Overview (serif summary + fact grid), Methodology (numbered steps with green markers), Entry/Exit (green/red two-column), Market Fit (analytical score bars), Risk (9-row definition table + amber-bordered explanation), Assets (3 role groups), Platforms, Requirements, References (numbered provenance + VIEW SOURCE + LAST REVIEWED stamp block); DRAFT/ARCHIVED banners; RECORD NOT FOUND state
+   267→- BrowseAllView: "The complete collection." header + count, full-width search input (debounced → URL q), 6 compact FilterMenu popovers (MARKET/ASSET/OBJECTIVE/RISK/PROTOCOL/NETWORK — cmdk-based, searchable for asset+protocol, facet counts), active chips + CLEAR ALL, GRID/INDEX toggle; RecordIndex = archival table (NO./RECORD/CLASSIFICATION/ASSETS/REGIMES/RISK/APY/OPEN) with horizontal scroll on mobile; all filters in URL params (shareable, deep-linkable from registries)
+   268→- Global ArchiveSearch overlay (Radix Dialog + cmdk, "/" and ⌘K): searches all published records, REC_XXX rows with meta lines, footer retrieval hints, BROWSE ALL RECORDS shortcut
+   269→- Taxonomy registries restyled dark (protocol-browser, asset-browser grouped by family, new network-browser) — each entry deep-links into Browse All pre-filtered
+   270→- Router (`page.tsx`): views archive/explore/results/all/strategy/protocols/assets/networks/admin; legacy `?view=match` redirects to entrance (POST /api/match endpoint untouched); admin branch byte-identical
+   271→- Cleanup: deleted archive-view, filter-panel, strategy-card, match-view, strategy-detail-view, app-shell/header/footer (old light public chrome); rewrote ui-store (no admin dependency)
+   272→- Bugs fixed during E2E: (1) lint — setState-in-effect in search overlay → reset via onOpenChange; (2) lint — use-before-declare + complex memo deps in browse-all/results-view; (3) mobile horizontal overflow in INDEX table (481px @390) → arc-scroll overflow-x-auto wrapper + min-w; (4) lowercase symbols in match reasons → uppercased; (5) spine layout tightened (fixed 420px height, count legibility)
+   273→
+   274→Stage Summary:
+   275→- Full journey verified in agent-browser at 1440px: entrance (real stats 6/9/9/5) → ENTER THE ARCHIVE → BEAR → ETH+USDC → ACCUMULATION → "1 record retrieved" (Accumulation LP, 95% ARCHIVE MATCH, factor bars, 4 WHY reasons) → OPEN RECORD → all 9 sections render → back nav
+   276→- Browse All: bear facet → "3 OF 6 RECORDS" + BEAR chip; INDEX table renders; search "staking" in overlay → 2 records → Enter → record page; URL params survive refresh/back
+   277→- Mobile 390px: zero horizontal overflow on every view (entrance/explore/assets/results/record/all/index/protocols/networks) after table fix; 2-col asset grid + sticky CONTINUE bar verified
+   278→- Admin verified untouched: list renders light theme, row click → editor hydrates STRATEGY_001 with Saved indicator; ?view=match redirects; POST /api/match unchanged
+   279→- VLM design reviews: entrance A→A+ (after spine polish), market A-, results A- ("terminal-meets-editorial"), record page A, asset selection A+; sticky footer flush on short pages (networks @1200px viewport)
+   280→- `bun run lint` → 0 errors 0 warnings; dev.log clean; all 10 view URLs return 200
+   281→
+   282→---
+   283→
+   284→## Current project status
+   285→
+   286→Matrix Strategy Archives is **complete and running** at `/` (dev server, port 3000).
+   287→The public frontend is now a **dark digital financial library** (MATRIX STRATEGY
+   288→ARCHIVES): archive entrance with collection spines → guided retrieval flow
+   289→(MARKET → ASSETS → OBJECTIVE) → results with explainable ARCHIVE MATCH scores
+   290→and a dominant BEST MATCH panel → editorial strategy record pages with a sticky
+   291→01–09 section index — plus Browse All (search + facet filters + GRID/INDEX),
+   292→global ⌘K search overlay, and dark taxonomy registries. The admin CMS keeps its
+   293→light institutional theme and is untouched. Backend, Prisma models, all API
+   294→routes (incl. POST /api/match) unchanged. Seeded with 8 strategies (6 published).
+   295→
+   296→## Verification results (latest run)
+   297→
+   298→- Guided flow E2E: BEAR + ETH/USDC + ACCUMULATION → 1 record, 95% match, 4 reasons ✓
+   299→- Browse All: bear facet → 3 OF 6 RECORDS; INDEX table; URL-shareable filters ✓
+   300→- Search overlay ("/" + ⌘K): "staking" → 2 records → Enter opens record ✓
+   301→- Mobile 390px: no horizontal overflow on any view ✓ · Sticky footer flush ✓
+   302→- Admin: light theme + editor intact; ?view=match redirects ✓
+   303→- Lint: 0 errors 0 warnings · dev.log clean · VLM reviews A/A+ ✓
+   304→
+   305→## Unresolved risks / next-phase recommendations (priority order)
+   306→
+   307→1. **Admin authentication** — still open by design; add NextAuth.js gate before deployment.
+   308→2. **Objective DB field** — objectives are derived via `lib/strategyObjectives.ts`; migrate to a real `objectives` column + admin editor control when ready (mapping file is the swap point).
+   309→3. **Matrix AI matching** — swap `lib/matching.ts` for the POST /api/match engine (or a future AI service) behind the same MatchedRecord contract; surface server-side factor notes.
+   310→4. **Editor draft persistence** — sessionStorage restore for unsaved admin edits (unchanged risk).
+   311→5. **Pagination** — list endpoints return all rows; add cursor pagination before thousands of records.
+   312→6. **CoinGecko icon sync** — populate Asset.iconUrl (ArcAssetIcon renders them directly).
+   313→7. **Entrance motion** — optional deeper spine hover interactions / catalogue drawer opening animation.
+   314→---
+   315→Task ID: 12
+   316→Agent: Main agent (Z.ai Code)
+   317→Task: Secondary Regimes — two-layer market classification (Level-2 conditions inside/between Bull/Sideways/Bear)
+   318→
+   319→Work Log:
+   320→- Read worklog + all core files (schema, types, validation, serializer, seed, form libs, matching engines, admin form sections, archive record/browse-all, API routes) to map the existing market-regime system before touching anything
+   321→- Design decision: secondary regimes live INSIDE the existing `marketFit` JSON sub-document (the established DB convention for market classification) as `secondaryRegimes: SecondaryRegime[]` + `secondaryScores` — zero schema migration, zero duplicated fields, automatic null-safety for legacy records; enum values follow the existing uppercase convention (EARLY_RECOVERY, BTC_LED_EXPANSION, ALT_EXPANSION, LATE_BULL_DISTRIBUTION, CAPITULATION_DELEVERAGING, LOW_VOL_COMPRESSION, HIGH_VOLATILITY_CHOP)
+   322→- NEW `src/lib/secondary-regimes.ts` — canonical registry (label, parent regime / transition, meaning, characteristics, useful-for) + lookup helpers; the single source every surface consumes (admin form, record pages, browse-all facet, matching engines, seed)
+   323→- `src/lib/types.ts`: SecondaryRegime type + SECONDARY_REGIMES array; MarketFit extended with optional secondaryRegimes/secondaryScores; StrategyFilters + MatchInput extended with optional secondary data
+   324→- `src/lib/validation.ts`: marketFitSchema accepts secondaryRegimes + secondaryScores; matchInputSchema accepts optional secondaryRegime — BUG FOUND & FIXED: zod v4 `z.record(enum, value)` demands an EXHAUSTIVE record (caused 400 on create with partial scores); switched to `z.partialRecord`
+   325→- `src/lib/server/strategy-serializer.ts`: `normalizeMarketFit()` — regimes/secondaryRegimes always arrays with unknown values dropped, secondaryScores filtered to known keys; older records normalize to []/{} (backward compat)
+   326→- API: GET /api/strategies gains `secondaryRegime` comma-list membership filter; api-client strategyFilterParams passes it through
+   327→- `src/lib/server/match-engine.ts` (POST /api/match): optional 5th factor "Market condition" (declared score → use; declared unscored → 75; other conditions → 30; NO secondary data → 55 neutral); weights with condition: regime 0.35 + condition 0.15 + risk 0.25 + assets 0.15 + capital 0.10; classic weights untouched when omitted; reason sentence gains "tuned for X conditions"
+   328→- `src/lib/matching.ts` (archive retrieval): ArchiveQuery gains optional secondaryRegime (ranking only, NEVER a membership filter); condition factor + WEIGHTS_WITH_CONDITION (regime 0.45 / condition 0.15 / assets 0.25 / objective 0.15); buildReasons adds "Best during X"
+   329→- Admin UI (`form-sections.tsx` MarketFitSection): "PRIMARY MARKET FIT" group (3 large cards + scores, unchanged) → divider → "SECONDARY REGIMES" group: 7 compact selectable cards (label + parent/transition mono tag + 2-line meaning, selected = border-gray-700 + check — visually lighter than primary's border-gray-900) + revealed secondary fit-score inputs; `strategy-form.ts` state/conversions extended null-safe
+   330→- Public record page (`strategy-record.tsx`): "BEST DURING — SPECIFIC CONDITIONS" block under Market Fit showing ONLY declared conditions (label + INSIDE PARENT / transition + meaning + green score bar; "DECLARED" badge when unscored); hidden entirely when none (legacy records render unchanged)
+   331→- Browse All (`browse-all.tsx`): advanced "CONDITION" facet below MARKET (searchable cmdk menu, facet counts, URL param `condition=`, removable chips) — discovery flow itself stays 3-regime simple (verified no leakage)
+   332→- Seed: all 8 strategies got reasonable secondary regimes per the example mappings (Accumulation LP: Early Recovery 90 + Low-Vol Compression 85; Stablecoin Lending/Rotation: Late Bull + Capitulation; ETH/SOL Staking: BTC-Led + Alt Expansion; Delta-Neutral: Low-Vol 90 + High-Vol Chop 70; Pendle draft: Late Bull + Low-Vol; CRV/AERO archived: declared unscored) — core strategy logic untouched; `bun run db:seed` re-run
+   333→- README: two-layer classification table + JSON example + optional-safe guarantees, secondaryRegime filter + match payload docs, extending notes
+   334→
+   335→Stage Summary:
+   336→- API verified via curl: GET ?secondaryRegime=EARLY_RECOVERY → only Accumulation LP; POST /api/match with secondaryRegime=CAPITULATION_DELEVERAGING → Stablecoin Lending 95 ranks above Accumulation LP 86 (30 "tuned for other conditions") while classic calls return byte-identical 4-factor results; invalid regime → 400
+   337→- Archive matching verified via fixture script: classic query → tie 79/79/79 (legacy behavior); with condition → A(declared 95)=82 + "Best during Capitulation / Deleveraging" reason, C(no data)=76 still included, B(other condition)=72
+   338→- Admin E2E in agent-browser: create (Bull 75 + BTC-Led 80 + Alt 90) → 400 bug found → zod partialRecord fix → create succeeds (STRATEGY_009) → edit (deselect Alt) → Publish → API returns ['BTC_LED_EXPANSION'] {80} → public record shows BEST DURING BTC-LED EXPANSION INSIDE BULL 80 → revision R01 snapshot preserved pre-edit secondary data → deleted cleanly
+   339→- Public verified: record page BEST DURING renders (VLM: clean, no overlap, primary stays dominant via colored bars); Browse All CONDITION facet → EARLY_RECOVERY → "1 OF 6 RECORDS" + chip + shareable URL; unscored path renders DECLARED on archived record; entrance/guided flow/market step/results all unchanged
+   340→- Responsive 390px: no horizontal overflow on browse-all, record page, admin Market Fit; lint 0/0; dev.log clean
+   341→
+   342→## Current project status
+   343→
+   344→Matrix Strategy Archives is **complete and running** at `/` (dev server, port 3000).
+   345→The market classification is now **two-layer**: Level 1 primary regimes
+   346→(BULL / SIDEWAYS / BEAR — unchanged, still the public classification and strongest
+   347→match signal) plus optional Level 2 **secondary regimes** (7 conditions from
+   348→Early Recovery to High-Volatility Chop) stored inside `marketFit` with optional
+   349→fit scores. Admin editor (Market Fit section), public record pages (BEST DURING),
+   350→Browse All (advanced CONDITION facet), both matching engines (5th "Market
+   351→condition" factor) and the REST API all consume the canonical registry in
+   352→`src/lib/secondary-regimes.ts`. Legacy records without secondary data render and
+   353→rank unchanged (null-safe serializer, neutral condition factor).
+   354→
+   355→## Verification results (latest run — Task 12)
+   356→
+   357→- GET /api/strategies?secondaryRegime=… membership filter ✓ · POST /api/match with
+   358→  optional secondaryRegime: 5-factor rankings with notes + reasons; classic calls
+   359→  byte-identical to pre-feature behavior ✓ · invalid values → 400 ✓
+   360→- Admin E2E: create with secondary regimes + scores → publish → edit (deselect) →
+   361→  API round-trip exact → public BEST DURING block → revision snapshot preserved →
+   362→  delete ✓ (zod v4 exhaustive-record bug found & fixed mid-test via z.partialRecord)
+   363→- Browse All CONDITION facet: EARLY_RECOVERY → "1 OF 6 RECORDS" + chip + shareable URL ✓
+   364→- Guided discovery flow & entrance: unchanged, zero secondary leakage ✓
+   365→- Mobile 390px: no overflow (browse-all / record / admin form) ✓ · Lint 0/0 ✓ · dev.log clean ✓
+   366→
+   367→## Unresolved risks / next-phase recommendations (priority order)
+   368→
+   369→1. **Admin authentication** — still open by design; add NextAuth.js gate before deployment.
+   370→2. **Live regime detection service** — the matching infrastructure now accepts
+   371→   `{ regime, secondaryRegime }` from Matrix Finance; build the detector/feed that
+   372→   supplies it, then surface current-market context in the Archive UI.
+   373→3. **Objective DB field** — objectives still derived via lib/strategyObjectives.ts.
+   374→4. **Editor draft persistence** — sessionStorage restore for unsaved admin edits.
+   375→5. **Pagination** — list endpoints return all rows; add cursor pagination before thousands.
+   376→6. **CoinGecko icon sync** — populate Asset.iconUrl from coingeckoId.
+   377→---
+   378→Task ID: 13
+   379→Agent: Main agent (Z.ai Code)
+   380→Task: Public Archive integration of Market Phases (guided step 02) + public frontend visual refinement (circular icons, less-boxy shape language, editorial Best Match)
+   381→
+   382→Work Log:
+   383→- Read worklog + all public flow code (nav, matching, secondary-regimes, explore-flow, all collections, results, featured/record cards, icons, chrome, registries) before touching anything; backend/admin/Prisma/APIs confirmed untouched throughout
+   384→- `src/lib/secondary-regimes.ts` — registry extended with public-facing phase metadata: `slug` (kebab URL slugs: btc-led-expansion…), archival `code` (B01/B02/B03 bull, S01/S02 sideways, D01 capitulation, R01 early-recovery), `keywords` line for phase cards + helpers: secondaryRegimeSlug/Code/Keywords, parseSecondaryRegimeSlug, secondaryRegimesForMarket(market) (bull: BTC-Led/Alt/Late Bull; sideways: Low-Vol/High-Vol Chop; bear: Capitulation/Early-Recovery; all: full registry in narrative cycle order), allPhasesLabel(market); doc now states public language = "Market Phase", internal = secondary regime
+   385→- `src/lib/nav.ts` — ExploreStep adds "phase"; flowParams accepts `phase` (enum OR slug, normalized via registry; "all"/unknown → omitted, never a fake value); urls.explore/results accept phase; parsePhase(?phase=) → SecondaryRegime; parseArchiveQuery returns secondaryRegime; archiveQueryToParams serializes back to slug; phaseDef() helper; re-exported ArchiveQuery/MarketParam types (fixes latent TS error)
+   386→- `src/lib/matching.ts` — doc updated to 5-step journey + hierarchy note; conditionFactor relabeled "Market phase" with public-facing notes ("Best during X — phase fit N/100", "Tuned for other market phases"); buildReasons adds "Eligible across the whole X collection" for phase-eligible records lacking the phase; weights unchanged (regime .45 / phase .15 / assets .25 / objective .15 — primary still dominant)
+   387→- NEW `src/components/archive/market-phase-collection.tsx` — guided step 02: "Where are we inside the market?"; COLLECTION: BULL + CHANGE MARKET → context row; phases as archival sub-collections on a rail (border-l spine): PHASE / B01 code, serif label, keywords (fade in on hover), meaning line, N RECORDS; green accent spine advances on hover; single-selection → assets step with phase; dashed "All Bull/Sideways/Bear/Market Phases" row → no phase param; real per-phase record counts; all-markets view shows all 7 with parent labels
+   388→- `archive-progress.tsx` — 5 stages (01 MARKET / 02 MARKET PHASE / 03 ASSETS / 04 OBJECTIVE / 05 RESULTS), completed stages keep check marks + link back with full state, horizontally scrollable
+   389→- `explore-flow.tsx` — STEP_META for market/phase/assets/objective with new codes + phase copy; market-collection enter() → step "phase"; objective retrieve() → results with phase; entrance spines deep-link to step "phase"; entrance retrieval tagline updated
+   390→- `asset-collection.tsx` — phase-aware reminder row (COLLECTION chip + / PHASE chip + CHANGE/CHOOSE PHASE →), phase passed through continue; premium tiles: rounded-[6px], 34px circular icons (green ring when selected), left accent spine on selection, whole-tile selected state (border/bg + ring + check fades in on hover), min-h 76px targets; sticky bar chips now rounded-full
+   391→- `results-view.tsx` — matchStrategies receives secondaryRegime; archival breadcrumb path BULL / BTC-LED EXPANSION / ETH + USDC / GROWTH with "/" dividers: each crumb is a link to its edit step + hover-reveal × removal (phase removal omits the param); EDIT MARKET/PHASE/ASSETS/OBJECTIVE + NEW SEARCH links; manual useMemo removed (React Compiler auto-memo; fixes preserve-manual-memoization), updateQuery locals de-shadowed; 16px separation before FURTHER RECORDS
+   392→- `archive-icons.tsx` — ALL icons now circular: monogram rounded-full, ArcLogoImage (new) renders iconUrl in circular mask with border + graceful onError fallback to monogram (never broken images); new ArcIconStack overlapping circular stack component (surface-colored rings, z-order); module now "use client"
+   393→- `featured-record.tsx` — editorial Best Match: rounded-[6px] panel, breathing serif title, composition via ArcIconStack + circular protocol/network marks (no inner boxes), score column integrated (52px mono number + rounded bars + WHY IT MATCHES behind a single hairline); MatchScore/MatchChip deleted from archive-match.tsx (scores now render inline per layout)
+   394→- `record-card.tsx` — name dominates (serif 21px), single classification line, circular icon stacks + protocol/network circles in one quiet row, "ARCHIVE MATCH 84%" as quiet text (no chip box), accent spine hover, rounded-[6px]
+   395→- `strategy-record.tsx` — "BEST DURING — MARKET PHASES" public language; composition row uses ArcIconStack + circular protocol/network icons; asset chips rounded-full
+   396→- `browse-all.tsx` — CONDITION facet relabeled "MARKET PHASE" (URL param unchanged → old links still work); search input/toggle/filter menus/chips/empty-state given subtle radius
+   397→- `record-index.tsx` — circular asset icon stack in ASSETS column, rounded-[6px] wrapper
+   398→- Registries (asset/protocol/network browsers) + chrome (header M mark, search buttons, CTAs) + entrance buttons — subtle radius (rounded-[4..6px]) + hover accent spines; spines keep sharp look on desktop (lg:rounded-none)
+   399→- Fixed mid-task: missing `}` in asset-collection GROUPS.map (parse error); latent TS errors (ArchiveQuery import, Regime casts in browse-all/market-collection, objective cast in results-view)
+   400→
+
+[showing lines 1-400 of 409; use offset=401 with limit to continue reading]
