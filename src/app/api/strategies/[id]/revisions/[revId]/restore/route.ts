@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { FULL_STRATEGY_INCLUDE, serializeStrategy } from "@/lib/server/strategy-serializer"
@@ -14,6 +15,8 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string; revId: string }> }
 ) {
+  const denied = await requireAdmin(true)
+  if (denied) return denied
   try {
     const { id, revId } = await params
 

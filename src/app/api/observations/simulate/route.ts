@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { simulateNextObservations } from "@/lib/server/observation-service"
 
@@ -12,6 +13,8 @@ import { simulateNextObservations } from "@/lib/server/observation-service"
  * strategy definitions themselves.
  */
 export async function POST(request: NextRequest) {
+  const denied = await requireAdmin(true)
+  if (denied) return denied
   try {
     const strategyId = request.nextUrl.searchParams.get("strategyId") ?? undefined
     const { created } = await simulateNextObservations(strategyId ?? undefined)

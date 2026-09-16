@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { assetInputSchema } from "@/lib/validation"
@@ -50,6 +51,8 @@ export async function GET() {
 
 /** POST /api/assets — create a reusable asset reference (admin). */
 export async function POST(request: NextRequest) {
+  const denied = await requireAdmin(true)
+  if (denied) return denied
   try {
     const body = await request.json()
     const parsed = assetInputSchema.safeParse(body)

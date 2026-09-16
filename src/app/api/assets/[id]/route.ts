@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { assetInputSchema } from "@/lib/validation"
@@ -7,6 +8,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireAdmin(true)
+  if (denied) return denied
   try {
     const { id } = await params
     const body = await request.json()
@@ -55,6 +58,8 @@ export async function PUT(
 
 /** DELETE /api/assets/:id — removed in favor of deactivation via PUT (active=false). */
 export async function DELETE() {
+  const denied = await requireAdmin(true)
+  if (denied) return denied
   return NextResponse.json(
     { error: "Assets are deactivated, not deleted — set active=false via PUT" },
     { status: 405 }

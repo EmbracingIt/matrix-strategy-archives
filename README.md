@@ -62,7 +62,7 @@ Requires **Node 20+** (or Bun) — PowerShell on Windows 10/11 or any POSIX shel
 npm install            # or: bun install
 
 # 2. Configure environment
-cp .env.example .env   # already contains DATABASE_URL="file:./db/custom.db"
+cp .env.example .env   # fill in existing PostgreSQL URLs and admin settings
 
 # 3. Create the database schema
 npm run db:push        # prisma db push
@@ -83,6 +83,41 @@ Useful scripts:
 | `npm run db:push` | Apply `prisma/schema.prisma` to SQLite |
 | `npm run db:seed` | Reset + seed demo content |
 | `npm run db:generate` | Regenerate the Prisma client |
+
+### Admin password
+
+Copy `.env.example` to `.env` and set `ADMIN_PASSWORD` to a strong, unique password.
+Set `NEXTAUTH_SECRET` to an independently generated random secret; generate one with:
+
+```bash
+node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"
+```
+
+Set `NEXTAUTH_URL` to the exact site origin (`http://localhost:3000` locally,
+or your HTTPS URL in production), then restart the app. Never commit `.env` or
+use `NEXT_PUBLIC_` for these values. No default password is provided: missing
+password, session secret, or valid site URL disables sign-in and administrative writes.
+
+Open `/?view=admin` and enter the password. Logout is above the admin header.
+Sessions use NextAuth's encrypted, HttpOnly, SameSite cookies, with Secure cookies
+in production and a hard eight-hour lifetime. Changing the password or session
+secret and restarting invalidates existing sessions. Logout clears this browser's
+cookie; copied session tokens remain valid until expiry or secret/password rotation.
+
+All administrative writes (including observation creation/simulation and revision
+restore), revision history, and non-published strategy access require login.
+Published browsing and `POST /api/match` remain public. Cookie-authenticated writes
+also require an Origin header matching `NEXTAUTH_URL`. Deploy behind HTTPS.
+
+Login attempts are limited to ten per minute across each server process. This is
+a shared-password setup, without individual accounts or audit attribution; for
+multiple server replicas, add shared rate limiting at the hosting proxy. The local
+limit resets on restart and can temporarily block all administrators after failed
+attempts. Existing automation that writes to the API now needs an authenticated
+session and matching Origin; it has no unauthenticated bypass.
+
+Run `node tests/admin-auth.mjs` and `node tests/admin-auth.mjs --unconfigured`
+for authentication integration checks (temporary server on port 3107; no database writes).
 
 ### Where things are
 
@@ -274,8 +309,8 @@ GET /api/strategies?regime=BEAR&secondaryRegime=CAPITULATION_DELEVERAGING
   matching engines and seed data.
 - **CoinGecko icons** — populate `Asset.iconUrl` (or a future sync job using `coingeckoId`);
   the UI renders icons when present and falls back to category-tinted monograms.
-- **Authentication for admin** — add NextAuth.js middleware around `/api` write endpoints
-  and gate `/?view=admin`; the app is otherwise ready.
+- **Authentication for admin** — shared-password NextAuth login gates `/?view=admin`;
+  server guards protect administrative endpoints. Configuration is described above.
 - **Matrix Finance / AI agents** — consume the same REST API. `POST /api/match` already
   ranks strategies against a profile (holdings, regime, optional Level-2 condition, risk
   tolerance, capital) with an auditable factor breakdown; agents can also query structured

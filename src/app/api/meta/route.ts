@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { isAdmin } from "@/lib/server/admin-auth"
 import { db } from "@/lib/db"
 import type { MetaDTO } from "@/lib/types"
 
@@ -8,8 +9,9 @@ import type { MetaDTO } from "@/lib/types"
  */
 export async function GET() {
   try {
+    const admin = await isAdmin()
     const [strategies, assetCount, protocolCount, networkCount] = await Promise.all([
-      db.strategy.findMany({ select: { type: true, status: true } }),
+      db.strategy.findMany({ where: admin ? {} : { status: "PUBLISHED" }, select: { type: true, status: true } }),
       db.asset.count(),
       db.protocol.count(),
       db.network.count(),

@@ -12,6 +12,7 @@ import { ProtocolBrowser } from "@/components/public/protocol-browser"
 import { AssetBrowser } from "@/components/public/asset-browser"
 import { NetworkBrowser } from "@/components/public/network-browser"
 import { AdminView } from "@/components/admin/admin-view"
+import { AdminAuthGate } from "@/components/admin/admin-auth-gate"
 import { urls, type AdminSection, ViewName } from "@/lib/nav"
 import { scrollToTopImmediate } from "@/lib/smooth-scroll"
 
@@ -51,7 +52,7 @@ function HomePage() {
   }, [view])
 
   if (view === "admin") {
-    return <AdminView section={section} editId={editId} isNew={isNew} />
+    return <AdminAuthGate><AdminView section={section} editId={editId} isNew={isNew} /></AdminAuthGate>
   }
 
   if (view === "match") {

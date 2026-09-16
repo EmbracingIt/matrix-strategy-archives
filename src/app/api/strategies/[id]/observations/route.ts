@@ -1,3 +1,4 @@
+import { isAdmin, requireAdmin } from "@/lib/server/admin-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { observationInputSchema } from "@/lib/validation"
@@ -17,7 +18,7 @@ export async function GET(
   try {
     const { id } = await params
     const strategy = await resolveStrategy(id)
-    if (!strategy) {
+    if (!strategy || (strategy.status !== "PUBLISHED" && !(await isAdmin()))) {
       return NextResponse.json({ error: "Strategy not found" }, { status: 404 })
     }
 
@@ -51,6 +52,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireAdmin(true)
+  if (denied) return denied
   try {
     const { id } = await params
     const strategy = await resolveStrategy(id)

@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { strategyInputSchema } from "@/lib/validation"
@@ -54,6 +55,10 @@ export async function GET(request: NextRequest) {
     const leverage = sp.get("leverage") || "any"
     const liquidation = sp.get("liquidation") || "any"
     const statusParam = sp.get("status") || "PUBLISHED"
+    if (statusParam !== "PUBLISHED") {
+      const denied = await requireAdmin()
+      if (denied) return denied
+    }
 
     // --- Prisma-level filters -------------------------------------------------
     const where: Record<string, unknown> = {}
@@ -141,6 +146,8 @@ export async function GET(request: NextRequest) {
  * Slug and STRATEGY_XXX id are generated when not supplied.
  */
 export async function POST(request: NextRequest) {
+  const denied = await requireAdmin(true)
+  if (denied) return denied
   try {
     const body = await request.json()
     const parsed = strategyInputSchema.safeParse(body)

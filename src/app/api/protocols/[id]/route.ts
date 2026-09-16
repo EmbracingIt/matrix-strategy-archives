@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { protocolInputSchema } from "@/lib/validation"
@@ -8,6 +9,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireAdmin(true)
+  if (denied) return denied
   try {
     const { id } = await params
     const body = await request.json()

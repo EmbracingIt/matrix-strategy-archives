@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import type { RevisionDTO, StrategyDTO } from "@/lib/types"
@@ -11,6 +12,8 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireAdmin()
+  if (denied) return denied
   try {
     const { id } = await params
     const strategy = await db.strategy.findUnique({ where: { id }, select: { id: true } })

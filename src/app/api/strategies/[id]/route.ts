@@ -1,3 +1,4 @@
+import { isAdmin, requireAdmin } from "@/lib/server/admin-auth"
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { strategyInputSchema } from "@/lib/validation"
@@ -12,8 +13,7 @@ import { withLatestObservations } from "@/lib/server/observation-service"
 
 /**
  * GET /api/strategies/:id — accepts the internal id OR the public slug.
- * Draft/archived strategies are returned (admin needs them); the public site
- * only ever links to published slugs.
+ * Draft/archived strategies require an authenticated administrator.
  */
 export async function GET(
   _request: NextRequest,
@@ -28,7 +28,7 @@ export async function GET(
       where: { slug: id },
       include: FULL_STRATEGY_INCLUDE,
     }))
-    if (!row) {
+    if (!row || (row.status !== "PUBLISHED" && !(await isAdmin()))) {
       return NextResponse.json({ error: "Strategy not found" }, { status: 404 })
     }
     const [dto] = await withLatestObservations([serializeStrategy(row)])
@@ -51,6 +51,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireAdmin(true)
+  if (denied) return denied
   try {
     const { id } = await params
     const body = await request.json()
@@ -145,6 +147,8 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireAdmin(true)
+  if (denied) return denied
   try {
     const { id } = await params
     const existing = await db.strategy.findUnique({ where: { id }, select: { id: true } })
