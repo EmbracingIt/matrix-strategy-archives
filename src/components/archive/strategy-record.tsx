@@ -141,7 +141,7 @@ export function StrategyRecordView({ slug }: { slug: string }) {
             <span className="arc-mono text-arc-dim">ARCHIVE RECORD / {strategy.strategyId}</span>
           </div>
 
-          <h1 className="mt-6 max-w-4xl font-serif text-[clamp(2.4rem,5.5vw,4.4rem)] font-light leading-[1.02] tracking-[-0.02em] text-arc-text">
+          <h1 className="mt-6 max-w-4xl font-sans text-[clamp(2.4rem,5.5vw,4.4rem)] font-semibold leading-[1.02] tracking-[-0.02em] text-arc-text">
             {strategy.name}
           </h1>
 
@@ -315,7 +315,7 @@ function SectionRule({ code, title }: { code: string; title: string }) {
     <div className="border-t border-white/10 pt-6">
       <div className="flex items-baseline gap-4">
         <span className="arc-mono text-arc-green">{code}</span>
-        <h2 className="font-serif text-[1.55rem] font-light tracking-[-0.01em] text-arc-text">
+        <h2 className="font-sans text-[1.55rem] font-semibold tracking-[-0.01em] text-arc-text">
           {title}
         </h2>
       </div>
@@ -351,7 +351,7 @@ function OverviewSection({ strategy }: { strategy: StrategyDTO }) {
     <section id="overview" aria-label="Overview">
       <SectionRule code="01" title="Overview" />
       {strategy.summary && (
-        <p className="mt-6 max-w-3xl font-serif text-[clamp(1.2rem,2vw,1.5rem)] font-light leading-[1.5] text-arc-text/90">
+        <p className="mt-6 max-w-3xl font-sans text-[clamp(1.2rem,2vw,1.5rem)] font-semibold leading-[1.5] text-arc-text/90">
           {strategy.summary}
         </p>
       )}

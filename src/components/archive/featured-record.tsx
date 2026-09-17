@@ -46,7 +46,7 @@ export function FeaturedRecord({ record }: { record: MatchedRecord }) {
       <div className="grid gap-0 lg:grid-cols-[1fr_320px]">
         {/* Identity — editorial, let it breathe */}
         <div className="px-6 pb-8 pt-6 sm:px-9 sm:pb-10">
-          <h3 className="max-w-2xl font-serif text-[clamp(1.8rem,3.2vw,2.7rem)] font-light leading-[1.04] tracking-[-0.015em] text-arc-text">
+          <h3 className="max-w-2xl font-sans text-[clamp(1.8rem,3.2vw,2.7rem)] font-semibold leading-[1.04] tracking-[-0.015em] text-arc-text">
             {strategy.name}
           </h3>
 

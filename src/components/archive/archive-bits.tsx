@@ -24,7 +24,7 @@ export function SectionHead({
   return (
     <div className={cn("max-w-3xl", className)}>
       <p className="arc-mono text-arc-green">{code}</p>
-      <h2 className="mt-4 font-serif text-[clamp(1.9rem,3.6vw,2.9rem)] font-light leading-[1.08] tracking-[-0.01em] text-arc-text">
+      <h2 className="mt-4 font-sans text-[clamp(1.9rem,3.6vw,2.9rem)] font-semibold leading-[1.08] tracking-[-0.01em] text-arc-text">
         {title}
       </h2>
       {description && (

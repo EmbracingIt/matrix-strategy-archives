@@ -69,7 +69,7 @@ export function ArchiveEntrance() {
         {/* Cover */}
         <div className="grid flex-1 items-center gap-14 py-14 lg:grid-cols-[1fr_auto] lg:gap-20 lg:py-8">
           <div className="min-w-0">
-            <h1 className="font-serif font-light leading-[0.98] tracking-[-0.02em] text-arc-text">
+            <h1 className="font-sans font-semibold leading-[0.98] tracking-[-0.02em] text-arc-text">
               <span className="arc-rise block text-[clamp(3.4rem,9vw,7.25rem)]" style={{ animationDelay: "40ms" }}>
                 Matrix
               </span>
@@ -79,7 +79,7 @@ export function ArchiveEntrance() {
             </h1>
 
             <p
-              className="arc-rise mt-8 font-serif text-[clamp(1.35rem,2.4vw,1.9rem)] font-light italic text-arc-text/85"
+              className="arc-rise mt-8 font-sans text-[clamp(1.35rem,2.4vw,1.9rem)] font-semibold italic text-arc-text/85"
               style={{ animationDelay: "170ms" }}
             >
               Knowledge compounds<span className="arc-cursor" aria-hidden />

@@ -94,7 +94,7 @@ export function RecordCard({
         )}
       </div>
 
-      <h3 className="mt-3 font-serif text-[21px] font-normal leading-snug tracking-[-0.01em] text-arc-text transition-colors duration-200 group-hover:text-white">
+      <h3 className="mt-3 font-sans text-[21px] font-semibold leading-snug tracking-[-0.01em] text-arc-text transition-colors duration-200 group-hover:text-white">
         {strategy.name}
       </h3>
 

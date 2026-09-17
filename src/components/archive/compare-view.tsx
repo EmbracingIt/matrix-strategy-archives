@@ -80,7 +80,7 @@ export function CompareView() {
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
             <p className="arc-mono text-arc-green">ARCHIVE / RECORD COMPARISON</p>
-            <h1 className="mt-4 font-serif text-[clamp(2.1rem,4.5vw,3.4rem)] font-light leading-[1.04] tracking-[-0.01em] text-arc-text">
+            <h1 className="mt-4 font-sans text-[clamp(2.1rem,4.5vw,3.4rem)] font-semibold leading-[1.04] tracking-[-0.01em] text-arc-text">
               Side by side<span className="text-arc-green">.</span>
             </h1>
           </div>
@@ -142,7 +142,7 @@ export function CompareView() {
                             <span className="arc-mono text-[10px] text-arc-dim">
                               {record.strategyId}
                             </span>
-                            <h2 className="mt-1 font-serif text-[20px] font-light leading-tight text-arc-text">
+                            <h2 className="mt-1 font-sans text-[20px] font-semibold leading-tight text-arc-text">
                               {record.name}
                             </h2>
                             <Link

@@ -244,7 +244,7 @@ export function BrowseAllView() {
       <header className="border-b border-white/10 py-10 sm:py-12">
         <p className="arc-mono text-arc-green">ALL RECORDS</p>
         <div className="mt-4 flex flex-wrap items-end justify-between gap-6">
-          <h1 className="font-serif text-[clamp(2.1rem,4.5vw,3.4rem)] font-light leading-[1.04] tracking-[-0.01em] text-arc-text">
+          <h1 className="font-sans text-[clamp(2.1rem,4.5vw,3.4rem)] font-semibold leading-[1.04] tracking-[-0.01em] text-arc-text">
             The complete collection<span className="text-arc-green">.</span>
           </h1>
           <p className="arc-mono text-arc-dim">

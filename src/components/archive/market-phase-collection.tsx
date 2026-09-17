@@ -128,7 +128,7 @@ export function MarketPhaseCollection({ query }: { query: ArchiveQuery }) {
               className="group relative -ml-6 flex w-[calc(100%+1.5rem)] items-center gap-5 border-t border-dashed border-white/10 px-0 py-6 text-left transition-colors duration-200 hover:bg-arc-surface/50 sm:-ml-10 sm:w-[calc(100%+2.5rem)] sm:px-2"
             >
               <span className="min-w-0 flex-1">
-                <span className="block font-serif text-[clamp(1.3rem,2.4vw,1.8rem)] font-light leading-none text-arc-muted transition-colors duration-200 group-hover:text-arc-text">
+                <span className="block font-sans text-[clamp(1.3rem,2.4vw,1.8rem)] font-semibold leading-none text-arc-muted transition-colors duration-200 group-hover:text-arc-text">
                   {allPhasesLabel(market)}
                 </span>
                 <span className="mt-2 block text-[13px] text-arc-dim">
@@ -183,7 +183,7 @@ function PhaseShelf({
               </span>
             )}
           </span>
-          <span className="mt-2.5 block font-serif text-[clamp(1.55rem,3vw,2.3rem)] font-light leading-none tracking-[-0.01em] text-arc-text transition-colors duration-200 group-hover:text-white">
+          <span className="mt-2.5 block font-sans text-[clamp(1.55rem,3vw,2.3rem)] font-semibold leading-none tracking-[-0.01em] text-arc-text transition-colors duration-200 group-hover:text-white">
             {phase.label}
           </span>
           <span className="arc-mono mt-3 block text-[10px] text-arc-dim opacity-70 transition-opacity duration-300 group-hover:text-arc-muted group-hover:opacity-100">

@@ -91,7 +91,7 @@ export function MarketCollection({
                   {market.collection}
                 </span>
                 <span className="min-w-0 flex-1 transition-transform duration-200 group-hover:translate-x-1.5">
-                  <span className={cn("block font-serif text-[clamp(1.8rem,4vw,3rem)] font-light leading-none tracking-[-0.01em] text-arc-text transition-colors group-hover:text-white")}>
+                  <span className={cn("block font-sans text-[clamp(1.8rem,4vw,3rem)] font-semibold leading-none tracking-[-0.01em] text-arc-text transition-colors group-hover:text-white")}>
                     {market.label}
                   </span>
                   <span className="arc-mono mt-3 block hidden text-arc-dim transition-opacity duration-200 group-hover:text-arc-muted sm:block">{market.keywords}</span>
@@ -119,7 +119,7 @@ export function MarketCollection({
               04
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block font-serif text-[clamp(1.4rem,2.6vw,1.9rem)] font-light leading-none text-arc-muted transition-colors group-hover:text-arc-text">
+              <span className="block font-sans text-[clamp(1.4rem,2.6vw,1.9rem)] font-semibold leading-none text-arc-muted transition-colors group-hover:text-arc-text">
                 All markets
               </span>
               <span className="arc-mono mt-3 block hidden text-arc-dim sm:block">

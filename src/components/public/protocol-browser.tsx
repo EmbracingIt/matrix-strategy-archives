@@ -20,7 +20,7 @@ export function ProtocolBrowser() {
     <div className="mx-auto max-w-[1380px] px-4 sm:px-8">
       <header className="border-b border-white/10 py-10 sm:py-12">
         <p className="arc-mono text-arc-green">PROTOCOL REGISTRY</p>
-        <h1 className="mt-4 font-serif text-[clamp(2.1rem,4.5vw,3.4rem)] font-light leading-[1.04] tracking-[-0.01em] text-arc-text">
+        <h1 className="mt-4 font-sans text-[clamp(2.1rem,4.5vw,3.4rem)] font-semibold leading-[1.04] tracking-[-0.01em] text-arc-text">
           Protocols<span className="text-arc-green">.</span>
         </h1>
         <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-arc-muted">

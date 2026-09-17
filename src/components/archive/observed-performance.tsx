@@ -104,7 +104,7 @@ export function ObservedPerformanceSection({
         <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3">
           <div className="flex items-baseline gap-4">
             <span className="arc-mono text-arc-green">05</span>
-            <h2 className="font-serif text-[1.55rem] font-light tracking-[-0.01em] text-arc-text">
+            <h2 className="font-sans text-[1.55rem] font-semibold tracking-[-0.01em] text-arc-text">
               Observed Performance
             </h2>
           </div>

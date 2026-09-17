@@ -142,7 +142,7 @@ export function ResultsView() {
           </div>
 
           <div className="mt-8 flex flex-wrap items-end justify-between gap-6">
-            <h2 className="font-serif text-[clamp(1.9rem,4vw,3.1rem)] font-light leading-[1.05] tracking-[-0.01em] text-arc-text">
+            <h2 className="font-sans text-[clamp(1.9rem,4vw,3.1rem)] font-semibold leading-[1.05] tracking-[-0.01em] text-arc-text">
               {isLoading ? (
                 <span className="arc-mono text-[16px] text-arc-muted">RETRIEVING…</span>
               ) : (
