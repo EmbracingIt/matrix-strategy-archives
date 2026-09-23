@@ -54,7 +54,7 @@ export function ArchiveEntrance() {
       <span className="pointer-events-none absolute right-[26%] top-[14%] hidden font-mono text-sm text-white/15 lg:block" aria-hidden>+</span>
       <span className="pointer-events-none absolute bottom-[30%] left-[38%] hidden font-mono text-sm text-white/15 lg:block" aria-hidden>+</span>
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-[1380px] flex-col px-4 sm:px-8">
+      <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] min-w-0 max-w-[1380px] flex-col px-4 sm:px-8">
         {/* Meta header row */}
         <div className="arc-rise flex items-center justify-between gap-4 border-b border-white/10 py-5">
           <span className="arc-mono text-arc-muted">ARCHIVE / 001</span>
@@ -67,13 +67,13 @@ export function ArchiveEntrance() {
         </div>
 
         {/* Cover */}
-        <div className="grid flex-1 items-center gap-14 py-14 lg:grid-cols-[1fr_auto] lg:gap-20 lg:py-8">
+        <div className="grid min-w-0 flex-1 items-center gap-10 py-10 sm:gap-14 sm:py-14 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-20 lg:py-8">
           <div className="min-w-0">
             <h1 className="font-sans font-semibold leading-[0.98] tracking-[-0.02em] text-arc-text">
-              <span className="arc-rise block text-[clamp(3.4rem,9vw,7.25rem)]" style={{ animationDelay: "40ms" }}>
+              <span className="arc-rise block text-[clamp(2.5rem,14vw,7.25rem)]" style={{ animationDelay: "40ms" }}>
                 Matrix
               </span>
-              <span className="arc-rise block text-[clamp(3.4rem,9vw,7.25rem)]" style={{ animationDelay: "100ms" }}>
+              <span className="arc-rise block text-[clamp(2.5rem,14vw,7.25rem)]" style={{ animationDelay: "100ms" }}>
                 Strategy Archives<span className="text-arc-green">.</span>
               </span>
             </h1>
@@ -117,7 +117,7 @@ export function ArchiveEntrance() {
 
           {/* Collection spines — the wings of the archive */}
           <div
-            className="arc-rise flex gap-3 lg:flex-col lg:gap-0"
+            className="arc-rise grid min-w-0 grid-cols-3 gap-2 lg:flex lg:w-auto lg:gap-0"
             style={{ animationDelay: "240ms" }}
             aria-label="Archive collections"
           >
@@ -133,7 +133,7 @@ export function ArchiveEntrance() {
                   key={collection.market}
                   href={urls.explore({ step: "phase", market: collection.market })}
                   className={cn(
-                    "group relative flex items-center justify-between gap-6 rounded-[5px] border border-white/10 bg-arc-surface/70 px-5 py-4 transition-all duration-200 hover:border-white/30 hover:bg-arc-surface",
+                    "group relative flex min-w-0 flex-col items-start justify-between gap-2 rounded-[5px] border border-white/10 bg-arc-surface/70 px-3 py-3 transition-all duration-200 hover:border-white/30 hover:bg-arc-surface sm:px-5 sm:py-4",
                     "lg:h-[420px] lg:w-[120px] lg:flex-col lg:justify-between lg:gap-0 lg:px-0 lg:py-0 lg:rounded-none",
                     index > 0 && "lg:-mt-px"
                   )}
@@ -143,14 +143,14 @@ export function ArchiveEntrance() {
                   <span className="arc-mono text-arc-muted lg:pt-7 lg:pl-5">{collection.collection}</span>
                   <span
                     className={cn(
-                      "text-[15px] font-semibold tracking-[0.28em] text-arc-text transition-colors group-hover:text-white",
+                      "text-[12px] font-semibold tracking-[0.16em] text-arc-text transition-colors group-hover:text-white sm:text-[15px] sm:tracking-[0.28em]",
                       "lg:[writing-mode:vertical-rl]"
                     )}
                   >
                     {collection.label}
                   </span>
                   <span className="flex items-center gap-3 lg:w-full lg:justify-between lg:px-5 lg:pb-6">
-                    <span className="arc-mono text-arc-muted">{count} REC</span>
+                    <span className="arc-mono text-[9px] text-arc-muted sm:text-[10px]">{count} REC</span>
                     <span className="arc-barcode hidden h-3.5 w-8 opacity-50 lg:block" aria-hidden />
                   </span>
                 </Link>

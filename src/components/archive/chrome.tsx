@@ -38,7 +38,7 @@ export function ArchiveShell({ view, children }: { view: ViewName; children: Rea
     >
       <SmoothScroll />
       <ArchiveHeader view={view} />
-      <main className="flex-1">{children}</main>
+      <main className="min-w-0 flex-1 overflow-x-clip">{children}</main>
       <ArchiveFooter />
       <ArchiveSearch />
     </div>
@@ -68,8 +68,8 @@ function ArchiveHeader({ view }: { view: ViewName }) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-arc-bg/85 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-[1380px] items-center gap-6 px-4 sm:px-8">
-        <Link href={urls.archive()} className="group flex items-center gap-3" aria-label="Matrix Archives entrance">
+      <div className="mx-auto flex h-16 max-w-[1380px] items-center gap-3 px-4 sm:gap-6 sm:px-8">
+        <Link href={urls.archive()} className="group flex shrink-0 items-center gap-2.5 sm:gap-3" aria-label="Matrix Archives entrance">
           <img src="/matrix-mark.svg" width={28} height={28} className="size-7 object-contain" alt="" aria-hidden="true" />
           <span className="flex flex-col leading-none">
             <span className="text-[15px] font-semibold tracking-tight text-arc-text">MATRIX</span>
@@ -98,12 +98,12 @@ function ArchiveHeader({ view }: { view: ViewName }) {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={openSearch}
             aria-label="Search the Archive"
-            className="group hidden h-9 items-center gap-2.5 rounded-[5px] border border-white/10 bg-arc-surface px-3 text-left text-arc-muted transition-colors hover:border-white/25 hover:text-arc-text lg:flex"
+            className="group hidden h-10 items-center gap-2.5 rounded-[5px] border border-white/10 bg-arc-surface px-3 text-left text-arc-muted transition-colors hover:border-white/25 hover:text-arc-text lg:flex"
           >
             <Search className="size-3.5" />
             <span className="text-[13px]">Search the Archive</span>
@@ -113,22 +113,22 @@ function ArchiveHeader({ view }: { view: ViewName }) {
             type="button"
             onClick={openSearch}
             aria-label="Search the Archive"
-            className="flex size-9 items-center justify-center rounded-full border border-white/10 bg-arc-surface text-arc-muted transition-colors hover:border-white/25 hover:text-arc-text lg:hidden"
+            className="flex size-10 items-center justify-center rounded-full border border-white/10 bg-arc-surface text-arc-muted transition-colors hover:border-white/25 hover:text-arc-text lg:hidden"
           >
             <Search className="size-4" />
           </button>
-          <Link
-            href={urls.explore({ step: "market" })}
-            className="arc-mono hidden h-9 items-center rounded-[4px] bg-arc-green px-4 text-black transition-all duration-200 hover:bg-[#2ad695] sm:flex"
+          <a
+            href="https://app.matrix.finance"
+            className="arc-mono flex h-10 items-center rounded-[4px] bg-arc-green px-3 text-[10px] text-black transition-all duration-200 hover:bg-[#2ad695] sm:px-4"
           >
             OPEN MATRIX →
-          </Link>
+          </a>
         </div>
       </div>
 
       {/* Mobile nav row */}
       <nav
-        className="arc-scroll flex items-center gap-1 overflow-x-auto border-t border-white/5 px-4 py-2 md:hidden"
+        className="arc-scroll flex items-center gap-1 overflow-x-auto border-t border-white/5 px-4 py-1.5 md:hidden"
         aria-label="Primary"
       >
         {NAV_ITEMS.map((item) => {
@@ -138,7 +138,7 @@ function ArchiveHeader({ view }: { view: ViewName }) {
               key={item.label}
               href={item.href}
               className={cn(
-                "arc-mono shrink-0 px-2.5 py-1.5 text-[10px] transition-colors",
+                "arc-mono flex h-10 shrink-0 items-center px-2.5 text-[10px] transition-colors",
                 active ? "text-arc-text" : "text-arc-muted hover:text-arc-text"
               )}
             >
@@ -147,12 +147,6 @@ function ArchiveHeader({ view }: { view: ViewName }) {
             </Link>
           )
         })}
-        <Link
-          href={urls.explore({ step: "market" })}
-          className="arc-mono ml-auto shrink-0 rounded-[3px] bg-arc-green px-3 py-1.5 text-[10px] text-black"
-        >
-          OPEN MATRIX →
-        </Link>
       </nav>
     </header>
   )

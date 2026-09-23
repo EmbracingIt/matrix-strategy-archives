@@ -68,7 +68,7 @@ export function ExploreFlow() {
         </div>
 
         {/* Exit the guided flow */}
-        <div className="flex items-center justify-between border-t border-white/10 py-6">
+        <div className="flex flex-col items-start gap-4 border-t border-white/10 py-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="arc-mono text-arc-dim">
             MATRIX ARCHIVE — GUIDED RETRIEVAL
           </p>
