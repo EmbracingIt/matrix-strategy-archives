@@ -30,8 +30,11 @@ const NAV_ITEMS: { label: string; view: ViewName; href: string; match: ViewName[
 export function ArchiveShell({ view, children }: { view: ViewName; children: React.ReactNode }) {
   return (
     <div
-      className="arc-scope flex min-h-screen flex-col bg-arc-bg text-arc-text"
-      style={{ colorScheme: "dark" }}
+      className="arc-scope flex min-h-screen flex-col text-arc-text"
+      style={{
+        colorScheme: "dark",
+        background: "radial-gradient(ellipse 76% 44% at 50% -8%, rgba(47, 229, 140, 0.11), transparent 76%), #080a0d",
+      }}
     >
       <SmoothScroll />
       <ArchiveHeader view={view} />
@@ -67,8 +70,13 @@ function ArchiveHeader({ view }: { view: ViewName }) {
     <header className="sticky top-0 z-40 border-b border-white/10 bg-arc-bg/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-[1380px] items-center gap-6 px-4 sm:px-8">
         <Link href={urls.archive()} className="group flex items-center gap-3" aria-label="Matrix Archives entrance">
-          <span className="flex size-7 items-center justify-center rounded-[6px] border border-white/20 font-mono text-[13px] font-bold text-arc-text transition-colors duration-200 group-hover:border-arc-green group-hover:text-arc-green">
-            M
+          <span className="flex size-7 items-center justify-center overflow-hidden rounded-[6px] border border-white/20 bg-arc-surface transition-colors duration-200 group-hover:border-arc-green">
+            <img
+              src="/matrix-logo.png"
+              alt=""
+              aria-hidden="true"
+              className="h-14 w-14 max-w-none shrink-0 object-contain mix-blend-screen"
+            />
           </span>
           <span className="flex flex-col leading-none">
             <span className="text-[15px] font-semibold tracking-tight text-arc-text">MATRIX</span>
