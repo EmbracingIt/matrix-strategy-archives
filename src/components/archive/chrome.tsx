@@ -70,14 +70,7 @@ function ArchiveHeader({ view }: { view: ViewName }) {
     <header className="sticky top-0 z-40 border-b border-white/10 bg-arc-bg/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-[1380px] items-center gap-6 px-4 sm:px-8">
         <Link href={urls.archive()} className="group flex items-center gap-3" aria-label="Matrix Archives entrance">
-          <span className="flex size-7 items-center justify-center overflow-hidden rounded-[6px] border border-white/20 bg-arc-surface transition-colors duration-200 group-hover:border-arc-green">
-            <img
-              src="/matrix-logo.png"
-              alt=""
-              aria-hidden="true"
-              className="h-14 w-14 max-w-none shrink-0 object-contain mix-blend-screen"
-            />
-          </span>
+          <img src="/matrix-mark.svg" width={28} height={28} className="size-7 object-contain" alt="" aria-hidden="true" />
           <span className="flex flex-col leading-none">
             <span className="text-[15px] font-semibold tracking-tight text-arc-text">MATRIX</span>
             <span className="arc-mono mt-1 hidden text-[9px] text-arc-dim sm:block">ARCHIVES</span>
@@ -171,7 +164,7 @@ function ArchiveFooter() {
       <div className="mx-auto flex max-w-[1380px] flex-col gap-5 px-4 py-8 sm:px-8 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <span className="arc-barcode h-4 w-16 opacity-60" aria-hidden />
+            <img src="/matrix-mark.svg" width={28} height={18} className="h-4 w-7 object-contain" alt="" aria-hidden="true" />
             <span className="arc-mono text-arc-muted">MATRIX / STRATEGY ARCHIVES</span>
           </div>
           <p className="max-w-sm text-[13px] leading-relaxed text-arc-dim">

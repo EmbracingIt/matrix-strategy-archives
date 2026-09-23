@@ -23,6 +23,14 @@ export const metadata: Metadata = {
     "A structured, curated archive of DeFi strategies covering lending, staking, liquidity provision, delta-neutral and portfolio strategies — searchable by market regime, assets, protocols, risk and requirements.",
   keywords: ["DeFi", "strategies", "Matrix Finance", "liquidity provision", "staking", "lending"],
   authors: [{ name: "Matrix Finance" }],
+  icons: { icon: "/matrix-mark.svg", apple: "/apple-icon.png" },
+  openGraph: {
+    images: ["https://strategies.matrix.finance/og-image.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["https://strategies.matrix.finance/og-image.png"],
+  },
 };
 
 export default function RootLayout({

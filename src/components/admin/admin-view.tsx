@@ -46,9 +46,7 @@ export function AdminView({
       <header className="sticky top-0 z-40 h-14 shrink-0 border-b border-gray-200 bg-white">
         <div className="flex h-full items-center gap-3 px-4 sm:px-6">
           <Link href={urls.admin()} className="flex items-center gap-2.5">
-            <span className="flex size-6 items-center justify-center rounded-[5px] bg-gray-900 font-mono text-[11px] font-bold text-white">
-              M
-            </span>
+            <img src="/matrix-mark.svg" width={24} height={24} className="size-6 object-contain" alt="" aria-hidden="true" />
             <span className="text-[15px] font-semibold tracking-tight text-gray-900">MATRIX</span>
             <span className="mono-label hidden text-gray-400 sm:inline">/ ADMIN</span>
           </Link>
