@@ -1,21 +1,21 @@
-"use client"
+"use client";
 
-import { useMemo, useState } from "react"
-import { useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { ArrowUpRight, Pencil, Plus, Search } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Textarea } from "@/components/ui/textarea"
+import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { ArrowUpRight, Pencil, Plus, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -23,91 +23,111 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { ProtocolIcon } from "@/components/shared/icons"
-import { Skeleton } from "@/components/ui/skeleton"
-import { useProtocols } from "@/hooks/use-strategy-data"
-import { api } from "@/lib/api-client"
-import { slugify } from "@/lib/strategy-form-utils"
-import type { ProtocolDTO } from "@/lib/types"
+} from "@/components/ui/table";
+import { ProtocolIcon } from "@/components/shared/icons";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useProtocols } from "@/hooks/use-strategy-data";
+import { api } from "@/lib/api-client";
+import { slugify } from "@/lib/strategy-form-utils";
+import type { ProtocolDTO } from "@/lib/types";
+import { protocolReviewSchema } from "@/lib/education";
 
 interface ProtocolForm {
-  name: string
-  slug: string
-  website: string
-  description: string
-  iconUrl: string
-  active: boolean
+  reviewJson: string;
+  name: string;
+  slug: string;
+  website: string;
+  description: string;
+  iconUrl: string;
+  active: boolean;
 }
 
-const EMPTY: ProtocolForm = { name: "", slug: "", website: "", description: "", iconUrl: "", active: true }
+const EMPTY: ProtocolForm = {
+  reviewJson: "null",
+  name: "",
+  slug: "",
+  website: "",
+  description: "",
+  iconUrl: "",
+  active: true,
+};
 
 /** Admin protocol registry. */
 export function ProtocolManager() {
-  const queryClient = useQueryClient()
-  const { data: protocols, isLoading } = useProtocols()
-  const [search, setSearch] = useState("")
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editing, setEditing] = useState<ProtocolDTO | null>(null)
-  const [form, setForm] = useState<ProtocolForm>(EMPTY)
-  const [saving, setSaving] = useState(false)
+  const queryClient = useQueryClient();
+  const { data: protocols, isLoading } = useProtocols();
+  const [search, setSearch] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<ProtocolDTO | null>(null);
+  const [form, setForm] = useState<ProtocolForm>(EMPTY);
+  const [saving, setSaving] = useState(false);
 
   const list = useMemo(() => {
-    const q = search.trim().toLowerCase()
+    const q = search.trim().toLowerCase();
     return (protocols ?? []).filter(
-      (p) => !q || p.name.toLowerCase().includes(q) || p.slug.includes(q)
-    )
-  }, [protocols, search])
+      (p) => !q || p.name.toLowerCase().includes(q) || p.slug.includes(q),
+    );
+  }, [protocols, search]);
 
   const openCreate = () => {
-    setEditing(null)
-    setForm(EMPTY)
-    setDialogOpen(true)
-  }
+    setEditing(null);
+    setForm(EMPTY);
+    setDialogOpen(true);
+  };
 
   const openEdit = (protocol: ProtocolDTO) => {
-    setEditing(protocol)
+    setEditing(protocol);
     setForm({
+      reviewJson: JSON.stringify(protocol.review ?? null, null, 2),
       name: protocol.name,
       slug: protocol.slug,
       website: protocol.website ?? "",
       description: protocol.description ?? "",
       iconUrl: protocol.iconUrl ?? "",
       active: protocol.active,
-    })
-    setDialogOpen(true)
-  }
+    });
+    setDialogOpen(true);
+  };
 
   const submit = async () => {
-    if (!form.name.trim()) {
-      toast.error("Name is required.")
-      return
+    let review;
+    try {
+      const raw = JSON.parse(form.reviewJson);
+      review = raw === null ? null : protocolReviewSchema.parse(raw);
+    } catch {
+      toast.error("Review metadata must match the reviewed protocol schema.");
+      return;
     }
-    setSaving(true)
+    if (!form.name.trim()) {
+      toast.error("Name is required.");
+      return;
+    }
+    setSaving(true);
     const payload = {
+      review,
       name: form.name.trim(),
       slug: form.slug.trim() || slugify(form.name),
       website: form.website.trim() || null,
       description: form.description.trim() || null,
       iconUrl: form.iconUrl.trim() || null,
       active: form.active,
-    }
+    };
     try {
       if (editing) {
-        await api.updateProtocol(editing.id, payload)
-        toast.success(`${payload.name} updated.`)
+        await api.updateProtocol(editing.id, payload);
+        toast.success(`${payload.name} updated.`);
       } else {
-        await api.createProtocol(payload)
-        toast.success(`${payload.name} added.`)
+        await api.createProtocol(payload);
+        toast.success(`${payload.name} added.`);
       }
-      await queryClient.invalidateQueries({ queryKey: ["protocols"] })
-      setDialogOpen(false)
+      await queryClient.invalidateQueries({ queryKey: ["protocols"] });
+      setDialogOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Save failed")
+      toast.error(error instanceof Error ? error.message : "Save failed");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const toggleActive = async (protocol: ProtocolDTO) => {
     try {
@@ -118,21 +138,26 @@ export function ProtocolManager() {
         description: protocol.description,
         iconUrl: protocol.iconUrl,
         active: !protocol.active,
-      })
-      await queryClient.invalidateQueries({ queryKey: ["protocols"] })
-      toast.success(`${protocol.name} ${protocol.active ? "deactivated" : "activated"}.`)
+      });
+      await queryClient.invalidateQueries({ queryKey: ["protocols"] });
+      toast.success(
+        `${protocol.name} ${protocol.active ? "deactivated" : "activated"}.`,
+      );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Update failed")
+      toast.error(error instanceof Error ? error.message : "Update failed");
     }
-  }
+  };
 
   return (
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">Protocols</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
+            Protocols
+          </h1>
           <p className="mono-label mt-1.5 text-gray-400">
-            <span className="text-gray-900">{protocols?.length ?? "—"}</span> PROTOCOLS INDEXED
+            <span className="text-gray-900">{protocols?.length ?? "—"}</span>{" "}
+            PROTOCOLS INDEXED
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -168,8 +193,12 @@ export function ProtocolManager() {
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead>PROTOCOL</TableHead>
-                  <TableHead className="hidden lg:table-cell">DESCRIPTION</TableHead>
-                  <TableHead className="hidden md:table-cell">WEBSITE</TableHead>
+                  <TableHead className="hidden lg:table-cell">
+                    DESCRIPTION
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell">
+                    WEBSITE
+                  </TableHead>
                   <TableHead>STRATEGIES</TableHead>
                   <TableHead>ACTIVE</TableHead>
                   <TableHead className="w-10 text-right" aria-label="Actions" />
@@ -180,10 +209,18 @@ export function ProtocolManager() {
                   <TableRow key={p.id}>
                     <TableCell>
                       <div className="flex items-center gap-2.5">
-                        <ProtocolIcon name={p.name} iconUrl={p.iconUrl} size={26} />
+                        <ProtocolIcon
+                          name={p.name}
+                          iconUrl={p.iconUrl}
+                          size={26}
+                        />
                         <div>
-                          <div className="text-sm font-semibold text-gray-900">{p.name}</div>
-                          <div className="font-mono text-[11px] text-gray-400">/{p.slug}</div>
+                          <div className="text-sm font-semibold text-gray-900">
+                            {p.name}
+                          </div>
+                          <div className="font-mono text-[11px] text-gray-400">
+                            /{p.slug}
+                          </div>
                         </div>
                       </div>
                     </TableCell>
@@ -208,7 +245,9 @@ export function ProtocolManager() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="font-mono text-xs text-gray-500">{p.strategyCount ?? 0}</span>
+                      <span className="font-mono text-xs text-gray-500">
+                        {p.strategyCount ?? 0}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <Switch
@@ -231,7 +270,10 @@ export function ProtocolManager() {
                 ))}
                 {list.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-10 text-center text-sm text-gray-400">
+                    <TableCell
+                      colSpan={6}
+                      className="py-10 text-center text-sm text-gray-400"
+                    >
                       No protocols match.
                     </TableCell>
                   </TableRow>
@@ -246,7 +288,9 @@ export function ProtocolManager() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? `Edit ${editing.name}` : "Create protocol"}</DialogTitle>
+            <DialogTitle>
+              {editing ? `Edit ${editing.name}` : "Create protocol"}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid grid-cols-2 gap-4">
@@ -296,7 +340,9 @@ export function ProtocolManager() {
               </Label>
               <Textarea
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
                 placeholder="Short description shown on protocol cards…"
                 rows={3}
                 className="text-sm"
@@ -304,7 +350,10 @@ export function ProtocolManager() {
             </div>
             <div className="space-y-1.5">
               <Label className="font-mono text-[10px] uppercase tracking-[0.14em] text-gray-500">
-                ICON URL <span className="text-gray-300">(optional — monogram fallback)</span>
+                ICON URL{" "}
+                <span className="text-gray-300">
+                  (optional — monogram fallback)
+                </span>
               </Label>
               <Input
                 value={form.iconUrl}
@@ -313,19 +362,46 @@ export function ProtocolManager() {
                 className="h-9 font-mono text-xs"
               />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="protocol-review">
+                Product review metadata (JSON)
+              </Label>
+              <p className="text-xs text-gray-500">
+                Categories, products/networks, evidence, date, review status and
+                unresolved questions. Only reviewed entries are public.
+              </p>
+              <Textarea
+                id="protocol-review"
+                value={form.reviewJson}
+                onChange={(e) =>
+                  setForm({ ...form, reviewJson: e.target.value })
+                }
+                rows={12}
+                className="font-mono text-xs"
+              />
+            </div>
             <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
               <div>
                 <div className="text-sm font-medium text-gray-900">Active</div>
-                <div className="text-xs text-gray-400">Inactive protocols are hidden from new selections.</div>
+                <div className="text-xs text-gray-400">
+                  Inactive protocols are hidden from new selections.
+                </div>
               </div>
               <Switch
                 checked={form.active}
-                onCheckedChange={(checked) => setForm({ ...form, active: checked })}
+                onCheckedChange={(checked) =>
+                  setForm({ ...form, active: checked })
+                }
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" className="h-8" onClick={() => setDialogOpen(false)}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={() => setDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -340,5 +416,5 @@ export function ProtocolManager() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

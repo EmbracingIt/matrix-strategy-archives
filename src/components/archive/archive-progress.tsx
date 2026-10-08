@@ -7,7 +7,7 @@ import type { ArchiveQuery } from "@/lib/matching"
 import { cn } from "@/lib/utils"
 
 /**
- * Archive retrieval progress — MARKET → MARKET PHASE → ASSETS → OBJECTIVE →
+ * Archive retrieval progress — MARKET → MARKET PHASE →
  * RESULTS. Completed stages link back into the flow (edit search) and carry a
  * subtle completion mark; the current stage carries the catalogue cursor.
  * This is the "walking deeper" cue. Horizontally scrollable on mobile.
@@ -16,8 +16,6 @@ import { cn } from "@/lib/utils"
 const STAGES = [
   { key: "market", label: "MARKET", step: "market" },
   { key: "phase", label: "MARKET PHASE", step: "phase" },
-  { key: "assets", label: "ASSETS", step: "assets" },
-  { key: "objective", label: "OBJECTIVE", step: "objective" },
   { key: "results", label: "RESULTS", step: null },
 ] as const
 
@@ -26,9 +24,7 @@ type StageKey = (typeof STAGES)[number]["key"]
 const STAGE_ORDER: Record<StageKey, number> = {
   market: 0,
   phase: 1,
-  assets: 2,
-  objective: 3,
-  results: 4,
+  results: 2,
 }
 
 export function ArchiveProgress({
@@ -51,15 +47,11 @@ export function ArchiveProgress({
               ? urls.results({
                   market: query.market,
                   phase: query.secondaryRegime,
-                  assets: query.assets,
-                  objective: query.objective,
                 })
               : urls.explore({
                   step: stage.step,
                   market: query.market,
                   phase: query.secondaryRegime,
-                  assets: query.assets,
-                  objective: query.objective,
                 })
 
           return (

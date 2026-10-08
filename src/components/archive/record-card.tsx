@@ -6,6 +6,7 @@ import { urls } from "@/lib/nav"
 import { objectiveLabels } from "@/lib/strategyObjectives"
 import { ArcAssetIcon, ArcIconStack, ArcNetworkIcon, ArcProtocolIcon } from "@/components/archive/archive-icons"
 import { useCompare } from "@/store/ui-store"
+import { WhyItMatches } from "@/components/archive/archive-match"
 import { cn } from "@/lib/utils"
 import type { MatchedRecord } from "@/lib/matching"
 import type { StrategyDTO } from "@/lib/types"
@@ -14,8 +15,8 @@ import type { StrategyDTO } from "@/lib/types"
  * A strategy rendered as an archive record — digital catalogue entry, not
  * an ecommerce card. Clear hierarchy: the strategy NAME dominates (serif),
  * a single classification line supports it, circular composition marks sit
- * in one quiet row, and the match score reads as text rather than a boxy
- * chip. Used in retrieval results and the Browse All grid.
+ * in one quiet row. Retrieval results include plain-language matching
+ * context; the Browse All grid keeps its original presentation.
  *
  * The whole card opens the record via a stretched link; the COMPARE control
  * sits above it (relative z-20) so marking a record never navigates.
@@ -79,19 +80,6 @@ export function RecordCard({
       {/* Record header */}
       <div className="flex items-start justify-between gap-3">
         <span className="arc-mono text-arc-dim">{strategy.strategyId}</span>
-        {matched && (
-          <span className="flex items-baseline gap-1.5">
-            <span className="arc-mono text-arc-dim">ARCHIVE MATCH</span>
-            <span
-              className={cn(
-                "font-mono text-[15px] font-medium tabular-nums",
-                matched.score >= 75 ? "text-arc-green" : "text-arc-text"
-              )}
-            >
-              {matched.score}%
-            </span>
-          </span>
-        )}
       </div>
 
       <h3 className="mt-3 font-sans text-[21px] font-semibold leading-snug tracking-[-0.01em] text-arc-text transition-colors duration-200 group-hover:text-white">
@@ -139,6 +127,7 @@ export function RecordCard({
       <p className="mt-4 line-clamp-2 text-[13.5px] leading-relaxed text-arc-muted">
         {strategy.summary}
       </p>
+      {matched && <WhyItMatches record={matched} className="mt-4 mb-5" />}
 
       {/* Classification footer */}
       <div className="mt-auto pt-5">

@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useSearchParams } from "next/navigation"
-import { ArrowRight, X } from "lucide-react"
-import { useStrategies } from "@/hooks/use-strategy-data"
-import { urls } from "@/lib/nav"
-import { COMPARE_LIMIT, useCompare } from "@/store/ui-store"
-import { ArcAssetIcon } from "@/components/archive/archive-icons"
-import { cn } from "@/lib/utils"
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { ArrowRight, X } from "lucide-react";
+import { useStrategies } from "@/hooks/use-strategy-data";
+import { urls } from "@/lib/nav";
+import { COMPARE_LIMIT, useCompare } from "@/store/ui-store";
+import { ArcAssetIcon } from "@/components/archive/archive-icons";
+import { cn } from "@/lib/utils";
 
 /**
  * COMPARISON TRAY — the pull-out shelf at the bottom of the Archive. Records
@@ -16,18 +16,29 @@ import { cn } from "@/lib/utils"
  * public view shares it; hides itself on the comparison view itself.
  */
 export function CompareTray() {
-  const params = useSearchParams()
-  const view = params.get("view") ?? "archive"
-  const { compareSlugs, removeCompare, clearCompare } = useCompare()
-  const { data: strategies = [] } = useStrategies()
+  const params = useSearchParams();
+  const view = params.get("view") ?? "archive";
+  const { compareSlugs, removeCompare, clearCompare } = useCompare();
+  const { data: strategies = [] } = useStrategies();
 
-  if (compareSlugs.length === 0 || view === "compare" || view === "admin") return null
+  if (compareSlugs.length === 0 || view === "compare" || view === "admin")
+    return null;
 
-  const selected = compareSlugs
-    .map((slug) => strategies.find((s) => s.slug === slug))
-    .filter((s): s is (typeof strategies)[number] => Boolean(s))
+  const selected = [
+    ...new Map(
+      compareSlugs
+        .map((slug) =>
+          strategies.find(
+            (s) => s.slug === slug || s.legacyAliases?.includes(slug),
+          ),
+        )
+        .filter((s): s is (typeof strategies)[number] => Boolean(s))
+        .map((s) => [s.id, s]),
+    ).values(),
+  ];
+  if (!selected.length) return null;
 
-  const ready = selected.length >= 2
+  const ready = selected.length >= 2;
 
   return (
     <div
@@ -41,7 +52,9 @@ export function CompareTray() {
           <span className="size-1.5 rounded-full bg-arc-green" aria-hidden />
           COMPARISON
         </span>
-        <span className="arc-mono shrink-0 text-[10px] text-arc-dim sm:hidden">COMPARE</span>
+        <span className="arc-mono shrink-0 text-[10px] text-arc-dim sm:hidden">
+          COMPARE
+        </span>
 
         {/* Selected records as chips */}
         <ul className="arc-scroll flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
@@ -49,9 +62,19 @@ export function CompareTray() {
             <li key={strategy.slug} className="shrink-0">
               <span className="flex items-center gap-2 rounded-full border border-white/12 bg-arc-surface py-1 pl-1 pr-2">
                 <ArcAssetIcon
-                  symbol={strategy.depositAssets[0]?.symbol ?? strategy.exposureAssets[0]?.symbol ?? "?"}
-                  category={strategy.depositAssets[0]?.category ?? strategy.exposureAssets[0]?.category}
-                  iconUrl={strategy.depositAssets[0]?.iconUrl ?? strategy.exposureAssets[0]?.iconUrl}
+                  symbol={
+                    strategy.depositAssets[0]?.symbol ??
+                    strategy.exposureAssets[0]?.symbol ??
+                    "?"
+                  }
+                  category={
+                    strategy.depositAssets[0]?.category ??
+                    strategy.exposureAssets[0]?.category
+                  }
+                  iconUrl={
+                    strategy.depositAssets[0]?.iconUrl ??
+                    strategy.exposureAssets[0]?.iconUrl
+                  }
                   size={22}
                 />
                 <span className="max-w-[150px] truncate text-[12.5px] font-medium text-arc-text">
@@ -59,9 +82,17 @@ export function CompareTray() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => removeCompare(strategy.slug)}
+                  onClick={() =>
+                    compareSlugs
+                      .filter(
+                        (slug) =>
+                          slug === strategy.slug ||
+                          strategy.legacyAliases?.includes(slug),
+                      )
+                      .forEach(removeCompare)
+                  }
                   aria-label={`Remove ${strategy.name} from comparison`}
-                  className="flex size-4.5 items-center justify-center rounded-full text-arc-dim transition-colors hover:text-arc-red"
+                  className="flex size-11 items-center justify-center rounded-full text-arc-dim transition-colors hover:text-arc-red"
                 >
                   <X className="size-3" aria-hidden />
                 </button>
@@ -79,24 +110,29 @@ export function CompareTray() {
           <button
             type="button"
             onClick={clearCompare}
-            className="arc-mono px-2 py-2 text-[10px] text-arc-dim transition-colors hover:text-arc-red"
+            className="arc-mono min-h-11 px-2 py-2 text-[10px] text-arc-dim transition-colors hover:text-arc-red"
           >
             CLEAR
           </button>
           {ready ? (
             <Link
-              href={urls.compare(compareSlugs)}
-              className="group flex h-10 items-center gap-2.5 rounded-[4px] bg-arc-green px-5 text-black transition-colors duration-200 hover:bg-[#2ad695]"
+              href={urls.compare(selected.map((s) => s.slug))}
+              className="group flex min-h-11 items-center gap-2.5 rounded-[4px] bg-arc-green px-5 text-black transition-colors duration-200 hover:bg-[#2ad695]"
               aria-label={`Compare ${selected.length} records side by side`}
             >
-              <span className="arc-mono text-[11px]">COMPARE {selected.length}</span>
-              <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-1" aria-hidden />
+              <span className="arc-mono text-[11px]">
+                COMPARE {selected.length}
+              </span>
+              <ArrowRight
+                className="size-3.5 transition-transform duration-200 group-hover:translate-x-1"
+                aria-hidden
+              />
             </Link>
           ) : (
             <span
               className={cn(
                 "arc-mono flex h-10 items-center rounded-[4px] border border-white/10 px-5 text-[11px]",
-                "cursor-not-allowed text-arc-dim"
+                "cursor-not-allowed text-arc-dim",
               )}
               aria-disabled="true"
             >
@@ -106,5 +142,5 @@ export function CompareTray() {
         </div>
       </div>
     </div>
-  )
+  );
 }

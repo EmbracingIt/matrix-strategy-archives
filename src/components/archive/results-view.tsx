@@ -6,7 +6,6 @@ import { X } from "lucide-react"
 import { useStrategies } from "@/hooks/use-strategy-data"
 import { matchStrategies } from "@/lib/matching"
 import { archiveQueryToParams, parseArchiveQuery, urls } from "@/lib/nav"
-import { OBJECTIVE_MAP } from "@/lib/strategyObjectives"
 import { secondaryRegimeDef } from "@/lib/secondary-regimes"
 import { ArchiveError, ArchiveSkeleton } from "@/components/archive/archive-bits"
 import { ArchiveProgress } from "@/components/archive/archive-progress"
@@ -15,9 +14,9 @@ import { RecordCard } from "@/components/archive/record-card"
 import { cn } from "@/lib/utils"
 
 /**
- * PAGE — RESULTS (guided step 05).
+ * PAGE — RESULTS (guided step 03).
  * "You have reached this section of the Archive." The retrieval path is an
- * elegant archival breadcrumb (MARKET / PHASE / ASSETS / OBJECTIVE) where
+ * elegant archival breadcrumb (MARKET / PHASE) where
  * every crumb can be edited (click) or removed (×) — state lives in the URL
  * so refresh and back navigation always preserve the real selections.
  */
@@ -29,8 +28,6 @@ export function ResultsView() {
 
   // Primitive keys so downstream comparisons stay simple across renders.
   const market = query.market
-  const objective = query.objective
-  const assetKey = query.assets.join(",")
   const phase = query.secondaryRegime
 
   // Deterministic retrieval — the engine lives in lib/matching.ts. The
@@ -39,8 +36,8 @@ export function ResultsView() {
   const results = strategies.length
     ? matchStrategies(strategies, {
         market,
-        assets: assetKey ? assetKey.split(",") : [],
-        objective,
+        assets: [],
+        objective: "all",
         secondaryRegime: phase,
       })
     : []
@@ -48,20 +45,14 @@ export function ResultsView() {
   const updateQuery = (next: {
     market?: string
     removePhase?: boolean
-    removeAsset?: string
-    objective?: string
   }) => {
     const nextMarket = next.market ?? query.market
     const nextPhase = next.removePhase ? undefined : query.secondaryRegime
-    const nextAssets = next.removeAsset
-      ? query.assets.filter((a) => a.toLowerCase() !== next.removeAsset!.toLowerCase())
-      : query.assets
-    const nextObjective = next.objective ?? query.objective
     const search = new URLSearchParams({ view: "results" })
     const p = archiveQueryToParams({
       market: nextMarket as typeof query.market,
-      assets: nextAssets,
-      objective: nextObjective as typeof query.objective,
+      assets: [],
+      objective: "all",
       secondaryRegime: nextPhase,
     })
     for (const [key, value] of Object.entries(p)) search.set(key, value)
@@ -85,8 +76,6 @@ export function ResultsView() {
   const editLinks = [
     { label: "EDIT MARKET", href: urls.explore({ step: "market", ...flow }) },
     { label: "EDIT PHASE", href: urls.explore({ step: "phase", ...flow }) },
-    { label: "EDIT ASSETS", href: urls.explore({ step: "assets", ...flow }) },
-    { label: "EDIT OBJECTIVE", href: urls.explore({ step: "objective", ...flow }) },
   ]
 
   return (
@@ -110,34 +99,6 @@ export function ResultsView() {
               label={phaseDefinition ? phaseDefinition.label.toUpperCase() : "ALL PHASES"}
               href={urls.explore({ step: "phase", ...flow })}
               onRemove={phase ? () => updateQuery({ removePhase: true }) : undefined}
-            />
-            <CrumbDivider />
-            {query.assets.length > 0 ? (
-              query.assets.map((symbol, index) => (
-                <span key={symbol} className="flex items-center gap-x-1">
-                  {index > 0 && <span className="arc-mono text-arc-dim">+</span>}
-                  <PathCrumb
-                    label={symbol.toUpperCase()}
-                    href={urls.explore({ step: "assets", ...flow })}
-                    onRemove={() => updateQuery({ removeAsset: symbol })}
-                  />
-                </span>
-              ))
-            ) : (
-              <PathCrumb
-                label="ALL ASSETS"
-                href={urls.explore({ step: "assets", ...flow })}
-              />
-            )}
-            <CrumbDivider />
-            <PathCrumb
-              label={
-                query.objective === "all"
-                  ? "ALL OBJECTIVES"
-                  : (OBJECTIVE_MAP[query.objective]?.label ?? query.objective).toUpperCase()
-              }
-              href={urls.explore({ step: "objective", ...flow })}
-              onRemove={query.objective === "all" ? undefined : () => updateQuery({ objective: "all" })}
             />
           </div>
 
@@ -229,8 +190,6 @@ function queryToFlow(query: ReturnType<typeof parseArchiveQuery>) {
   return {
     market: query.market,
     phase: query.secondaryRegime,
-    assets: query.assets,
-    objective: query.objective,
   }
 }
 

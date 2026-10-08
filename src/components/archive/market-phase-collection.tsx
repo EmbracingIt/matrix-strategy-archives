@@ -43,26 +43,25 @@ export function MarketPhaseCollection({ query }: { query: ArchiveQuery }) {
 
   const market = query.market
   const phases = useMemo(() => secondaryRegimesForMarket(market), [market])
+  const collection = strategies.filter(s => market === "all" || s.marketFit.regimes.includes(market.toUpperCase() as "BULL" | "SIDEWAYS" | "BEAR"))
 
   const phaseCounts = useMemo(() => {
     const counts = new Map<string, number>()
     for (const strategy of strategies) {
+      if (market !== "all" && !strategy.marketFit.regimes.includes(market.toUpperCase() as "BULL" | "SIDEWAYS" | "BEAR")) continue
       for (const value of strategy.marketFit?.secondaryRegimes ?? []) {
         counts.set(value, (counts.get(value) ?? 0) + 1)
       }
     }
     return counts
-  }, [strategies])
+  }, [strategies, market])
 
-  /** Walk deeper into a specific phase — single selection, straight to assets. */
+  /** Retrieve the selected phase directly. */
   const enterPhase = (slug: string) => {
     router.push(
-      urls.explore({
-        step: "assets",
+      urls.results({
         market,
         phase: slug,
-        assets: query.assets,
-        objective: query.objective,
       })
     )
   }
@@ -70,11 +69,8 @@ export function MarketPhaseCollection({ query }: { query: ArchiveQuery }) {
   /** Keep the whole collection — no phase constraint. */
   const enterAllPhases = () => {
     router.push(
-      urls.explore({
-        step: "assets",
+      urls.results({
         market,
-        assets: query.assets,
-        objective: query.objective,
       })
     )
   }
@@ -136,7 +132,7 @@ export function MarketPhaseCollection({ query }: { query: ArchiveQuery }) {
                 </span>
               </span>
               <span className="flex shrink-0 items-center gap-6">
-                <span className="arc-mono text-arc-dim">{strategies.length} RECORDS</span>
+                <span className="arc-mono text-arc-dim">{collection.length} RECORDS</span>
                 <ArrowRight
                   className="size-5 -translate-x-1 text-arc-dim opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:text-arc-text group-hover:opacity-100"
                   aria-hidden

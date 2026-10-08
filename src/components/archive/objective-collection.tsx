@@ -8,6 +8,7 @@ import { urls, type ArchiveQuery } from "@/lib/nav"
 import { objectivesForStrategy, OBJECTIVES, type ObjectiveKey } from "@/lib/strategyObjectives"
 import { ArchiveError, ArchiveSkeleton } from "@/components/archive/archive-bits"
 import { cn } from "@/lib/utils"
+import { passesArchiveFilter } from "@/lib/matching"
 
 /**
  * PAGE 4 — OBJECTIVE.
@@ -19,17 +20,19 @@ import { cn } from "@/lib/utils"
 export function ObjectiveCollection({ query }: { query: ArchiveQuery }) {
   const router = useRouter()
   const { data: strategies = [], isLoading, isError, refetch } = useStrategies()
+  const collection = strategies.filter(strategy => passesArchiveFilter(strategy, { ...query, objective: "all" }))
 
   const counts = useMemo(() => {
     const map = new Map<ObjectiveKey, number>()
     for (const objective of OBJECTIVES) map.set(objective.key, 0)
     for (const strategy of strategies) {
+      if (!passesArchiveFilter(strategy, { ...query, objective: "all" })) continue
       for (const key of objectivesForStrategy(strategy)) {
         map.set(key, (map.get(key) ?? 0) + 1)
       }
     }
     return map
-  }, [strategies])
+  }, [strategies, query])
 
   const retrieve = (objective: ObjectiveKey | "all") => {
     router.push(
@@ -101,7 +104,7 @@ export function ObjectiveCollection({ query }: { query: ArchiveQuery }) {
               </span>
             </span>
             <span className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-8">
-              <span className="arc-mono text-arc-dim">{strategies.length} RECORDS</span>
+              <span className="arc-mono text-arc-dim">{collection.length} RECORDS</span>
               <ArrowRight
                 className="size-5 -translate-x-1 text-arc-dim opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:text-arc-text group-hover:opacity-100"
                 aria-hidden

@@ -1,97 +1,49 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { ArrowUpRight } from "lucide-react"
-import { useProtocols } from "@/hooks/use-strategy-data"
+import { useState } from "react"
+import Link from "next/link"
+import { useProtocols, useStrategies } from "@/hooks/use-strategy-data"
 import { ArcProtocolIcon } from "@/components/archive/archive-icons"
 import { ArchiveSkeleton } from "@/components/archive/archive-bits"
+import { RegistryHeading } from "@/components/archive/foundations"
 import { urls } from "@/lib/nav"
 
-/**
- * PROTOCOLS — the protocol registry of the archive. Selecting an entry
- * retrieves every record that references it (deep link into Browse All).
- */
 export function ProtocolBrowser() {
-  const router = useRouter()
-  const { data: protocols = [], isLoading } = useProtocols()
-  const list = protocols.filter((p) => p.active)
-
-  return (
-    <div className="mx-auto max-w-[1380px] px-4 sm:px-8">
-      <header className="border-b border-white/10 py-10 sm:py-12">
-        <p className="arc-mono text-arc-green">PROTOCOL REGISTRY</p>
-        <h1 className="mt-4 font-sans text-[clamp(2.1rem,4.5vw,3.4rem)] font-semibold leading-[1.04] tracking-[-0.01em] text-arc-text">
-          Protocols<span className="text-arc-green">.</span>
-        </h1>
-        <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-arc-muted">
-          The DeFi protocols referenced across the archive. Select an entry to retrieve
-          the records built on it.
-        </p>
-        <p className="arc-mono mt-6 text-arc-dim">{list.length} PROTOCOLS INDEXED</p>
-      </header>
-
-      <div className="py-10">
-        {isLoading ? (
-          <ArchiveSkeleton rows={3} />
-        ) : list.length === 0 ? (
-          <p className="py-16 text-center text-[14px] text-arc-muted">No protocols indexed yet.</p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {list.map((protocol) => (
-              <button
-                key={protocol.id}
-                type="button"
-                onClick={() => router.push(`/?view=all&protocol=${protocol.id}`)}
-                className="group relative flex flex-col overflow-hidden rounded-[6px] border border-white/[0.08] bg-arc-surface/50 p-5 text-left transition-all duration-200 hover:border-white/25 hover:bg-arc-surface sm:p-6"
-              >
-                <span
-                  className="absolute left-0 top-1/2 h-10 w-[2px] -translate-y-1/2 rounded-r-full bg-arc-green/70 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                  aria-hidden
-                />
-                <div className="flex items-center gap-3.5">
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-full transition-transform duration-200 group-hover:scale-105">
-                    <ArcProtocolIcon name={protocol.name} iconUrl={protocol.iconUrl} size={36} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-[16px] font-semibold tracking-tight text-arc-text">
-                      {protocol.name}
-                    </h3>
-                    <p className="arc-mono mt-1 text-[9px] text-arc-dim">
-                      {protocol.slug.toUpperCase()}
-                    </p>
-                  </div>
-                  {protocol.website && (
-                    <a
-                      href={protocol.website}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={(event) => event.stopPropagation()}
-                      className="flex size-8 items-center justify-center rounded-full border border-white/10 text-arc-dim transition-colors hover:border-arc-green/50 hover:text-arc-green"
-                      aria-label={`${protocol.name} website`}
-                    >
-                      <ArrowUpRight className="size-3.5" aria-hidden />
-                    </a>
-                  )}
-                </div>
-
-                {protocol.description && (
-                  <p className="mt-4 line-clamp-2 text-[13px] leading-relaxed text-arc-muted">
-                    {protocol.description}
-                  </p>
-                )}
-
-                <div className="arc-mono mt-auto flex items-center gap-1.5 border-t border-white/[0.07] pt-4 text-arc-muted">
-                  <span className="tabular-nums text-arc-text">{protocol.strategyCount ?? 0}</span>
-                  RECORD{(protocol.strategyCount ?? 0) === 1 ? "" : "S"}
-                  <span className="ml-auto text-arc-dim transition-colors group-hover:text-arc-green">
-                    RETRIEVE →
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+  const [open, setOpen] = useState("")
+  const { data: protocols = [], isLoading, isError, refetch } = useProtocols()
+  const { data: strategies = [] } = useStrategies()
+  const list = protocols.filter(p => p.active && p.review?.status === "reviewed")
+  const categories = [...new Set(list.flatMap(p => p.review!.categories))]
+  return <div className="mx-auto max-w-[1380px] px-4 sm:px-8">
+    <RegistryHeading label="PROTOCOL REGISTRY" title="Protocols" description="Explore protocols by what they do. Open an entry for its products, supported networks, requirements and review scope. Inclusion is not a guarantee of safety." />
+    <div className="space-y-10 py-10">
+      {isLoading && <ArchiveSkeleton rows={2} />}
+      {isError && <div role="alert" className="border border-white/10 p-5 text-arc-muted"><p>The protocol directory could not load.</p><button className="arc-mono mt-4 min-h-11 text-arc-green" onClick={() => refetch()}>TRY AGAIN →</button></div>}
+      {categories.map(category => {
+        const entries = list.filter(p => p.review!.categories.includes(category))
+        const selected = entries.find(p => open === `${category}:${p.id}`)
+        return <section key={category} aria-label={category}>
+          <div className="mb-4 flex items-center gap-4"><h2 className="arc-mono text-arc-muted">{category.toUpperCase()}</h2><span className="h-px flex-1 bg-white/10" aria-hidden /><span className="arc-mono text-arc-dim">{entries.length}</span></div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{entries.map(protocol => {
+            const key = `${category}:${protocol.id}`
+            return <button key={protocol.id} type="button" aria-expanded={open === key} aria-controls={open === key ? `protocol-${protocol.id}` : undefined} onClick={() => setOpen(open === key ? "" : key)} className={`group relative flex min-h-20 min-w-0 items-center gap-3.5 rounded-[6px] border bg-arc-surface/50 px-4 py-4 text-left transition-colors hover:border-white/25 hover:bg-arc-surface ${open === key ? "border-arc-green/50" : "border-white/[0.08]"}`}>
+              <span className="flex size-10 shrink-0 items-center justify-center"><ArcProtocolIcon name={protocol.name} iconUrl={protocol.iconUrl} size={32} /></span>
+              <span className="min-w-0 flex-1"><span className="block text-[14px] font-semibold text-arc-text">{protocol.name}</span><span className="mt-1 block text-[11px] leading-relaxed text-arc-dim">{protocol.description}</span></span>
+              <span className="shrink-0 text-arc-muted" aria-hidden>{open === key ? "−" : "+"}</span>
+            </button>
+          })}</div>
+          {selected && <div id={`protocol-${selected.id}`} className="mt-3 rounded-[6px] border border-white/10 bg-arc-surface/50 p-5 sm:p-7">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5"><h3 className="text-[22px] font-semibold text-arc-text">{selected.name}</h3>{selected.website && <a className="arc-mono inline-flex min-h-11 items-center text-arc-green" href={selected.website} target="_blank" rel="noreferrer">OFFICIAL WEBSITE ↗</a>}</div>
+            <div className="mt-6 grid gap-6 sm:grid-cols-2">
+              <div><h4 className="arc-mono text-arc-green">PRODUCTS / NETWORKS</h4><ul className="mt-4 space-y-4">{selected.review!.products.map(product => <li key={product.name}><p className="text-[14px] font-semibold text-arc-text">{product.name} · {product.networks.join(", ")}</p><p className="mt-2 text-[14px] leading-relaxed text-arc-muted">{product.purpose}</p></li>)}</ul></div>
+              <div className="space-y-4">{[["REQUIREMENTS", selected.review!.prerequisites], ["EXIT", selected.review!.exit], ["RISKS", selected.review!.risks]].map(([label, text]) => <div key={label}><h4 className="arc-mono text-arc-dim">{label}</h4><p className="mt-2 text-[14px] leading-relaxed text-arc-muted">{text}</p></div>)}</div>
+            </div>
+            <div className="mt-6 border-t border-white/10 pt-5"><p className="arc-mono text-arc-dim">REVIEWED {selected.review!.reviewedAt}</p><p className="mt-3 text-[13px] leading-relaxed text-arc-muted">{selected.review!.unresolved}</p><div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">{selected.review!.docs.map((url, index) => <a className="arc-mono inline-flex min-h-11 items-center text-arc-green" href={url} target="_blank" rel="noreferrer" key={url}>OFFICIAL DOCUMENTATION {index + 1} ↗</a>)}</div></div>
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2">{strategies.filter(s => s.education?.implementations.some(i => i.protocol === selected.slug)).map(s => <Link className="inline-flex min-h-11 items-center text-[14px] text-arc-green" key={s.id} href={urls.strategy(s.slug)}>{s.name} →</Link>)}</div>
+          </div>}
+        </section>
+      })}
+      {!isLoading && !isError && !list.length && <p className="py-16 text-center text-[14px] text-arc-muted">No reviewed protocols indexed yet.</p>}
     </div>
-  )
+  </div>
 }

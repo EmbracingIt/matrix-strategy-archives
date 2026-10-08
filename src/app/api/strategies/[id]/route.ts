@@ -1,15 +1,16 @@
-import { isAdmin, requireAdmin } from "@/lib/server/admin-auth"
-import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { strategyInputSchema } from "@/lib/validation"
+import { isAdmin, requireAdmin } from "@/lib/server/admin-auth";
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { strategyInputSchema } from "@/lib/validation";
 import {
   FULL_STRATEGY_INCLUDE,
   createRevisionSnapshot,
   isMaterialChange,
   serializeStrategy,
   uniqueSlug,
-} from "@/lib/server/strategy-serializer"
-import { withLatestObservations } from "@/lib/server/observation-service"
+} from "@/lib/server/strategy-serializer";
+import { withLatestObservations } from "@/lib/server/observation-service";
+import { publicStrategy } from "@/lib/server/public-catalogue";
 
 /**
  * GET /api/strategies/:id — accepts the internal id OR the public slug.
@@ -17,25 +18,64 @@ import { withLatestObservations } from "@/lib/server/observation-service"
  */
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = await params
-    const row = (await db.strategy.findUnique({
-      where: { id },
-      include: FULL_STRATEGY_INCLUDE,
-    })) ?? (await db.strategy.findUnique({
-      where: { slug: id },
-      include: FULL_STRATEGY_INCLUDE,
-    }))
-    if (!row || (row.status !== "PUBLISHED" && !(await isAdmin()))) {
-      return NextResponse.json({ error: "Strategy not found" }, { status: 404 })
+    const { id } = await params;
+    let row =
+      (await db.strategy.findUnique({
+        where: { id },
+        include: FULL_STRATEGY_INCLUDE,
+      })) ??
+      (await db.strategy.findUnique({
+        where: { slug: id },
+        include: FULL_STRATEGY_INCLUDE,
+      }));
+    const admin = await isAdmin();
+    if (row?.canonicalSlug && !admin) {
+      if (row.canonicalSlug.startsWith("learn:"))
+        return NextResponse.json(
+          {
+            error: "This legacy strategy is now contextual education.",
+            destination: `/?view=learn&lesson=${row.canonicalSlug.slice(6)}`,
+          },
+          { status: 410 },
+        );
+      row = await db.strategy.findUnique({
+        where: { slug: row.canonicalSlug },
+        include: FULL_STRATEGY_INCLUDE,
+      });
     }
-    const [dto] = await withLatestObservations([serializeStrategy(row)])
-    return NextResponse.json(dto)
+    if (!row) {
+      const aliasRows = await db.strategy.findMany({
+        where: { status: "PUBLISHED", recordType: "strategy" },
+        include: FULL_STRATEGY_INCLUDE,
+      });
+      row =
+        aliasRows.find((r) =>
+          (JSON.parse(r.aliasesJson) as string[]).includes(id),
+        ) ?? null;
+    }
+    if (
+      !row ||
+      (!admin &&
+        (row.status !== "PUBLISHED" ||
+          row.recordType !== "strategy" ||
+          row.educationJson === "{}"))
+    ) {
+      return NextResponse.json(
+        { error: "Strategy not found" },
+        { status: 404 },
+      );
+    }
+    const [dto] = await withLatestObservations([serializeStrategy(row)]);
+    return NextResponse.json(admin ? dto : publicStrategy(dto));
   } catch (error) {
-    console.error("GET /api/strategies/:id failed:", error)
-    return NextResponse.json({ error: "Failed to fetch strategy" }, { status: 500 })
+    console.error("GET /api/strategies/:id failed:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch strategy" },
+      { status: 500 },
+    );
   }
 }
 
@@ -49,50 +89,75 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const denied = await requireAdmin(true)
-  if (denied) return denied
+  const denied = await requireAdmin(true);
+  if (denied) return denied;
   try {
-    const { id } = await params
-    const body = await request.json()
-    const parsed = strategyInputSchema.safeParse(body)
+    const { id } = await params;
+    const body = await request.json();
+    const parsed = strategyInputSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid strategy payload", details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      )
+        {
+          error: "Invalid strategy payload",
+          details: parsed.error.flatten().fieldErrors,
+        },
+        { status: 400 },
+      );
     }
-    const input = parsed.data
+    const input = parsed.data;
 
     const existing = await db.strategy.findUnique({
       where: { id },
       include: FULL_STRATEGY_INCLUDE,
-    })
+    });
     if (!existing) {
-      return NextResponse.json({ error: "Strategy not found" }, { status: 404 })
+      return NextResponse.json(
+        { error: "Strategy not found" },
+        { status: 404 },
+      );
     }
 
-    const current = serializeStrategy(existing)
+    const current = serializeStrategy(existing);
+    if (
+      (input.status ?? existing.status) === "PUBLISHED" &&
+      (input.recordType ?? existing.recordType) === "strategy" &&
+      !(input.canonicalSlug === undefined
+        ? existing.canonicalSlug
+        : input.canonicalSlug) &&
+      (!(input.education === undefined ? current.education : input.education) ||
+        !input.steps ||
+        input.steps.length < 4 ||
+        input.steps.length > 6)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "A public strategy needs validated beginner content and 4–6 practical steps.",
+        },
+        { status: 400 },
+      );
+    }
 
     // Preserve revision history before applying a material edit.
     if (isMaterialChange(current, input)) {
-      await createRevisionSnapshot(id, current, input.changeNote)
+      await createRevisionSnapshot(id, current, input.changeNote);
     }
 
     // Resolve slug: keep current unless explicitly changed.
-    const desiredSlug = input.slug?.trim() || existing.slug
+    const desiredSlug = input.slug?.trim() || existing.slug;
     const slug =
       desiredSlug === existing.slug
         ? existing.slug
-        : await uniqueSlug(desiredSlug, id)
+        : await uniqueSlug(desiredSlug, id);
 
     // Replace join rows with the new selection.
-    await db.strategyDepositAsset.deleteMany({ where: { strategyId: id } })
-    await db.strategyExposureAsset.deleteMany({ where: { strategyId: id } })
-    await db.strategyRewardAsset.deleteMany({ where: { strategyId: id } })
-    await db.strategyNetwork.deleteMany({ where: { strategyId: id } })
-    await db.strategyProtocol.deleteMany({ where: { strategyId: id } })
+    await db.strategyDepositAsset.deleteMany({ where: { strategyId: id } });
+    await db.strategyExposureAsset.deleteMany({ where: { strategyId: id } });
+    await db.strategyRewardAsset.deleteMany({ where: { strategyId: id } });
+    await db.strategyNetwork.deleteMany({ where: { strategyId: id } });
+    await db.strategyProtocol.deleteMany({ where: { strategyId: id } });
 
     const updated = await db.strategy.update({
       where: { id },
@@ -103,20 +168,39 @@ export async function PUT(
         description: input.description ?? "",
         type: input.type,
         status: input.status ?? existing.status,
+        recordType: input.recordType ?? existing.recordType,
+        canonicalSlug:
+          input.canonicalSlug === undefined
+            ? existing.canonicalSlug
+            : input.canonicalSlug,
+        aliasesJson:
+          input.legacyAliases === undefined
+            ? existing.aliasesJson
+            : JSON.stringify(input.legacyAliases),
+        educationJson:
+          input.education === undefined
+            ? existing.educationJson
+            : JSON.stringify(input.education ?? {}),
         marketFit: JSON.stringify(input.marketFit ?? { regimes: [] }),
         objectivesJson: JSON.stringify(input.objectives ?? []),
         steps: JSON.stringify(input.steps ?? []),
         entryConditions: JSON.stringify(input.entryConditions ?? []),
         exitConditions: JSON.stringify(input.exitConditions ?? []),
         risk: JSON.stringify(input.risk ?? {}),
-        requirements: JSON.stringify(input.requirements ?? { requiredHoldings: [] }),
+        requirements: JSON.stringify(
+          input.requirements ?? { requiredHoldings: [] },
+        ),
         referencesJson: JSON.stringify(input.references ?? []),
-        lastReviewedAt: input.lastReviewedAt ? new Date(input.lastReviewedAt) : null,
+        lastReviewedAt: input.lastReviewedAt
+          ? new Date(input.lastReviewedAt)
+          : null,
         depositAssets: {
           create: (input.depositAssetIds ?? []).map((assetId) => ({ assetId })),
         },
         exposureAssets: {
-          create: (input.exposureAssetIds ?? []).map((assetId) => ({ assetId })),
+          create: (input.exposureAssetIds ?? []).map((assetId) => ({
+            assetId,
+          })),
         },
         rewardAssets: {
           create: (input.rewardAssetIds ?? []).map((assetId) => ({ assetId })),
@@ -125,16 +209,21 @@ export async function PUT(
           create: (input.networkIds ?? []).map((networkId) => ({ networkId })),
         },
         protocols: {
-          create: (input.protocolIds ?? []).map((protocolId) => ({ protocolId })),
+          create: (input.protocolIds ?? []).map((protocolId) => ({
+            protocolId,
+          })),
         },
       },
       include: FULL_STRATEGY_INCLUDE,
-    })
+    });
 
-    return NextResponse.json(serializeStrategy(updated))
+    return NextResponse.json(serializeStrategy(updated));
   } catch (error) {
-    console.error("PUT /api/strategies/:id failed:", error)
-    return NextResponse.json({ error: "Failed to update strategy" }, { status: 500 })
+    console.error("PUT /api/strategies/:id failed:", error);
+    return NextResponse.json(
+      { error: "Failed to update strategy" },
+      { status: 500 },
+    );
   }
 }
 
@@ -145,20 +234,29 @@ export async function PUT(
  */
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const denied = await requireAdmin(true)
-  if (denied) return denied
+  const denied = await requireAdmin(true);
+  if (denied) return denied;
   try {
-    const { id } = await params
-    const existing = await db.strategy.findUnique({ where: { id }, select: { id: true } })
+    const { id } = await params;
+    const existing = await db.strategy.findUnique({
+      where: { id },
+      select: { id: true },
+    });
     if (!existing) {
-      return NextResponse.json({ error: "Strategy not found" }, { status: 404 })
+      return NextResponse.json(
+        { error: "Strategy not found" },
+        { status: 404 },
+      );
     }
-    await db.strategy.delete({ where: { id } })
-    return NextResponse.json({ ok: true })
+    await db.strategy.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("DELETE /api/strategies/:id failed:", error)
-    return NextResponse.json({ error: "Failed to delete strategy" }, { status: 500 })
+    console.error("DELETE /api/strategies/:id failed:", error);
+    return NextResponse.json(
+      { error: "Failed to delete strategy" },
+      { status: 500 },
+    );
   }
 }

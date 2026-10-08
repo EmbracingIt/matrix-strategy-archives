@@ -1,9 +1,13 @@
-import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { matchInputSchema } from "@/lib/validation"
-import { FULL_STRATEGY_INCLUDE, serializeStrategy } from "@/lib/server/strategy-serializer"
-import { withLatestObservations } from "@/lib/server/observation-service"
-import { rankStrategies } from "@/lib/server/match-engine"
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { PUBLIC_STRATEGY_WHERE, publicStrategy } from "@/lib/server/public-catalogue";
+import { matchInputSchema } from "@/lib/validation";
+import {
+  FULL_STRATEGY_INCLUDE,
+  serializeStrategy,
+} from "@/lib/server/strategy-serializer";
+import { withLatestObservations } from "@/lib/server/observation-service";
+import { rankStrategies } from "@/lib/server/match-engine";
 
 /**
  * POST /api/match — the agent-facing matching endpoint.
@@ -19,42 +23,54 @@ import { rankStrategies } from "@/lib/server/match-engine"
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const parsed = matchInputSchema.safeParse(body)
+    const body = await request.json();
+    const parsed = matchInputSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid match profile", details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      )
+        {
+          error: "Invalid match profile",
+          details: parsed.error.flatten().fieldErrors,
+        },
+        { status: 400 },
+      );
     }
-    const input = parsed.data
+    const input = parsed.data;
 
     // Resolve portfolio entries: each value may be an asset id OR a symbol.
-    let assetIds = input.assetIds
+    let assetIds = input.assetIds;
     if (assetIds.length) {
-      const allAssets = await db.asset.findMany({ select: { id: true, symbol: true } })
-      const idSet = new Set(allAssets.map((a) => a.id))
-      const symbolToId = new Map(allAssets.map((a) => [a.symbol, a.id]))
+      const allAssets = await db.asset.findMany({
+        select: { id: true, symbol: true },
+      });
+      const idSet = new Set(allAssets.map((a) => a.id));
+      const symbolToId = new Map(allAssets.map((a) => [a.symbol, a.id]));
       assetIds = Array.from(
         new Set(
           assetIds
-            .map((value) => (idSet.has(value) ? value : symbolToId.get(value.toUpperCase())))
-            .filter((v): v is string => Boolean(v))
-        )
-      )
+            .map((value) =>
+              idSet.has(value) ? value : symbolToId.get(value.toUpperCase()),
+            )
+            .filter((v): v is string => Boolean(v)),
+        ),
+      );
     }
 
     const rows = await db.strategy.findMany({
-      where: { status: "PUBLISHED" },
+      where: PUBLIC_STRATEGY_WHERE,
       include: FULL_STRATEGY_INCLUDE,
       orderBy: { updatedAt: "desc" },
-    })
-    const strategies = await withLatestObservations(rows.map(serializeStrategy))
-    const results = rankStrategies(strategies, { ...input, assetIds })
+    });
+    const strategies = await withLatestObservations(
+      rows.map(serializeStrategy),
+    );
+    const results = rankStrategies(strategies.map(publicStrategy), { ...input, assetIds });
 
-    return NextResponse.json(results)
+    return NextResponse.json(results);
   } catch (error) {
-    console.error("POST /api/match failed:", error)
-    return NextResponse.json({ error: "Failed to match strategies" }, { status: 500 })
+    console.error("POST /api/match failed:", error);
+    return NextResponse.json(
+      { error: "Failed to match strategies" },
+      { status: 500 },
+    );
   }
 }

@@ -8,6 +8,7 @@ import { urls, type ViewName } from "@/lib/nav"
 import { useArchiveUI } from "@/store/ui-store"
 import { ArchiveSearch } from "@/components/archive/archive-search"
 import { SmoothScroll } from "@/components/archive/smooth-scroll"
+import { CompareTray } from "@/components/archive/compare-tray"
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS: { label: string; view: ViewName; href: string; match: ViewName[] }[] = [
@@ -18,8 +19,8 @@ const NAV_ITEMS: { label: string; view: ViewName; href: string; match: ViewName[
     match: ["all", "strategy", "results", "explore"],
   },
   { label: "Protocols", view: "protocols", href: urls.protocols(), match: ["protocols"] },
-  { label: "Assets", view: "assets", href: urls.assets(), match: ["assets"] },
-  { label: "Networks", view: "networks", href: urls.networks(), match: ["networks"] },
+  { label: "Learn", view: "learn", href: urls.learn(), match: ["learn"] },
+  { label: "Tools", view: "tools", href: urls.tools(), match: ["tools"] },
 ]
 
 /**
@@ -41,6 +42,7 @@ export function ArchiveShell({ view, children }: { view: ViewName; children: Rea
       <main className="min-w-0 flex-1 overflow-x-clip">{children}</main>
       <ArchiveFooter />
       <ArchiveSearch />
+      <CompareTray />
     </div>
   )
 }
@@ -174,11 +176,11 @@ function ArchiveFooter() {
           <Link href={urls.protocols()} className="transition-colors hover:text-arc-text">
             PROTOCOLS
           </Link>
-          <Link href={urls.assets()} className="transition-colors hover:text-arc-text">
-            ASSETS
+          <Link href={urls.learn()} className="transition-colors hover:text-arc-text">
+            LEARN
           </Link>
-          <Link href={urls.networks()} className="transition-colors hover:text-arc-text">
-            NETWORKS
+          <Link href={urls.tools()} className="transition-colors hover:text-arc-text">
+            TOOLS
           </Link>
           <a
             href="/api/strategies"

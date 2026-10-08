@@ -13,7 +13,7 @@ import type { MatchedRecord } from "@/lib/matching"
  * BEST MATCH — the strongest retrieval rendered as a dominant catalogue
  * abstract. Editorial rather than boxy: the record identity breathes on the
  * left (large serif title, circular composition marks, no internal borders),
- * while the compatibility score and its factor provenance sit in a quieter
+ * while the plain-language matching context sits in a quieter
  * right column separated by a single hairline instead of a bolted-on panel.
  */
 
@@ -128,50 +128,9 @@ export function FeaturedRecord({ record }: { record: MatchedRecord }) {
           </Link>
         </div>
 
-        {/* Score provenance — integrated, single hairline separation */}
+        {/* Matching context — integrated, single hairline separation */}
         <div className="rounded-br-[6px] bg-arc-raised/50 px-6 py-7 sm:px-7 lg:border-l lg:border-white/[0.07]">
-          <p className="arc-mono text-arc-dim">ARCHIVE MATCH</p>
-          <div className="mt-2 flex items-baseline gap-1.5">
-            <span
-              className={cn(
-                "font-mono text-[52px] font-medium leading-none tabular-nums tracking-tight",
-                record.score >= 75 ? "text-arc-green" : "text-arc-text"
-              )}
-            >
-              {record.score}
-            </span>
-            <span className="font-mono text-[18px] text-arc-muted">%</span>
-          </div>
-          <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/10" aria-hidden>
-            <span
-              className={cn("block h-full rounded-full", record.score >= 50 ? "bg-arc-green" : "bg-arc-amber")}
-              style={{ width: `${record.score}%` }}
-            />
-          </div>
-
-          <div className="mt-7 space-y-3.5">
-            {record.factors.map((factor) => (
-              <div key={factor.label}>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="arc-mono text-[10px] text-arc-muted">{factor.label.toUpperCase()}</span>
-                  <span className="font-mono text-[11px] tabular-nums text-arc-text/80">
-                    {factor.score}
-                  </span>
-                </div>
-                <div className="mt-1.5 h-[3px] w-full overflow-hidden rounded-full bg-white/10" aria-hidden>
-                  <span
-                    className={cn(
-                      "block h-full rounded-full transition-all duration-500",
-                      factor.score >= 60 ? "bg-arc-green" : "bg-arc-amber"
-                    )}
-                    style={{ width: `${factor.score}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <WhyItMatches record={record} className="mt-7 border-t border-white/[0.07] pt-5" />
+          <WhyItMatches record={record} className="" />
         </div>
       </div>
     </article>

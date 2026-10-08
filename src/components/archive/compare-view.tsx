@@ -44,9 +44,10 @@ export function CompareView() {
   const { setCompare, removeCompare, clearCompare } = useCompare()
 
   // Records in URL order; unknown slugs are silently dropped.
-  const records = slugs
-    .map((slug) => strategies.find((s) => s.slug === slug))
+  const records = [...new Map(slugs
+    .map((slug) => strategies.find((s) => s.slug === slug || s.legacyAliases?.includes(slug)))
     .filter((s): s is StrategyDTO => Boolean(s))
+    .map(s => [s.id, s])).values()]
 
   // Keep the tray and the URL in agreement when arriving via a shared link.
   useEffect(() => {

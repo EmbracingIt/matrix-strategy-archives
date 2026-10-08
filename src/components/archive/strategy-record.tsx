@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, ArrowUpRight } from "lucide-react"
 import { useStrategy } from "@/hooks/use-strategy-data"
 import { formatDate, formatMonthYear } from "@/lib/format"
@@ -51,6 +52,15 @@ const EXPOSURE_TEXT: Record<ExposureLevel, string> = {
 
 export function StrategyRecordView({ slug }: { slug: string }) {
   const { data: strategy, isLoading, isError, refetch } = useStrategy(slug)
+  const router = useRouter()
+  const params = useSearchParams()
+  useEffect(() => {
+    if (strategy && strategy.slug !== slug) {
+      const next = new URLSearchParams(params.toString())
+      next.set("slug", strategy.slug)
+      router.replace(`/?${next}`, { scroll: false })
+    }
+  }, [strategy, slug, params, router])
 
   const [activeSection, setActiveSection] = useState<string>("overview")
 
@@ -105,6 +115,7 @@ export function StrategyRecordView({ slug }: { slug: string }) {
           >
             ← BACK TO ALL RECORDS
           </Link>
+          <Link href={urls.learn()} className="arc-mono mt-4 min-h-11 content-center text-arc-muted">LEARN THE BASICS →</Link>
         </div>
       </div>
     )
@@ -360,6 +371,15 @@ function OverviewSection({ strategy }: { strategy: StrategyDTO }) {
           {strategy.description}
         </p>
       )}
+      {strategy.education && <div className="mt-8 space-y-5 text-[14px] leading-[1.75] text-arc-muted">
+        {strategy.education.tools.includes("hedging") && <div className="border border-arc-green/20 bg-arc-green/5 p-4"><Link href="/?view=tools#hedging-calculator" className="inline-flex min-h-11 items-center text-arc-green">Hedging Calculator — In development →</Link><p>Not ready to use. Planned to help size LP delta hedges; verify current inventory and sizing independently before entry.</p></div>}
+        {[["RETURN SOURCE", strategy.education.returnSource], ["EXPOSURE", strategy.education.exposure], ["MAIN TRADE-OFF", strategy.education.tradeOff]].map(([title, text]) => <div key={title}><p className="arc-mono text-arc-green">{title}</p><p className="mt-2">{text}</p></div>)}
+        <details className="border-t border-white/10 pt-5"><summary className="arc-mono min-h-11 cursor-pointer text-arc-text">WORKED EXAMPLE / ILLUSTRATIVE, NOT LIVE RATES</summary>
+          <h3 className="mt-4 text-[20px] font-semibold text-arc-text">{strategy.education.example.title}</h3>
+          <p className="mt-4">{strategy.education.example.starting}</p><p className="mt-3">{strategy.education.example.action}</p><p className="mt-3">Assumptions: {strategy.education.example.assumptions}</p><p className="mt-3">Benchmark: {strategy.education.example.benchmark}</p>
+          <div className="mt-6 grid gap-px border border-white/10 bg-white/10 xl:grid-cols-3">{strategy.education.example.scenarios.map(scenario => <div key={scenario.label} className="min-w-0 bg-arc-surface p-5"><h4 className="font-semibold text-arc-text">{scenario.label}</h4><p className="mt-3">{scenario.condition}</p><p className="mt-3">Ending assets: {scenario.assets}</p><p className="mt-3">{scenario.value}</p><p className="mt-3">{scenario.next}</p></div>)}</div>
+        </details>
+      </div>}
 
       <dl className="mt-10 grid grid-cols-2 gap-px border border-white/10 bg-white/10 sm:grid-cols-3 xl:grid-cols-4">
         {facts.map((fact) => (
@@ -430,6 +450,7 @@ function EntryExitSection({ strategy }: { strategy: StrategyDTO }) {
           conditions={exit}
         />
       </div>
+      {strategy.education && <div className="mt-8 border-t border-white/10 pt-6"><ConditionColumn title="MONITOR" tone="text-arc-muted" marker="bg-arc-green" conditions={strategy.education.monitor} /><p className="mt-5 text-[14px] leading-relaxed text-arc-muted">Exit plan: {strategy.education.exit}</p></div>}
     </section>
   )
 }
@@ -740,7 +761,18 @@ function PlatformsSection({ strategy }: { strategy: StrategyDTO }) {
 }
 
 function RequirementsSection({ strategy }: { strategy: StrategyDTO }) {
+  const [implementation, setImplementation] = useState(0)
   const req = strategy.requirements
+  const implementations = strategy.education?.implementations
+  const selected = implementations?.[implementation] ?? implementations?.[0]
+  if (selected && implementations) return <section id="requirements" aria-label="Requirements">
+    <SectionRule code="08" title="Requirements" />
+    <label className="arc-mono mt-8 block text-arc-dim">ASSET / PRODUCT / NETWORK
+      <select aria-label="Asset, product and network" value={implementation} onChange={event=>setImplementation(Number(event.target.value))} className="mt-3 block min-h-11 w-full min-w-0 rounded-[4px] border border-white/15 bg-arc-surface px-3 text-[14px] text-arc-text">{implementations.map((item,index)=><option key={item.key} value={index}>{item.label}</option>)}</select>
+    </label>
+    <ul className="mt-6 space-y-3 text-[14px] leading-relaxed text-arc-muted">{selected.requirements.map(text=><li key={text}>{text}</li>)}</ul>
+    <div className="mt-8 grid gap-6 border-t border-white/10 pt-6 sm:grid-cols-2">{[["ENTER",selected.enter],["RECEIVED POSITION",selected.accounting],["EXIT",selected.exit],["RISKS",selected.risks]].map(([title,text])=><div key={title}><p className="arc-mono text-arc-dim">{title}</p><p className="mt-3 text-[14px] leading-relaxed text-arc-muted">{text}</p></div>)}</div>
+  </section>
   return (
     <section id="requirements" aria-label="Requirements">
       <SectionRule code="08" title="Requirements" />

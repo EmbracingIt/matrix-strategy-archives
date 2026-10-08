@@ -9,6 +9,7 @@ import { secondaryRegimeDef } from "@/lib/secondary-regimes"
 import { ArchiveError, ArchiveSkeleton } from "@/components/archive/archive-bits"
 import { ArcAssetIcon } from "@/components/archive/archive-icons"
 import { cn } from "@/lib/utils"
+import { passesArchiveFilter } from "@/lib/matching"
 import type { AssetDTO, StrategyDTO } from "@/lib/types"
 
 /**
@@ -49,7 +50,7 @@ export function AssetCollection({ query }: { query: ArchiveQuery }) {
     query.assets.map((s) => s.toUpperCase())
   )
 
-  const counts = useMemo(() => strategyCountsByAsset(strategies), [strategies])
+  const counts = useMemo(() => strategyCountsByAsset(strategies.filter(s => passesArchiveFilter(s, {...query,assets:[],objective:"all"}))), [strategies,query])
   const activeAssets = useMemo(() => assets.filter((a) => a.active), [assets])
   const phaseDef = secondaryRegimeDef(query.secondaryRegime ?? "")
 

@@ -65,6 +65,7 @@ model Protocol {
   description String?
   iconUrl     String?
   active      Boolean  @default(true)
+  reviewJson  String   @default("{}")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -89,6 +90,10 @@ model Strategy {
   description String    @default("") // long-form overview
   type        String // extendable, e.g. "Concentrated Liquidity" (no enum on purpose)
   status      String    @default("DRAFT") // DRAFT | PUBLISHED | ARCHIVED
+  recordType  String    @default("legacy") // strategy | legacy | advanced | education
+  canonicalSlug String? // destination for a superseded record; identity is retained
+  aliasesJson String    @default("[]")
+  educationJson String  @default("{}") // beginner content on the shared record
 
   // JSON payloads (see serializer for shapes)
   marketFit       String @default("{}") // regimes + explanation + optional fit scores

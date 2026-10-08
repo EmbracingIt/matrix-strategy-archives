@@ -1,14 +1,21 @@
-"use client"
+"use client";
 
-import { useCallback, useEffect, useRef, useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
-import { Archive, ArrowLeft, Check, ExternalLink, Loader2, Trash2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { StatusBadge } from "@/components/shared/badges"
-import { Skeleton } from "@/components/ui/skeleton"
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  Archive,
+  ArrowLeft,
+  Check,
+  ExternalLink,
+  Loader2,
+  Trash2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/shared/badges";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   OverviewSection,
   InstructionsSection,
@@ -19,24 +26,26 @@ import {
   RequirementsSection,
   ReferencesSection,
   StatusSection,
-} from "@/components/admin/form-sections"
-import { SectionSurface } from "@/components/admin/form-controls"
-import { RevisionHistory } from "@/components/admin/revision-history"
-import { useMeta, useStrategy } from "@/hooks/use-strategy-data"
-import { api } from "@/lib/api-client"
-import { urls } from "@/lib/nav"
+} from "@/components/admin/form-sections";
+import { SectionSurface } from "@/components/admin/form-controls";
+import { EducationEditor } from "@/components/admin/education-editor";
+import { RevisionHistory } from "@/components/admin/revision-history";
+import { useMeta, useStrategy } from "@/hooks/use-strategy-data";
+import { api } from "@/lib/api-client";
+import { urls } from "@/lib/nav";
 import {
   dtoToFormState,
   emptyFormState,
   formSignature,
   formStateToInput,
   type StrategyFormState,
-} from "@/lib/strategy-form"
-import type { StrategyStatus } from "@/lib/types"
-import { STATUS_LABELS } from "@/lib/format"
-import { cn } from "@/lib/utils"
+} from "@/lib/strategy-form";
+import type { StrategyStatus } from "@/lib/types";
+import { STATUS_LABELS } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 const TABS = [
+  { id: "education", label: "Beginner page", num: "00" },
   { id: "overview", label: "Overview", num: "01" },
   { id: "instructions", label: "Instructions", num: "02" },
   { id: "market-fit", label: "Market Fit", num: "03" },
@@ -46,14 +55,14 @@ const TABS = [
   { id: "requirements", label: "Requirements", num: "07" },
   { id: "references", label: "References", num: "08" },
   { id: "status", label: "Status", num: "09" },
-] as const
+] as const;
 
-const HISTORY_TAB = { id: "history", label: "History", num: "10" } as const
+const HISTORY_TAB = { id: "history", label: "History", num: "10" } as const;
 
-type TabId = (typeof TABS)[number]["id"] | "history"
+type TabId = (typeof TABS)[number]["id"] | "history";
 
 /** Editor chrome offsets: admin bar (h-14) + editor header (h-[76px]). */
-const HEADER_TOTAL = "top-[132px]"
+const HEADER_TOTAL = "top-[132px]";
 
 /**
  * Admin strategy editor — a document-style surface with its own sticky header
@@ -64,125 +73,134 @@ export function StrategyForm({
   strategyId,
   isNew,
 }: {
-  strategyId?: string
-  isNew: boolean
+  strategyId?: string;
+  isNew: boolean;
 }) {
-  const router = useRouter()
-  const queryClient = useQueryClient()
-  const { data: meta } = useMeta()
-  const { data: existing, isLoading } = useStrategy(isNew ? null : (strategyId ?? null))
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { data: meta } = useMeta();
+  const { data: existing, isLoading } = useStrategy(
+    isNew ? null : (strategyId ?? null),
+  );
 
-  const [form, setForm] = useState<StrategyFormState>(emptyFormState())
-  const [initialSignature, setInitialSignature] = useState("")
-  const [hydrated, setHydrated] = useState(false)
-  const [activeTab, setActiveTab] = useState<TabId>("overview")
-  const [saving, setSaving] = useState(false)
-  const [confirmArchive, setConfirmArchive] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [form, setForm] = useState<StrategyFormState>(emptyFormState());
+  const [initialSignature, setInitialSignature] = useState("");
+  const [hydrated, setHydrated] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [saving, setSaving] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Hydrate form state from the loaded strategy (or start empty for new).
   useEffect(() => {
     if (isNew && !hydrated) {
-      const fresh = emptyFormState()
-      setForm(fresh)
-      setInitialSignature(formSignature(fresh))
-      setHydrated(true)
+      const fresh = emptyFormState();
+      setForm(fresh);
+      setInitialSignature(formSignature(fresh));
+      setHydrated(true);
     } else if (!isNew && existing && !hydrated) {
-      const fs = dtoToFormState(existing)
-      setForm(fs)
-      setInitialSignature(formSignature(fs))
-      setHydrated(true)
+      const fs = dtoToFormState(existing);
+      setForm(fs);
+      setInitialSignature(formSignature(fs));
+      setHydrated(true);
     }
-  }, [isNew, existing, hydrated])
+  }, [isNew, existing, hydrated]);
 
   const update = useCallback((patch: Partial<StrategyFormState>) => {
-    setForm((f) => ({ ...f, ...patch }))
-  }, [])
+    setForm((f) => ({ ...f, ...patch }));
+  }, []);
 
-  const dirty = hydrated && formSignature(form) !== initialSignature
+  const dirty = hydrated && formSignature(form) !== initialSignature;
 
   const invalidateAll = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["strategies"] })
-    await queryClient.invalidateQueries({ queryKey: ["strategy"] })
-    await queryClient.invalidateQueries({ queryKey: ["revisions"] })
-    await queryClient.invalidateQueries({ queryKey: ["meta"] })
-  }
+    await queryClient.invalidateQueries({ queryKey: ["strategies"] });
+    await queryClient.invalidateQueries({ queryKey: ["strategy"] });
+    await queryClient.invalidateQueries({ queryKey: ["revisions"] });
+    await queryClient.invalidateQueries({ queryKey: ["meta"] });
+  };
 
   const save = useCallback(
     async (statusOverride?: StrategyStatus) => {
       if (!form.name.trim()) {
-        toast.error("Strategy name is required.")
-        setActiveTab("overview")
-        return
+        toast.error("Strategy name is required.");
+        setActiveTab("overview");
+        return;
       }
       if (!form.type.trim()) {
-        toast.error("Strategy type is required.")
-        setActiveTab("overview")
-        return
+        toast.error("Strategy type is required.");
+        setActiveTab("overview");
+        return;
       }
-      const input = formStateToInput({ ...form, status: statusOverride ?? form.status })
-      setSaving(true)
+      const input = formStateToInput({
+        ...form,
+        status: statusOverride ?? form.status,
+      });
+      setSaving(true);
       try {
         if (isNew) {
-          const created = await api.createStrategy(input)
-          await invalidateAll()
-          toast.success(`${created.strategyId} created as ${STATUS_LABELS[created.status].toLowerCase()}`)
-          router.push(urls.adminEdit(created.id))
+          const created = await api.createStrategy(input);
+          await invalidateAll();
+          toast.success(
+            `${created.strategyId} created as ${STATUS_LABELS[created.status].toLowerCase()}`,
+          );
+          router.push(urls.adminEdit(created.id));
         } else if (strategyId) {
-          const updated = await api.updateStrategy(strategyId, input)
-          await invalidateAll()
-          const fs = dtoToFormState(updated)
-          setForm(fs)
-          setInitialSignature(formSignature(fs))
-          toast.success(`${updated.strategyId} saved`)
+          const updated = await api.updateStrategy(strategyId, input);
+          await invalidateAll();
+          const fs = dtoToFormState(updated);
+          setForm(fs);
+          setInitialSignature(formSignature(fs));
+          toast.success(`${updated.strategyId} saved`);
         }
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Save failed")
+        toast.error(error instanceof Error ? error.message : "Save failed");
       } finally {
-        setSaving(false)
+        setSaving(false);
       }
     },
-    [form, isNew, strategyId]
-  )
+    [form, isNew, strategyId],
+  );
 
   // Cmd/Ctrl+S saves.
-  const saveRef = useRef(save)
+  const saveRef = useRef(save);
   useEffect(() => {
-    saveRef.current = save
-  }, [save])
+    saveRef.current = save;
+  }, [save]);
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
-        e.preventDefault()
-        saveRef.current()
+        e.preventDefault();
+        saveRef.current();
       }
-    }
-    window.addEventListener("keydown", handler)
-    return () => window.removeEventListener("keydown", handler)
-  }, [])
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const archive = async () => {
-    setConfirmArchive(false)
+    setConfirmArchive(false);
     try {
-      await save("ARCHIVED")
-      toast.success("Strategy archived. It is retained in the database but hidden publicly.")
+      await save("ARCHIVED");
+      toast.success(
+        "Strategy archived. It is retained in the database but hidden publicly.",
+      );
     } catch {
       /* save already toasts errors */
     }
-  }
+  };
 
   const deleteStrategy = async () => {
-    if (!strategyId) return
-    setConfirmDelete(false)
+    if (!strategyId) return;
+    setConfirmDelete(false);
     try {
-      await api.deleteStrategy(strategyId)
-      await invalidateAll()
-      toast.success("Strategy permanently deleted.")
-      router.push(urls.admin("strategies"))
+      await api.deleteStrategy(strategyId);
+      await invalidateAll();
+      toast.success("Strategy permanently deleted.");
+      router.push(urls.admin("strategies"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Delete failed")
+      toast.error(error instanceof Error ? error.message : "Delete failed");
     }
-  }
+  };
 
   if (!isNew && isLoading) {
     return (
@@ -192,22 +210,31 @@ export function StrategyForm({
           <Skeleton className="h-[420px] w-full rounded-lg" />
         </div>
       </div>
-    )
+    );
   }
   if (!isNew && !existing) {
     return (
       <div className="mx-auto w-full max-w-[1152px] px-4 pt-8 sm:px-6 lg:px-8">
         <div className="rounded-lg border border-red-200 bg-red-50 px-6 py-10 text-center">
-          <p className="text-sm font-medium text-red-700">Strategy not found.</p>
-          <Link href={urls.admin("strategies")} className="mt-3 inline-block text-sm text-red-600 underline">
+          <p className="text-sm font-medium text-red-700">
+            Strategy not found.
+          </p>
+          <Link
+            href={urls.admin("strategies")}
+            className="mt-3 inline-block text-sm text-red-600 underline"
+          >
             Back to strategies
           </Link>
         </div>
       </div>
-    )
+    );
   }
 
-  const sectionProps = { form, update, knownTypes: meta?.types.map((t) => t.name) ?? [] }
+  const sectionProps = {
+    form,
+    update,
+    knownTypes: meta?.types.map((t) => t.name) ?? [],
+  };
 
   // Header action cluster, context-sensitive.
   const primaryAction = () => {
@@ -219,11 +246,15 @@ export function StrategyForm({
           onClick={() => save()}
           disabled={saving}
         >
-          {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+          {saving ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Check className="size-3.5" />
+          )}
           <span className="hidden sm:inline">Create strategy</span>
           <span className="sm:hidden">Create</span>
         </Button>
-      )
+      );
     }
     if (form.status === "DRAFT") {
       return (
@@ -233,10 +264,14 @@ export function StrategyForm({
           onClick={() => save("PUBLISHED")}
           disabled={saving}
         >
-          {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+          {saving ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Check className="size-3.5" />
+          )}
           Publish
         </Button>
-      )
+      );
     }
     return (
       <Button
@@ -245,12 +280,16 @@ export function StrategyForm({
         onClick={() => save()}
         disabled={saving}
       >
-        {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+        {saving ? (
+          <Loader2 className="size-3.5 animate-spin" />
+        ) : (
+          <Check className="size-3.5" />
+        )}
         <span className="hidden sm:inline">Save changes</span>
         <span className="sm:hidden">Save</span>
       </Button>
-    )
-  }
+    );
+  };
 
   const secondaryAction = () => {
     if (isNew || form.status === "DRAFT") {
@@ -264,7 +303,7 @@ export function StrategyForm({
         >
           Save draft
         </Button>
-      )
+      );
     }
     if (form.status === "PUBLISHED" && form.slug) {
       return (
@@ -278,7 +317,7 @@ export function StrategyForm({
             View <ExternalLink className="size-3.5" />
           </Link>
         </Button>
-      )
+      );
     }
     if (form.status === "ARCHIVED") {
       return (
@@ -291,10 +330,10 @@ export function StrategyForm({
         >
           Unarchive
         </Button>
-      )
+      );
     }
-    return null
-  }
+    return null;
+  };
 
   return (
     <div className="pb-20">
@@ -308,7 +347,10 @@ export function StrategyForm({
             <ArrowLeft className="size-3.5" />
             <span className="hidden lg:inline">STRATEGIES</span>
           </Link>
-          <span className="hidden h-6 w-px shrink-0 bg-gray-200 lg:block" aria-hidden />
+          <span
+            className="hidden h-6 w-px shrink-0 bg-gray-200 lg:block"
+            aria-hidden
+          />
           <div className="min-w-0 flex-1">
             <div className="mono-label truncate text-[10px] text-gray-400">
               {isNew ? "NEW STRATEGY" : form.strategyId || "EDIT STRATEGY"}
@@ -320,7 +362,10 @@ export function StrategyForm({
 
           <div className="flex shrink-0 items-center gap-2.5">
             {/* Saved state */}
-            <span className="hidden items-center gap-1.5 text-xs lg:inline-flex" aria-live="polite">
+            <span
+              className="hidden items-center gap-1.5 text-xs lg:inline-flex"
+              aria-live="polite"
+            >
               {dirty ? (
                 <>
                   <span className="size-1.5 rounded-full bg-amber-500" />
@@ -334,7 +379,10 @@ export function StrategyForm({
               ) : null}
             </span>
             {!isNew && form.status && (
-              <StatusBadge status={form.status} className="hidden xl:inline-flex" />
+              <StatusBadge
+                status={form.status}
+                className="hidden xl:inline-flex"
+              />
             )}
             {secondaryAction()}
             {primaryAction()}
@@ -358,7 +406,7 @@ export function StrategyForm({
                   "whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
                   activeTab === tab.id
                     ? "bg-gray-900 text-white"
-                    : "bg-white text-gray-500 ring-1 ring-gray-200 hover:text-gray-900"
+                    : "bg-white text-gray-500 ring-1 ring-gray-200 hover:text-gray-900",
                 )}
               >
                 {tab.label}
@@ -372,7 +420,7 @@ export function StrategyForm({
                   "whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
                   activeTab === "history"
                     ? "bg-gray-900 text-white"
-                    : "bg-white text-gray-500 ring-1 ring-gray-200 hover:text-gray-900"
+                    : "bg-white text-gray-500 ring-1 ring-gray-200 hover:text-gray-900",
                 )}
               >
                 History
@@ -397,13 +445,13 @@ export function StrategyForm({
                     "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-[13px] font-medium transition-colors",
                     activeTab === tab.id
                       ? "bg-gray-100 text-gray-900"
-                      : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                      : "text-gray-500 hover:bg-gray-50 hover:text-gray-900",
                   )}
                 >
                   <span
                     className={cn(
                       "font-mono text-[10px]",
-                      activeTab === tab.id ? "text-gray-500" : "text-gray-300"
+                      activeTab === tab.id ? "text-gray-500" : "text-gray-300",
                     )}
                   >
                     {tab.num}
@@ -425,13 +473,15 @@ export function StrategyForm({
                     "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-[13px] font-medium transition-colors",
                     activeTab === "history"
                       ? "bg-gray-100 text-gray-900"
-                      : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                      : "text-gray-500 hover:bg-gray-50 hover:text-gray-900",
                   )}
                 >
                   <span
                     className={cn(
                       "font-mono text-[10px]",
-                      activeTab === "history" ? "text-gray-500" : "text-gray-300"
+                      activeTab === "history"
+                        ? "text-gray-500"
+                        : "text-gray-300",
                     )}
                   >
                     {HISTORY_TAB.num}
@@ -449,13 +499,26 @@ export function StrategyForm({
           {/* Active section — single focused panel */}
           <div className="min-w-0 max-w-[800px]">
             {activeTab === "overview" && <OverviewSection {...sectionProps} />}
-            {activeTab === "instructions" && <InstructionsSection {...sectionProps} />}
-            {activeTab === "market-fit" && <MarketFitSection {...sectionProps} />}
+            {activeTab === "education" && (
+              <EducationEditor form={form} update={update} />
+            )}
+            {activeTab === "instructions" && (
+              <InstructionsSection {...sectionProps} />
+            )}
+            {activeTab === "market-fit" && (
+              <MarketFitSection {...sectionProps} />
+            )}
             {activeTab === "assets" && <AssetsSection {...sectionProps} />}
-            {activeTab === "platforms" && <PlatformsSection {...sectionProps} />}
+            {activeTab === "platforms" && (
+              <PlatformsSection {...sectionProps} />
+            )}
             {activeTab === "risk" && <RiskSection {...sectionProps} />}
-            {activeTab === "requirements" && <RequirementsSection {...sectionProps} />}
-            {activeTab === "references" && <ReferencesSection {...sectionProps} />}
+            {activeTab === "requirements" && (
+              <RequirementsSection {...sectionProps} />
+            )}
+            {activeTab === "references" && (
+              <ReferencesSection {...sectionProps} />
+            )}
             {activeTab === "status" && (
               <StatusSection {...sectionProps}>
                 <SectionSurface
@@ -496,10 +559,12 @@ export function StrategyForm({
                   </div>
 
                   <div className="mt-7 border-t border-gray-100 pt-6">
-                    <h3 className="text-sm font-semibold text-gray-900">Danger zone</h3>
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      Danger zone
+                    </h3>
                     <p className="mt-1 text-xs leading-relaxed text-gray-500">
-                      Archiving hides the strategy but keeps it and its history. Deleting removes
-                      it permanently, including revisions.
+                      Archiving hides the strategy but keeps it and its history.
+                      Deleting removes it permanently, including revisions.
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {form.status !== "ARCHIVED" && (
@@ -528,7 +593,7 @@ export function StrategyForm({
               </StatusSection>
             )}
             {activeTab === "history" && !isNew && strategyId && (
-              <RevisionHistory strategyId={strategyId} />
+              <RevisionHistory strategyId={strategyId} onRestored={strategy => { const restored = dtoToFormState(strategy); setForm(restored); setInitialSignature(formSignature(restored)); }} />
             )}
           </div>
         </div>
@@ -557,7 +622,7 @@ export function StrategyForm({
         />
       )}
     </div>
-  )
+  );
 }
 
 /** Lightweight modal-style confirmation overlay. */
@@ -569,12 +634,12 @@ function ConfirmOverlay({
   onCancel,
   onConfirm,
 }: {
-  title: string
-  description: string
-  confirmLabel: string
-  destructive?: boolean
-  onCancel: () => void
-  onConfirm: () => void
+  title: string;
+  description: string;
+  confirmLabel: string;
+  destructive?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
 }) {
   return (
     <div
@@ -583,17 +648,28 @@ function ConfirmOverlay({
       aria-modal="true"
     >
       <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-xl">
-        <h3 className="text-base font-semibold tracking-tight text-gray-900">{title}</h3>
-        <p className="mt-2 text-sm leading-relaxed text-gray-500">{description}</p>
+        <h3 className="text-base font-semibold tracking-tight text-gray-900">
+          {title}
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-gray-500">
+          {description}
+        </p>
         <div className="mt-6 flex justify-end gap-2">
-          <Button variant="outline" size="sm" className="h-9" onClick={onCancel}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9"
+            onClick={onCancel}
+          >
             Cancel
           </Button>
           <Button
             size="sm"
             className={cn(
               "h-9",
-              destructive ? "bg-red-600 hover:bg-red-700" : "bg-gray-900 hover:bg-gray-800"
+              destructive
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-gray-900 hover:bg-gray-800",
             )}
             onClick={onConfirm}
           >
@@ -602,5 +678,5 @@ function ConfirmOverlay({
         </div>
       </div>
     </div>
-  )
+  );
 }

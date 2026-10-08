@@ -11,11 +11,9 @@ import { secondaryRegimeDef } from "@/lib/secondary-regimes"
  * future Matrix AI service can replace it behind the same contract.
  *
  * Hierarchy: the primary regime is the strongest signal; a Market Phase
- * (Level-2 condition) is an additional signal that boosts strategies tuned
- * for it; assets and objective are membership filters. A phase selection is
- * NEVER a membership filter — records that only match the primary regime
- * still rank, just lower, and records without secondary metadata are never
- * rejected for lacking it (neutral condition factor).
+ * (Level-2 condition), assets and objective narrow the archive collection.
+ * Selecting a phase requires explicit editorial membership, so displayed
+ * collection counts match the records retrieved. Scores rank that collection.
  */
 
 export type MarketParam = "bull" | "sideways" | "bear" | "all"
@@ -27,9 +25,7 @@ export interface ArchiveQuery {
   /** Selected objective. "all" = no constraint (never stored as data). */
   objective: ObjectiveParam
   /**
-   * Optional Market Phase (Level-2 condition) for finer ranking. Not a
-   * membership filter — records that only match the primary regime still
-   * rank, just lower.
+   * Optional Market Phase (Level-2 condition) membership filter.
    */
   secondaryRegime?: SecondaryRegime
 }
@@ -67,6 +63,7 @@ function symbolsOf(assets: { symbol: string }[]): Set<string> {
 
 /** Does the record belong to the queried part of the Archive? */
 export function passesArchiveFilter(strategy: StrategyDTO, query: ArchiveQuery): boolean {
+  if (query.secondaryRegime && !strategy.marketFit.secondaryRegimes?.includes(query.secondaryRegime)) return false
   if (query.market !== "all") {
     const regime = query.market.toUpperCase() as "BULL" | "SIDEWAYS" | "BEAR"
     if (!strategy.marketFit?.regimes?.includes(regime)) return false
@@ -116,7 +113,7 @@ function regimeFactor(strategy: StrategyDTO, market: MarketParam): MatchFactor {
   return {
     label: "Regime fit",
     score,
-    note: `Designed for ${REGIME_LABEL[market]} markets — fit ${score}`,
+    note: `Designed for ${REGIME_LABEL[market]} markets`,
   }
 }
 
@@ -139,9 +136,9 @@ function conditionFactor(strategy: StrategyDTO, condition: SecondaryRegime): Mat
           : 55
   const note =
     declaredScore != null
-      ? `Best during ${label} — phase fit ${declaredScore}/100`
+      ? `Best during ${label}`
       : declared.includes(condition)
-        ? `Curated for ${label} (unscored)`
+        ? `Best during ${label}`
         : declared.length > 0
           ? `Tuned for other market phases, not ${label}`
           : `No market-phase data recorded`
@@ -198,6 +195,10 @@ function objectiveFactor(strategy: StrategyDTO, objective: ObjectiveParam): Matc
 function buildReasons(strategy: StrategyDTO, query: ArchiveQuery, factors: MatchFactor[]): string[] {
   const reasons: string[] = []
 
+  if (query.market === "all" && strategy.marketFit.regimes.length) {
+    reasons.push(`Designed for ${strategy.marketFit.regimes.map(regime => REGIME_LABEL[regime.toLowerCase() as Exclude<MarketParam, "all">]).join(" / ")} markets`)
+  }
+
   if (query.market !== "all" && strategy.marketFit?.regimes?.includes(query.market.toUpperCase() as "BULL")) {
     reasons.push(factors[0].note)
   }
@@ -224,6 +225,9 @@ function buildReasons(strategy: StrategyDTO, query: ArchiveQuery, factors: Match
   }
   if (query.secondaryRegime && (strategy.marketFit?.secondaryRegimes ?? []).includes(query.secondaryRegime)) {
     reasons.push(`Best during ${secondaryRegimeDef(query.secondaryRegime)?.label ?? query.secondaryRegime}`)
+  }
+  if (!query.secondaryRegime && strategy.marketFit.secondaryRegimes?.length) {
+    reasons.push(`Best during ${strategy.marketFit.secondaryRegimes.map(phase => secondaryRegimeDef(phase)?.label ?? phase).join(" / ")}`)
   }
   if (query.secondaryRegime && !(strategy.marketFit?.secondaryRegimes ?? []).includes(query.secondaryRegime)) {
     // Phase is a bonus, not a filter — note primary-regime eligibility instead.

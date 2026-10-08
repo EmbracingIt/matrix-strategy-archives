@@ -41,7 +41,7 @@ export const useCompare = create<CompareState>((set) => ({
       }
       // FIFO eviction: adding a 4th record drops the oldest selection.
       const next = [...s.compareSlugs, slug]
-      return { compareSlugs: next.slice(next.length - COMPARE_LIMIT) }
+      return { compareSlugs: next.slice(-COMPARE_LIMIT) }
     }),
   removeCompare: (slug) =>
     set((s) => ({ compareSlugs: s.compareSlugs.filter((x) => x !== slug) })),

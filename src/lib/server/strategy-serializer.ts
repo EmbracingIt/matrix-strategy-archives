@@ -1,5 +1,6 @@
-import { db } from "@/lib/db"
-import { OBJECTIVE_KEYS, SECONDARY_REGIMES } from "@/lib/types"
+import { db } from "@/lib/db";
+import { educationSchema, APP_REGIME_MAP } from "@/lib/education";
+import { OBJECTIVE_KEYS, SECONDARY_REGIMES } from "@/lib/types";
 import type {
   AssetRef,
   MarketFit,
@@ -14,7 +15,7 @@ import type {
   StrategyReference,
   StrategyStep,
   StrategyStatus,
-} from "@/lib/types"
+} from "@/lib/types";
 
 // ---------------------------------------------------------------------------
 // Prisma row -> API DTO. Parses the JSON string columns into structured data
@@ -22,31 +23,76 @@ import type {
 // ---------------------------------------------------------------------------
 
 type StrategyRowWithRelations = {
-  id: string
-  strategyId: string
-  name: string
-  slug: string
-  summary: string
-  description: string
-  type: string
-  status: string
-  marketFit: string
-  objectivesJson: string
-  steps: string
-  entryConditions: string
-  exitConditions: string
-  risk: string
-  requirements: string
-  referencesJson: string
-  lastReviewedAt: Date | null
-  createdAt: Date
-  updatedAt: Date
-  depositAssets: { asset: { id: string; symbol: string; name: string; category: string | null; iconUrl: string | null } }[]
-  exposureAssets: { asset: { id: string; symbol: string; name: string; category: string | null; iconUrl: string | null } }[]
-  rewardAssets: { asset: { id: string; symbol: string; name: string; category: string | null; iconUrl: string | null } }[]
-  networks: { network: { id: string; name: string; slug: string; chainId: number | null; iconUrl: string | null } }[]
-  protocols: { protocol: { id: string; name: string; slug: string; website: string | null; iconUrl: string | null; description: string | null } }[]
-}
+  recordType?: string;
+  canonicalSlug?: string | null;
+  aliasesJson?: string;
+  educationJson?: string;
+  id: string;
+  strategyId: string;
+  name: string;
+  slug: string;
+  summary: string;
+  description: string;
+  type: string;
+  status: string;
+  marketFit: string;
+  objectivesJson: string;
+  steps: string;
+  entryConditions: string;
+  exitConditions: string;
+  risk: string;
+  requirements: string;
+  referencesJson: string;
+  lastReviewedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  depositAssets: {
+    asset: {
+      id: string;
+      symbol: string;
+      name: string;
+      category: string | null;
+      iconUrl: string | null;
+    };
+  }[];
+  exposureAssets: {
+    asset: {
+      id: string;
+      symbol: string;
+      name: string;
+      category: string | null;
+      iconUrl: string | null;
+    };
+  }[];
+  rewardAssets: {
+    asset: {
+      id: string;
+      symbol: string;
+      name: string;
+      category: string | null;
+      iconUrl: string | null;
+    };
+  }[];
+  networks: {
+    network: {
+      id: string;
+      name: string;
+      slug: string;
+      chainId: number | null;
+      iconUrl: string | null;
+    };
+  }[];
+  protocols: {
+    protocol: {
+      id: string;
+      name: string;
+      slug: string;
+      website: string | null;
+      iconUrl: string | null;
+      description: string | null;
+    };
+  }[];
+};
 
 /** Prisma include clause that loads everything needed to serialize a strategy. */
 export const FULL_STRATEGY_INCLUDE = {
@@ -55,14 +101,14 @@ export const FULL_STRATEGY_INCLUDE = {
   rewardAssets: { include: { asset: true } },
   networks: { include: { network: true } },
   protocols: { include: { protocol: true } },
-} as const
+} as const;
 
 function safeJson<T>(raw: string | null | undefined, fallback: T): T {
-  if (!raw) return fallback
+  if (!raw) return fallback;
   try {
-    return JSON.parse(raw) as T
+    return JSON.parse(raw) as T;
   } catch {
-    return fallback
+    return fallback;
   }
 }
 
@@ -73,32 +119,36 @@ function safeJson<T>(raw: string | null | undefined, fallback: T): T {
  *   - secondary data is optional — older records normalize to [] and {}
  */
 function normalizeMarketFit(raw: string): MarketFit {
-  const parsed = safeJson<Partial<MarketFit>>(raw, {})
+  const parsed = safeJson<Partial<MarketFit>>(raw, {});
   const regimes = Array.isArray(parsed.regimes)
     ? parsed.regimes.filter((r): r is MarketFit["regimes"][number] =>
-        ["BULL", "SIDEWAYS", "BEAR"].includes(r)
+        ["BULL", "SIDEWAYS", "BEAR"].includes(r),
       )
-    : []
+    : [];
   const secondaryRegimes = Array.isArray(parsed.secondaryRegimes)
     ? parsed.secondaryRegimes.filter((r): r is SecondaryRegime =>
-        (SECONDARY_REGIMES as string[]).includes(r)
+        (SECONDARY_REGIMES as string[]).includes(r),
       )
-    : []
-  const secondaryScores: Partial<Record<SecondaryRegime, number>> = {}
+    : [];
+  const secondaryScores: Partial<Record<SecondaryRegime, number>> = {};
   if (parsed.secondaryScores && typeof parsed.secondaryScores === "object") {
     for (const [key, value] of Object.entries(parsed.secondaryScores)) {
-      if ((SECONDARY_REGIMES as string[]).includes(key) && typeof value === "number") {
-        secondaryScores[key as SecondaryRegime] = value
+      if (
+        (SECONDARY_REGIMES as string[]).includes(key) &&
+        typeof value === "number"
+      ) {
+        secondaryScores[key as SecondaryRegime] = value;
       }
     }
   }
   return {
     regimes,
+    appRegimes: regimes.map((regime) => APP_REGIME_MAP[regime]),
     scores: parsed.scores ?? {},
     secondaryRegimes,
     secondaryScores,
     explanation: parsed.explanation,
-  }
+  };
 }
 
 /**
@@ -106,10 +156,14 @@ function normalizeMarketFit(raw: string): MarketFit {
  * removed, canonical display order applied. Legacy records normalize to [].
  */
 function normalizeObjectives(raw: string): ObjectiveKey[] {
-  const parsed = safeJson<string[]>(raw, [])
-  if (!Array.isArray(parsed)) return []
-  const valid = new Set(parsed.filter((k): k is ObjectiveKey => (OBJECTIVE_KEYS as string[]).includes(k)))
-  return OBJECTIVE_KEYS.filter((key) => valid.has(key))
+  const parsed = safeJson<string[]>(raw, []);
+  if (!Array.isArray(parsed)) return [];
+  const valid = new Set(
+    parsed.filter((k): k is ObjectiveKey =>
+      (OBJECTIVE_KEYS as string[]).includes(k),
+    ),
+  );
+  return OBJECTIVE_KEYS.filter((key) => valid.has(key));
 }
 
 export function serializeStrategy(row: StrategyRowWithRelations): StrategyDTO {
@@ -119,28 +173,28 @@ export function serializeStrategy(row: StrategyRowWithRelations): StrategyDTO {
     name: asset.name,
     category: asset.category,
     iconUrl: asset.iconUrl,
-  }))
+  }));
   const exposureAssets: AssetRef[] = row.exposureAssets.map(({ asset }) => ({
     id: asset.id,
     symbol: asset.symbol,
     name: asset.name,
     category: asset.category,
     iconUrl: asset.iconUrl,
-  }))
+  }));
   const rewardAssets: AssetRef[] = row.rewardAssets.map(({ asset }) => ({
     id: asset.id,
     symbol: asset.symbol,
     name: asset.name,
     category: asset.category,
     iconUrl: asset.iconUrl,
-  }))
+  }));
   const networks: NetworkRef[] = row.networks.map(({ network }) => ({
     id: network.id,
     name: network.name,
     slug: network.slug,
     chainId: network.chainId,
     iconUrl: network.iconUrl,
-  }))
+  }));
   const protocols: ProtocolRef[] = row.protocols.map(({ protocol }) => ({
     id: protocol.id,
     name: protocol.name,
@@ -148,10 +202,16 @@ export function serializeStrategy(row: StrategyRowWithRelations): StrategyDTO {
     website: protocol.website,
     iconUrl: protocol.iconUrl,
     description: protocol.description,
-  }))
+  }));
 
   return {
     id: row.id,
+    recordType: row.recordType ?? "legacy",
+    canonicalSlug: row.canonicalSlug ?? null,
+    legacyAliases: safeJson<string[]>(row.aliasesJson, []),
+    education:
+      educationSchema.safeParse(safeJson<unknown>(row.educationJson, null))
+        .data ?? null,
     strategyId: row.strategyId,
     name: row.name,
     slug: row.slug,
@@ -173,7 +233,9 @@ export function serializeStrategy(row: StrategyRowWithRelations): StrategyDTO {
       impermanentLoss: "NONE",
       assetVolatility: "MEDIUM",
     }),
-    requirements: safeJson<Requirements>(row.requirements, { requiredHoldings: [] }),
+    requirements: safeJson<Requirements>(row.requirements, {
+      requiredHoldings: [],
+    }),
     references: safeJson<StrategyReference[]>(row.referencesJson, []),
     lastReviewedAt: row.lastReviewedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
@@ -183,7 +245,7 @@ export function serializeStrategy(row: StrategyRowWithRelations): StrategyDTO {
     rewardAssets,
     networks,
     protocols,
-  }
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -197,33 +259,41 @@ export function slugify(value: string): string {
     .replace(/['’]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 80)
+    .slice(0, 80);
 }
 
 /** Ensures uniqueness by appending -2, -3, ... when needed. */
-export async function uniqueSlug(base: string, ignoreId?: string): Promise<string> {
-  const root = slugify(base) || "strategy"
-  let candidate = root
-  let counter = 2
+export async function uniqueSlug(
+  base: string,
+  ignoreId?: string,
+): Promise<string> {
+  const root = slugify(base) || "strategy";
+  let candidate = root;
+  let counter = 2;
   for (;;) {
     const existing = await db.strategy.findFirst({
-      where: { slug: candidate, ...(ignoreId ? { id: { not: ignoreId } } : {}) },
+      where: {
+        slug: candidate,
+        ...(ignoreId ? { id: { not: ignoreId } } : {}),
+      },
       select: { id: true },
-    })
-    if (!existing) return candidate
-    candidate = `${root}-${counter++}`
+    });
+    if (!existing) return candidate;
+    candidate = `${root}-${counter++}`;
   }
 }
 
 /** Generates the next STRATEGY_XXX reference from the current max. */
 export async function nextStrategyId(): Promise<string> {
-  const strategies = await db.strategy.findMany({ select: { strategyId: true } })
-  let max = 0
+  const strategies = await db.strategy.findMany({
+    select: { strategyId: true },
+  });
+  let max = 0;
   for (const s of strategies) {
-    const m = s.strategyId.match(/^STRATEGY_(\d+)$/)
-    if (m) max = Math.max(max, parseInt(m[1], 10))
+    const m = s.strategyId.match(/^STRATEGY_(\d+)$/);
+    if (m) max = Math.max(max, parseInt(m[1], 10));
   }
-  return `STRATEGY_${String(max + 1).padStart(3, "0")}`
+  return `STRATEGY_${String(max + 1).padStart(3, "0")}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -236,10 +306,17 @@ export async function nextStrategyId(): Promise<string> {
  * should be created. The comparison ignores volatile fields (ids, timestamps,
  * status) and focuses on the strategy definition itself.
  */
-export function isMaterialChange(current: StrategyDTO, input: StrategyInput): boolean {
+export function isMaterialChange(
+  current: StrategyDTO,
+  input: StrategyInput,
+): boolean {
   const pick = (s: StrategyDTO) =>
     JSON.stringify([
       s.name,
+      s.education,
+      s.recordType,
+      s.canonicalSlug,
+      s.legacyAliases,
       s.summary,
       s.description,
       s.type,
@@ -257,14 +334,25 @@ export function isMaterialChange(current: StrategyDTO, input: StrategyInput): bo
       s.rewardAssets.map((a) => a.id).sort(),
       s.networks.map((n) => n.id).sort(),
       s.protocols.map((p) => p.id).sort(),
-    ])
-  return pick(current) !== pick(applyInputForComparison(current, input))
+    ]);
+  return pick(current) !== pick(applyInputForComparison(current, input));
 }
 
 /** Applies the incoming partial payload over the current DTO for comparison. */
-function applyInputForComparison(current: StrategyDTO, input: StrategyInput): StrategyDTO {
+function applyInputForComparison(
+  current: StrategyDTO,
+  input: StrategyInput,
+): StrategyDTO {
   return {
     ...current,
+    education:
+      input.education === undefined ? current.education : input.education,
+    recordType: input.recordType ?? current.recordType,
+    canonicalSlug:
+      input.canonicalSlug === undefined
+        ? current.canonicalSlug
+        : input.canonicalSlug,
+    legacyAliases: input.legacyAliases ?? current.legacyAliases,
     name: input.name ?? current.name,
     summary: input.summary ?? current.summary,
     description: input.description ?? current.description,
@@ -278,36 +366,49 @@ function applyInputForComparison(current: StrategyDTO, input: StrategyInput): St
     requirements: { ...current.requirements, ...input.requirements },
     references: input.references ?? current.references,
     lastReviewedAt:
-      input.lastReviewedAt === undefined ? current.lastReviewedAt : input.lastReviewedAt,
-    depositAssets: (input.depositAssetIds ?? current.depositAssets.map((a) => a.id)).map(
-      (id) => current.depositAssets.find((a) => a.id === id) ?? ({ id } as AssetRef)
+      input.lastReviewedAt === undefined
+        ? current.lastReviewedAt
+        : input.lastReviewedAt,
+    depositAssets: (
+      input.depositAssetIds ?? current.depositAssets.map((a) => a.id)
+    ).map(
+      (id) =>
+        current.depositAssets.find((a) => a.id === id) ?? ({ id } as AssetRef),
     ),
-    exposureAssets: (input.exposureAssetIds ?? current.exposureAssets.map((a) => a.id)).map(
-      (id) => current.exposureAssets.find((a) => a.id === id) ?? ({ id } as AssetRef)
+    exposureAssets: (
+      input.exposureAssetIds ?? current.exposureAssets.map((a) => a.id)
+    ).map(
+      (id) =>
+        current.exposureAssets.find((a) => a.id === id) ?? ({ id } as AssetRef),
     ),
-    rewardAssets: (input.rewardAssetIds ?? current.rewardAssets.map((a) => a.id)).map(
-      (id) => current.rewardAssets.find((a) => a.id === id) ?? ({ id } as AssetRef)
+    rewardAssets: (
+      input.rewardAssetIds ?? current.rewardAssets.map((a) => a.id)
+    ).map(
+      (id) =>
+        current.rewardAssets.find((a) => a.id === id) ?? ({ id } as AssetRef),
     ),
     networks: (input.networkIds ?? current.networks.map((n) => n.id)).map(
-      (id) => current.networks.find((n) => n.id === id) ?? ({ id } as NetworkRef)
+      (id) =>
+        current.networks.find((n) => n.id === id) ?? ({ id } as NetworkRef),
     ),
     protocols: (input.protocolIds ?? current.protocols.map((p) => p.id)).map(
-      (id) => current.protocols.find((p) => p.id === id) ?? ({ id } as ProtocolRef)
+      (id) =>
+        current.protocols.find((p) => p.id === id) ?? ({ id } as ProtocolRef),
     ),
-  }
+  };
 }
 
 /** Creates a revision snapshot of the given strategy (as it currently exists). */
 export async function createRevisionSnapshot(
   strategyId: string,
   current: StrategyDTO,
-  changeNote?: string | null
+  changeNote?: string | null,
 ) {
   const last = await db.revision.findFirst({
     where: { strategyId },
     orderBy: { revisionNumber: "desc" },
     select: { revisionNumber: true },
-  })
+  });
   await db.revision.create({
     data: {
       strategyId,
@@ -315,5 +416,5 @@ export async function createRevisionSnapshot(
       snapshot: JSON.stringify(current),
       changeNote: changeNote?.trim() || null,
     },
-  })
+  });
 }

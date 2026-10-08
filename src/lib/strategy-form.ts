@@ -7,8 +7,8 @@ import type {
   StrategyDTO,
   StrategyInput,
   StrategyStatus,
-} from "@/lib/types"
-import { SECONDARY_REGIMES } from "@/lib/types"
+} from "@/lib/types";
+import { SECONDARY_REGIMES } from "@/lib/types";
 
 /**
  * Admin form state + conversions between StrategyDTO (API) ↔ form state ↔
@@ -16,58 +16,71 @@ import { SECONDARY_REGIMES } from "@/lib/types"
  */
 
 export interface StrategyFormState {
-  name: string
-  strategyId: string
-  slug: string
-  slugLocked: boolean // true once the user edits the slug manually
-  summary: string
-  description: string
-  type: string
-  status: StrategyStatus
+  education: import("./education").StrategyEducation | null;
+  recordType: string;
+  canonicalSlug: string | null;
+  legacyAliases: string[];
+  name: string;
+  strategyId: string;
+  slug: string;
+  slugLocked: boolean; // true once the user edits the slug manually
+  summary: string;
+  description: string;
+  type: string;
+  status: StrategyStatus;
   /** Curated user-facing objectives; empty = derive from type. */
-  objectives: ObjectiveKey[]
+  objectives: ObjectiveKey[];
   marketFit: {
-    regimes: Regime[]
-    explanation: string
-    scores: Record<Regime, string> // "" = not set
+    regimes: Regime[];
+    explanation: string;
+    scores: Record<Regime, string>; // "" = not set
     /** Optional Level-2 conditions (see lib/secondary-regimes.ts). */
-    secondaryRegimes: SecondaryRegime[]
-    secondaryScores: Record<SecondaryRegime, string> // "" = not set
-  }
-  steps: { title: string; description: string }[]
-  entryConditions: string[]
-  exitConditions: string[]
+    secondaryRegimes: SecondaryRegime[];
+    secondaryScores: Record<SecondaryRegime, string>; // "" = not set
+  };
+  steps: { title: string; description: string }[];
+  entryConditions: string[];
+  exitConditions: string[];
   risk: {
-    overallRisk: RiskLevel
-    explanation: string
-    leverageUsed: boolean
-    leverageAmount: string
-    liquidationExposure: ExposureLevel
-    withdrawalRestrictions: string
-    lockupPeriod: string
-    incentiveReliance: ExposureLevel
-    smartContractRisk: RiskLevel
-    impermanentLoss: ExposureLevel
-    assetVolatility: ExposureLevel
-  }
+    overallRisk: RiskLevel;
+    explanation: string;
+    leverageUsed: boolean;
+    leverageAmount: string;
+    liquidationExposure: ExposureLevel;
+    withdrawalRestrictions: string;
+    lockupPeriod: string;
+    incentiveReliance: ExposureLevel;
+    smartContractRisk: RiskLevel;
+    impermanentLoss: ExposureLevel;
+    assetVolatility: ExposureLevel;
+  };
   requirements: {
-    minCapital: string
-    requiredHoldings: string[]
-    walletSetup: string
-    other: string
-  }
-  references: { title: string; url: string; publisher: string; notes: string }[]
-  lastReviewedAt: string // YYYY-MM-DD or ""
-  depositAssetIds: string[]
-  exposureAssetIds: string[]
-  rewardAssetIds: string[]
-  networkIds: string[]
-  protocolIds: string[]
-  changeNote: string
+    minCapital: string;
+    requiredHoldings: string[];
+    walletSetup: string;
+    other: string;
+  };
+  references: {
+    title: string;
+    url: string;
+    publisher: string;
+    notes: string;
+  }[];
+  lastReviewedAt: string; // YYYY-MM-DD or ""
+  depositAssetIds: string[];
+  exposureAssetIds: string[];
+  rewardAssetIds: string[];
+  networkIds: string[];
+  protocolIds: string[];
+  changeNote: string;
 }
 
 export function emptyFormState(nextId?: string): StrategyFormState {
   return {
+    education: null,
+    recordType: "strategy",
+    canonicalSlug: null,
+    legacyAliases: [],
     name: "",
     strategyId: nextId ?? "",
     slug: "",
@@ -108,7 +121,12 @@ export function emptyFormState(nextId?: string): StrategyFormState {
       impermanentLoss: "NONE",
       assetVolatility: "MEDIUM",
     },
-    requirements: { minCapital: "", requiredHoldings: [], walletSetup: "", other: "" },
+    requirements: {
+      minCapital: "",
+      requiredHoldings: [],
+      walletSetup: "",
+      other: "",
+    },
     references: [],
     lastReviewedAt: "",
     depositAssetIds: [],
@@ -117,13 +135,17 @@ export function emptyFormState(nextId?: string): StrategyFormState {
     networkIds: [],
     protocolIds: [],
     changeNote: "",
-  }
+  };
 }
 
 export function dtoToFormState(dto: StrategyDTO): StrategyFormState {
   return {
     name: dto.name,
     strategyId: dto.strategyId,
+    education: dto.education ?? null,
+    recordType: dto.recordType ?? "legacy",
+    canonicalSlug: dto.canonicalSlug ?? null,
+    legacyAliases: dto.legacyAliases ?? [],
     slug: dto.slug,
     slugLocked: true,
     summary: dto.summary,
@@ -142,8 +164,9 @@ export function dtoToFormState(dto: StrategyDTO): StrategyFormState {
       secondaryRegimes: dto.marketFit.secondaryRegimes ?? [],
       secondaryScores: Object.fromEntries(
         SECONDARY_REGIMES.map(
-          (r) => [r, dto.marketFit.secondaryScores?.[r]?.toString() ?? ""] as const
-        )
+          (r) =>
+            [r, dto.marketFit.secondaryScores?.[r]?.toString() ?? ""] as const,
+        ),
       ) as Record<SecondaryRegime, string>,
     },
     steps: dto.steps?.length ? dto.steps : [{ title: "", description: "" }],
@@ -181,28 +204,33 @@ export function dtoToFormState(dto: StrategyDTO): StrategyFormState {
     networkIds: dto.networks.map((n) => n.id),
     protocolIds: dto.protocols.map((p) => p.id),
     changeNote: "",
-  }
+  };
 }
 
 export function formStateToInput(form: StrategyFormState): StrategyInput {
-  const scores: Partial<Record<Regime, number>> = {}
+  const scores: Partial<Record<Regime, number>> = {};
   for (const regime of ["BULL", "SIDEWAYS", "BEAR"] as Regime[]) {
-    const raw = form.marketFit.scores[regime].trim()
+    const raw = form.marketFit.scores[regime].trim();
     if (raw !== "") {
-      const n = Number.parseInt(raw, 10)
-      if (!Number.isNaN(n)) scores[regime] = Math.max(0, Math.min(100, n))
+      const n = Number.parseInt(raw, 10);
+      if (!Number.isNaN(n)) scores[regime] = Math.max(0, Math.min(100, n));
     }
   }
-  const secondaryScores: Partial<Record<SecondaryRegime, number>> = {}
+  const secondaryScores: Partial<Record<SecondaryRegime, number>> = {};
   for (const regime of form.marketFit.secondaryRegimes) {
-    const raw = form.marketFit.secondaryScores[regime]?.trim()
+    const raw = form.marketFit.secondaryScores[regime]?.trim();
     if (raw && raw !== "") {
-      const n = Number.parseInt(raw, 10)
-      if (!Number.isNaN(n)) secondaryScores[regime] = Math.max(0, Math.min(100, n))
+      const n = Number.parseInt(raw, 10);
+      if (!Number.isNaN(n))
+        secondaryScores[regime] = Math.max(0, Math.min(100, n));
     }
   }
   return {
     name: form.name.trim(),
+    education: form.education,
+    recordType: form.recordType,
+    canonicalSlug: form.canonicalSlug,
+    legacyAliases: form.legacyAliases,
     slug: form.slug.trim(),
     strategyId: form.strategyId.trim(),
     summary: form.summary,
@@ -215,23 +243,30 @@ export function formStateToInput(form: StrategyFormState): StrategyInput {
       scores: Object.keys(scores).length ? scores : undefined,
       secondaryRegimes: form.marketFit.secondaryRegimes,
       secondaryScores:
-        form.marketFit.secondaryRegimes.length && Object.keys(secondaryScores).length
+        form.marketFit.secondaryRegimes.length &&
+        Object.keys(secondaryScores).length
           ? secondaryScores
           : undefined,
       explanation: form.marketFit.explanation || undefined,
     },
     steps: form.steps
       .filter((s) => s.title.trim() !== "" || s.description.trim() !== "")
-      .map((s) => ({ title: s.title.trim(), description: s.description.trim() })),
+      .map((s) => ({
+        title: s.title.trim(),
+        description: s.description.trim(),
+      })),
     entryConditions: form.entryConditions.map((c) => c.trim()).filter(Boolean),
     exitConditions: form.exitConditions.map((c) => c.trim()).filter(Boolean),
     risk: {
       overallRisk: form.risk.overallRisk,
       explanation: form.risk.explanation || undefined,
       leverageUsed: form.risk.leverageUsed,
-      leverageAmount: form.risk.leverageUsed ? form.risk.leverageAmount.trim() || undefined : undefined,
+      leverageAmount: form.risk.leverageUsed
+        ? form.risk.leverageAmount.trim() || undefined
+        : undefined,
       liquidationExposure: form.risk.liquidationExposure,
-      withdrawalRestrictions: form.risk.withdrawalRestrictions.trim() || undefined,
+      withdrawalRestrictions:
+        form.risk.withdrawalRestrictions.trim() || undefined,
       lockupPeriod: form.risk.lockupPeriod.trim() || undefined,
       incentiveReliance: form.risk.incentiveReliance,
       smartContractRisk: form.risk.smartContractRisk,
@@ -240,7 +275,9 @@ export function formStateToInput(form: StrategyFormState): StrategyInput {
     },
     requirements: {
       minCapital: form.requirements.minCapital.trim() || undefined,
-      requiredHoldings: form.requirements.requiredHoldings.map((h) => h.trim()).filter(Boolean),
+      requiredHoldings: form.requirements.requiredHoldings
+        .map((h) => h.trim())
+        .filter(Boolean),
       walletSetup: form.requirements.walletSetup.trim() || undefined,
       other: form.requirements.other.trim() || undefined,
     },
@@ -252,24 +289,29 @@ export function formStateToInput(form: StrategyFormState): StrategyInput {
         publisher: r.publisher.trim() || undefined,
         notes: r.notes.trim() || undefined,
       })),
-    lastReviewedAt: form.lastReviewedAt ? new Date(form.lastReviewedAt).toISOString() : null,
+    lastReviewedAt: form.lastReviewedAt
+      ? new Date(form.lastReviewedAt).toISOString()
+      : null,
     depositAssetIds: form.depositAssetIds,
     exposureAssetIds: form.exposureAssetIds,
     rewardAssetIds: form.rewardAssetIds,
     networkIds: form.networkIds,
     protocolIds: form.protocolIds,
     changeNote: form.changeNote.trim() || undefined,
-  }
+  };
 }
 
 /** Full input payload derived from a DTO (used by archive / duplicate actions). */
-export function dtoToInput(dto: StrategyDTO, overrides: Partial<StrategyInput> = {}): StrategyInput {
-  const base = formStateToInput(dtoToFormState(dto))
-  return { ...base, ...overrides }
+export function dtoToInput(
+  dto: StrategyDTO,
+  overrides: Partial<StrategyInput> = {},
+): StrategyInput {
+  const base = formStateToInput(dtoToFormState(dto));
+  return { ...base, ...overrides };
 }
 
 /** Signature used for dirty-checking (changeNote excluded). */
 export function formSignature(form: StrategyFormState): string {
-  const { changeNote: _note, slugLocked: _lock, ...rest } = form
-  return JSON.stringify(rest)
+  const { changeNote: _note, slugLocked: _lock, ...rest } = form;
+  return JSON.stringify(rest);
 }

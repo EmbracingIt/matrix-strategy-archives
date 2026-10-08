@@ -13,14 +13,14 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { SectionSurface } from "@/components/admin/form-controls"
 import { useRevisions } from "@/hooks/use-strategy-data"
 import { api } from "@/lib/api-client"
-import type { RevisionDTO } from "@/lib/types"
+import type { RevisionDTO, StrategyDTO } from "@/lib/types"
 import { formatDate } from "@/lib/format"
 
 /**
  * Revision history — lists snapshots, lets the admin inspect any previous
  * state and restore it (the restore itself auto-snapshots the live state).
  */
-export function RevisionHistory({ strategyId }: { strategyId: string }) {
+export function RevisionHistory({ strategyId, onRestored }: { strategyId: string; onRestored?: (strategy: StrategyDTO) => void }) {
   const queryClient = useQueryClient()
   const router = useRouter()
   const { data: revisions, isLoading } = useRevisions(strategyId)
@@ -32,10 +32,12 @@ export function RevisionHistory({ strategyId }: { strategyId: string }) {
     setConfirmRestore(null)
     setRestoring(true)
     try {
-      await api.restoreRevision(strategyId, revision.id)
+      const restored = await api.restoreRevision(strategyId, revision.id)
+      onRestored?.(restored)
       await queryClient.invalidateQueries({ queryKey: ["strategies"] })
       await queryClient.invalidateQueries({ queryKey: ["strategy"] })
       await queryClient.invalidateQueries({ queryKey: ["revisions"] })
+      await queryClient.invalidateQueries({ queryKey: ["meta"] })
       toast.success(`Restored revision ${revision.revisionNumber}. The previous live state was snapshotted first.`)
       router.refresh()
     } catch (error) {

@@ -1,8 +1,12 @@
-import { requireAdmin } from "@/lib/server/admin-auth"
-import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { FULL_STRATEGY_INCLUDE, serializeStrategy } from "@/lib/server/strategy-serializer"
-import type { StrategyDTO } from "@/lib/types"
+import { requireAdmin } from "@/lib/server/admin-auth";
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import {
+  FULL_STRATEGY_INCLUDE,
+  serializeStrategy,
+} from "@/lib/server/strategy-serializer";
+import type { StrategyDTO } from "@/lib/types";
+import { educationSchema } from "@/lib/education";
 
 /**
  * POST /api/strategies/:id/revisions/:revId/restore — roll a strategy back
@@ -13,37 +17,43 @@ import type { StrategyDTO } from "@/lib/types"
  */
 export async function POST(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string; revId: string }> }
+  { params }: { params: Promise<{ id: string; revId: string }> },
 ) {
-  const denied = await requireAdmin(true)
-  if (denied) return denied
+  const denied = await requireAdmin(true);
+  if (denied) return denied;
   try {
-    const { id, revId } = await params
+    const { id, revId } = await params;
 
     const existing = await db.strategy.findUnique({
       where: { id },
       include: FULL_STRATEGY_INCLUDE,
-    })
+    });
     if (!existing) {
-      return NextResponse.json({ error: "Strategy not found" }, { status: 404 })
+      return NextResponse.json(
+        { error: "Strategy not found" },
+        { status: 404 },
+      );
     }
 
     const revision = await db.revision.findFirst({
       where: { id: revId, strategyId: id },
-    })
+    });
     if (!revision) {
-      return NextResponse.json({ error: "Revision not found" }, { status: 404 })
+      return NextResponse.json(
+        { error: "Revision not found" },
+        { status: 404 },
+      );
     }
 
-    const target = JSON.parse(revision.snapshot) as StrategyDTO
-    const current = serializeStrategy(existing)
+    const target = JSON.parse(revision.snapshot) as StrategyDTO;
+    const current = serializeStrategy(existing);
 
     // Snapshot the live state so the restore can itself be undone.
     const last = await db.revision.findFirst({
       where: { strategyId: id },
       orderBy: { revisionNumber: "desc" },
       select: { revisionNumber: true },
-    })
+    });
     await db.revision.create({
       data: {
         strategyId: id,
@@ -51,14 +61,35 @@ export async function POST(
         snapshot: JSON.stringify(current),
         changeNote: `Auto-snapshot before restoring revision ${revision.revisionNumber}`,
       },
-    })
+    });
+
+    // A pre-consolidation revision is research history, not a new public plan.
+    // Restore that research privately without replacing the beginner page with
+    // the old long-form definition or removing its implementation requirements.
+    if (
+      existing.recordType === "strategy" &&
+      current.education &&
+      !educationSchema.safeParse(target.education).success
+    ) {
+      const restored = await db.strategy.update({
+        where: { id },
+        data: {
+          educationJson: JSON.stringify({
+            ...current.education,
+            detailedResearch: target.description ?? "",
+          }),
+        },
+        include: FULL_STRATEGY_INCLUDE,
+      });
+      return NextResponse.json(serializeStrategy(restored));
+    }
 
     // Apply the snapshot's definition onto the strategy (keep identity fields).
-    await db.strategyDepositAsset.deleteMany({ where: { strategyId: id } })
-    await db.strategyExposureAsset.deleteMany({ where: { strategyId: id } })
-    await db.strategyRewardAsset.deleteMany({ where: { strategyId: id } })
-    await db.strategyNetwork.deleteMany({ where: { strategyId: id } })
-    await db.strategyProtocol.deleteMany({ where: { strategyId: id } })
+    await db.strategyDepositAsset.deleteMany({ where: { strategyId: id } });
+    await db.strategyExposureAsset.deleteMany({ where: { strategyId: id } });
+    await db.strategyRewardAsset.deleteMany({ where: { strategyId: id } });
+    await db.strategyNetwork.deleteMany({ where: { strategyId: id } });
+    await db.strategyProtocol.deleteMany({ where: { strategyId: id } });
 
     const restored = await db.strategy.update({
       where: { id },
@@ -67,14 +98,22 @@ export async function POST(
         summary: target.summary ?? "",
         description: target.description ?? "",
         type: target.type,
+        educationJson: JSON.stringify(target.education ?? {}),
+        objectivesJson: JSON.stringify(target.objectives ?? []),
+        // Keep consolidation identity and status. Restoring old research must
+        // never republish a retired duplicate or undo a canonical mapping.
         marketFit: JSON.stringify(target.marketFit ?? { regimes: [] }),
         steps: JSON.stringify(target.steps ?? []),
         entryConditions: JSON.stringify(target.entryConditions ?? []),
         exitConditions: JSON.stringify(target.exitConditions ?? []),
         risk: JSON.stringify(target.risk ?? {}),
-        requirements: JSON.stringify(target.requirements ?? { requiredHoldings: [] }),
+        requirements: JSON.stringify(
+          target.requirements ?? { requiredHoldings: [] },
+        ),
         referencesJson: JSON.stringify(target.references ?? []),
-        lastReviewedAt: target.lastReviewedAt ? new Date(target.lastReviewedAt) : null,
+        lastReviewedAt: target.lastReviewedAt
+          ? new Date(target.lastReviewedAt)
+          : null,
         depositAssets: {
           create: (target.depositAssets ?? []).map((a) => ({ assetId: a.id })),
         },
@@ -92,11 +131,14 @@ export async function POST(
         },
       },
       include: FULL_STRATEGY_INCLUDE,
-    })
+    });
 
-    return NextResponse.json(serializeStrategy(restored))
+    return NextResponse.json(serializeStrategy(restored));
   } catch (error) {
-    console.error("POST restore revision failed:", error)
-    return NextResponse.json({ error: "Failed to restore revision" }, { status: 500 })
+    console.error("POST restore revision failed:", error);
+    return NextResponse.json(
+      { error: "Failed to restore revision" },
+      { status: 500 },
+    );
   }
 }

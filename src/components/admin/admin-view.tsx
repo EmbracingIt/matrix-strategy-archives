@@ -120,7 +120,7 @@ export function AdminView({
         {/* Content — fills the remaining viewport width */}
         <main className="min-w-0 flex-1">
           {editing ? (
-            <StrategyForm strategyId={editId ?? undefined} isNew={isNew} />
+            <StrategyForm key={isNew ? "new" : editId} strategyId={editId ?? undefined} isNew={isNew} />
           ) : (
             <div className="mx-auto w-full max-w-[1152px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
               {/* Mobile section nav */}

@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server"
-import { isAdmin } from "@/lib/server/admin-auth"
-import { db } from "@/lib/db"
-import type { MetaDTO } from "@/lib/types"
+import { NextResponse } from "next/server";
+import { isAdmin } from "@/lib/server/admin-auth";
+import { db } from "@/lib/db";
+import { PUBLIC_STRATEGY_WHERE } from "@/lib/server/public-catalogue";
+import type { MetaDTO } from "@/lib/types";
 
 /**
  * GET /api/meta — lightweight metadata for the public site and admin:
@@ -9,23 +10,27 @@ import type { MetaDTO } from "@/lib/types"
  */
 export async function GET() {
   try {
-    const admin = await isAdmin()
-    const [strategies, assetCount, protocolCount, networkCount] = await Promise.all([
-      db.strategy.findMany({ where: admin ? {} : { status: "PUBLISHED" }, select: { type: true, status: true } }),
-      db.asset.count(),
-      db.protocol.count(),
-      db.network.count(),
-    ])
+    const admin = await isAdmin();
+    const [strategies, assetCount, protocolCount, networkCount] =
+      await Promise.all([
+        db.strategy.findMany({
+          where: admin ? {} : PUBLIC_STRATEGY_WHERE,
+          select: { type: true, status: true },
+        }),
+        db.asset.count(),
+        db.protocol.count(),
+        db.network.count(),
+      ]);
 
-    const typeMap = new Map<string, number>()
-    let published = 0
-    let draft = 0
-    let archived = 0
+    const typeMap = new Map<string, number>();
+    let published = 0;
+    let draft = 0;
+    let archived = 0;
     for (const s of strategies) {
-      typeMap.set(s.type, (typeMap.get(s.type) ?? 0) + 1)
-      if (s.status === "PUBLISHED") published++
-      else if (s.status === "DRAFT") draft++
-      else if (s.status === "ARCHIVED") archived++
+      typeMap.set(s.type, (typeMap.get(s.type) ?? 0) + 1);
+      if (s.status === "PUBLISHED") published++;
+      else if (s.status === "DRAFT") draft++;
+      else if (s.status === "ARCHIVED") archived++;
     }
 
     const meta: MetaDTO = {
@@ -41,11 +46,14 @@ export async function GET() {
         protocols: protocolCount,
         networks: networkCount,
       },
-    }
+    };
 
-    return NextResponse.json(meta)
+    return NextResponse.json(meta);
   } catch (error) {
-    console.error("GET /api/meta failed:", error)
-    return NextResponse.json({ error: "Failed to compute meta" }, { status: 500 })
+    console.error("GET /api/meta failed:", error);
+    return NextResponse.json(
+      { error: "Failed to compute meta" },
+      { status: 500 },
+    );
   }
 }

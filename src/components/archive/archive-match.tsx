@@ -5,12 +5,8 @@ import type { MatchedRecord } from "@/lib/matching"
 import { cn } from "@/lib/utils"
 
 /**
- * ARCHIVE MATCH — the deterministic compatibility score shown on retrieved
- * records, with its explainable "why it matches" provenance. Never labeled
- * AI; the engine lives in lib/matching.ts. The score itself is rendered
- * inline by the record components (large in the Best Match panel, quiet
- * text on further records) so it integrates with each layout instead of
- * arriving as a bolted-on badge.
+ * Plain-language context for retrieved records. Ranking remains internal;
+ * the public interface presents market/phase reasoning without scores.
  */
 
 export function WhyItMatches({ record, className }: { record: MatchedRecord; className?: string }) {
