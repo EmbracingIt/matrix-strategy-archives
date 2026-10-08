@@ -53,7 +53,7 @@ export const educationSchema = z.object({
           next: z.string(),
         }),
       )
-      .length(3),
+      .min(3),
   }),
   monitor: z.array(z.string()),
   exit: z.string(),

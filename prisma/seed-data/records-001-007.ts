@@ -27,22 +27,22 @@ export const records: SeedStrategy[] = [
     status: "PUBLISHED",
     objectives: ["accumulation", "liquidity"],
     summary:
-      "Accumulate ETH during weak markets while earning trading fees inside a defined liquidity range.",
+      "Use a Uniswap V3 range order to convert USDC into ETH gradually as price falls through a chosen range.",
     description:
-      "Accumulation LP is a concentrated liquidity strategy designed for investors who want to build ETH exposure during weak or ranging market conditions. Instead of buying spot at uncertain prices, you deposit ETH and USDC into a Uniswap V3 liquidity range positioned at and below the current price.\n\nWhile price stays inside the range, the position earns trading fees from every swap passing through it. If price falls through the range, the position automatically converts toward ETH as it moves down — effectively accumulating ETH at progressively lower prices, similar to a limit-order ladder. If price recovers through the range, the position converts back toward USDC, locking in the accumulated ETH at higher levels.\n\nThe strategy deliberately accepts one-directional impermanent loss (downward conversion) as the mechanism for accumulation, while trading fees and disciplined range selection compensate along the way. The downward conversion is the strategy, not an accident: the investor has chosen in advance to be rewarded with more ETH for the same capital if the market weakens. It is a patient, rules-based alternative to manual averaging that pays you to wait at your chosen entry zone.",
+      "This is effectively a range order: a gradual limit buy implemented with Uniswap V3 concentrated liquidity. You place unborrowed USDC in a range wholly below the current ETH price. Swaps progressively convert USDC into ETH as price falls through the range. Below it, you hold ETH and remain exposed to further declines; a recovery can reverse the conversion unless you withdraw the acquired ETH.\n\nThe position may earn fees while active, but fees are small relative to price moves and do not make the entry price better than a plain limit order. Arbitrageurs trade at market-aligned prices. Compared with a simpler one-price limit order, this range order converts gradually but sells ETH back into USDC if price recovers through the open range.",
     marketFit: {
       regimes: ["BEAR", "SIDEWAYS"],
       scores: { BULL: 20, SIDEWAYS: 80, BEAR: 90 },
-      secondaryRegimes: ["EARLY_RECOVERY", "LOW_VOL_COMPRESSION"],
-      secondaryScores: { EARLY_RECOVERY: 95, LOW_VOL_COMPRESSION: 85 },
+      secondaryRegimes: ["CAPITULATION_DELEVERAGING"],
+      secondaryScores: {},
       explanation:
-        "In bear and sideways markets, price tends to spend long stretches inside a defined range — exactly where concentrated liquidity earns the most fees per unit of risk. Downward moves convert the position into ETH at progressively lower cost, serving the accumulation goal, which is why the strategy scores highest in bear regimes (90). Within those regimes, Early Recovery (95) is close to its ideal condition: the market is improving but directional conviction is still unproven, and the range lets the investor keep acquiring ETH through residual weakness while fees offset the cost of waiting — rather than committing everything to one large directional entry. Low-Vol Compression (85) suits the position mechanically: a tight, stable trading range keeps the liquidity position active and continuously earning without repeated range moves or realized impermanent loss. In sideways regimes the same mechanics apply but accumulation happens more slowly (80). In a strong bull market the strategy underperforms simply holding ETH, because the position converts back to USDC early and caps upside (20).",
+        "Designed for bear and sideways markets when you deliberately want ETH exposure at lower prices. The capitulation/deleveraging phase is relevant only if you have already chosen to buy ETH through a sharp decline and can hold through a large further drop; a fast move can fill the range within minutes. This is not a bottom detector or a claim that capitulation is favourable. Use the plan only when the full range is below spot at entry; entering in-range during a recovery sells ETH as price rises, and a recovery through an open range can reverse accumulated ETH. Deploy only an amount you would be comfortable holding through that further decline. Fees are incidental and small relative to price moves.",
     },
     steps: [
       {
-        title: "Deposit ETH and USDC",
+        title: "Prepare USDC and gas",
         description:
-          "Fund the strategy with an approximately 50/50 split of ETH and USDC. The USDC side provides the dry powder that converts into ETH if price moves down through the range.",
+          "For a range wholly below spot, supply USDC only and keep ETH separately for gas.",
       },
       {
         title: "Select the liquidity range",
@@ -52,12 +52,12 @@ export const records: SeedStrategy[] = [
       {
         title: "Provide liquidity",
         description:
-          "Deposit both assets into the ETH/USDC pool on Uniswap V3 within the selected range. Confirm the position and its fee tier before submitting.",
+          "Enter USDC only when the full range is below spot. An in-range, two-asset start is a different position with a different risk profile; see Dual-Asset LP.",
       },
       {
         title: "Monitor price relative to range",
         description:
-          "Track where price sits inside the range. Fee earnings are highest when price actively crosses the middle of the range; the composition of the position shifts toward ETH near the bottom and toward USDC near the top.",
+          "Set alerts at both range boundaries. A sharp move can fill the whole range within minutes; review the token mix and accrued fees separately.",
       },
       {
         title: "Rebalance under defined conditions",
@@ -81,12 +81,12 @@ export const records: SeedStrategy[] = [
       "A confirmed bull-regime breakout with sustained momentum above your range",
       "Price exits the range upward and your ETH accumulation target is met",
       "You no longer want directional exposure to ETH",
-      "Fee earnings no longer compensate for impermanent-loss risk",
+        "You no longer accept conversion/reversal risk or the resulting ETH exposure",
     ],
     risk: {
       overallRisk: "MEDIUM",
       explanation:
-        "The dominant risk is impermanent loss: if price crashes through the range quickly, the position is mostly ETH at the bottom and the accumulated size can show a marked loss versus the initial deposit. Smart contract risk in Uniswap V3 pools is real but the codebase is among the most battle-tested in DeFi. The strategy is unleveraged and has no liquidation risk, but it requires active monitoring and disciplined rebalancing. Rapid rebounds after you rebalance lower can also cause you to re-enter at worse prices.",
+        "Smart-contract risk is MEDIUM for contract and protocol failure; it does not include USDC issuer risk. USDC can depeg or be frozen/blacklisted. More ETH units can still mean a lower dollar value, and a recovery sells accumulated ETH back to USDC while the position stays open.",
       leverageUsed: false,
       leverageAmount: "",
       liquidationExposure: "NONE",
@@ -96,27 +96,35 @@ export const records: SeedStrategy[] = [
       incentiveReliance: "LOW",
       smartContractRisk: "MEDIUM",
       impermanentLoss: "MEDIUM",
+      conversionReversalRisk: "HIGH",
+      conversionReversalExplanation: "If price recovers through the open range, accumulated ETH converts back to USDC; remove liquidity if you want to retain ETH.",
       assetVolatility: "HIGH",
     },
     requirements: {
       minCapital: "$2,000",
-      requiredHoldings: ["ETH", "USDC"],
-      walletSetup: "Ethereum-compatible wallet (e.g. MetaMask, Rabby) with a small gas buffer",
+      requiredHoldings: ["USDC"],
+      walletSetup: "Use an Ethereum wallet, hold USDC for the range and ETH for gas. Approve the Uniswap V3 position manager for the limited USDC amount needed; do not approve an unlimited amount. Learn about wallets, approvals and gas before signing.",
       other:
         "Must be able to interact with Uniswap V3 on Ethereum mainnet and monitor the position at least weekly",
     },
     references: [
       {
-        title: "Uniswap V3 Documentation",
-        url: "https://docs.uniswap.org/",
+        title: "Uniswap V3 concentrated liquidity docs",
+        url: "https://developers.uniswap.org/docs/get-started/concepts/liquidity-providers/concentrated-liquidity",
         publisher: "Uniswap Labs",
         notes: "Concentrated liquidity, positions and fee tiers",
       },
       {
-        title: "Uniswap V3 Announcement",
-        url: "https://uniswap.org/blog/uniswap-v3",
+        title: "Uniswap V3 whitepaper",
+        url: "https://app.uniswap.org/whitepaper-v3.pdf",
         publisher: "Uniswap Labs",
-        notes: "Design rationale for concentrated liquidity",
+        notes: "V3 protocol design and concentrated liquidity",
+      },
+      {
+        title: "Uniswap V3 Ethereum deployments",
+        url: "https://developers.uniswap.org/docs/protocols/v3/deployments/v3-ethereum-deployments",
+        publisher: "Uniswap Labs",
+        notes: "Official Ethereum contract addresses; NonfungiblePositionManager: 0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
       },
       {
         title: "Impermanent Loss Explained",
@@ -126,7 +134,7 @@ export const records: SeedStrategy[] = [
       },
     ],
     lastReviewedAt: "2026-09-10",
-    depositAssets: ["ETH", "USDC"],
+    depositAssets: ["USDC"],
     exposureAssets: ["ETH", "USDC"],
     rewardAssets: [],
     networks: ["ethereum"],

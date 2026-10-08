@@ -238,7 +238,9 @@ export function CompareView() {
                             label="Smart contract"
                             value={record.risk?.smartContractRisk}
                           />
-                          <ExposureLine label="Impermanent loss" value={record.risk?.impermanentLoss} />
+                          {record.risk?.conversionReversalRisk
+                            ? <ExposureLine label="Conversion / reversal risk" value={record.risk.conversionReversalRisk} />
+                            : <ExposureLine label="Impermanent loss" value={record.risk?.impermanentLoss} />}
                           <ExposureLine
                             label="Liquidation"
                             value={record.risk?.liquidationExposure}

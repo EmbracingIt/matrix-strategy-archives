@@ -52,6 +52,8 @@ export interface StrategyFormState {
     incentiveReliance: ExposureLevel;
     smartContractRisk: RiskLevel;
     impermanentLoss: ExposureLevel;
+    conversionReversalRisk: ExposureLevel | "";
+    conversionReversalExplanation: string;
     assetVolatility: ExposureLevel;
   };
   requirements: {
@@ -119,6 +121,8 @@ export function emptyFormState(nextId?: string): StrategyFormState {
       incentiveReliance: "LOW",
       smartContractRisk: "MEDIUM",
       impermanentLoss: "NONE",
+      conversionReversalRisk: "",
+      conversionReversalExplanation: "",
       assetVolatility: "MEDIUM",
     },
     requirements: {
@@ -183,6 +187,8 @@ export function dtoToFormState(dto: StrategyDTO): StrategyFormState {
       incentiveReliance: dto.risk.incentiveReliance ?? "LOW",
       smartContractRisk: dto.risk.smartContractRisk ?? "MEDIUM",
       impermanentLoss: dto.risk.impermanentLoss ?? "NONE",
+      conversionReversalRisk: dto.risk.conversionReversalRisk ?? "",
+      conversionReversalExplanation: dto.risk.conversionReversalExplanation ?? "",
       assetVolatility: dto.risk.assetVolatility ?? "MEDIUM",
     },
     requirements: {
@@ -271,6 +277,8 @@ export function formStateToInput(form: StrategyFormState): StrategyInput {
       incentiveReliance: form.risk.incentiveReliance,
       smartContractRisk: form.risk.smartContractRisk,
       impermanentLoss: form.risk.impermanentLoss,
+      conversionReversalRisk: form.risk.conversionReversalRisk || undefined,
+      conversionReversalExplanation: form.risk.conversionReversalExplanation.trim() || undefined,
       assetVolatility: form.risk.assetVolatility,
     },
     requirements: {

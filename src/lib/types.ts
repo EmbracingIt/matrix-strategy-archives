@@ -118,6 +118,9 @@ export interface RiskProfile {
   incentiveReliance: ExposureLevel;
   smartContractRisk: RiskLevel;
   impermanentLoss: ExposureLevel;
+  /** Optional risk specific to one-sided range-conversion strategies. */
+  conversionReversalRisk?: ExposureLevel;
+  conversionReversalExplanation?: string;
   assetVolatility: ExposureLevel;
 }
 

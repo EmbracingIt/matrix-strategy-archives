@@ -136,9 +136,10 @@ async function main() {
             exitConditions: JSON.stringify(c.education.reconsiderIf),
             marketFit: JSON.stringify(marketContexts[c.legacyId]),
             requirements: JSON.stringify({
-              requiredHoldings: c.assets,
-              walletSetup:
+              requiredHoldings: c.requirements?.requiredHoldings ?? c.assets,
+              walletSetup: c.requirements?.walletSetup ??
                 "See selected implementation; requirements are not universal.",
+              ...(c.requirements ? { other: c.requirements.other } : {}),
             }),
             risk: JSON.stringify({
               overallRisk:
@@ -153,6 +154,8 @@ async function main() {
               smartContractRisk: "MEDIUM",
               impermanentLoss:
                 ["Liquidity Provision", "Hedging"].includes(c.education.family) ? "HIGH" : "NONE",
+              conversionReversalRisk: c.conversionReversalRisk,
+              conversionReversalExplanation: c.conversionReversalExplanation,
               assetVolatility: c.legacyId === "STRATEGY_011" ? "LOW" : "HIGH",
             }),
             referencesJson: JSON.stringify(
@@ -161,12 +164,12 @@ async function main() {
                   c.education.implementations.flatMap((i) => i.sources),
                 ),
               ].map((url) => ({
-                title: "Official implementation documentation",
+                title: c.referenceTitles?.[url] ?? "Official implementation documentation",
                 url,
               })),
             ),
             lastReviewedAt: new Date("2026-10-08"),
-            depositAssets: { create: assets.map((a) => ({ assetId: a.id })) },
+            depositAssets: { create: assets.filter((a) => !c.depositAssets || c.depositAssets.includes(a.symbol)).map((a) => ({ assetId: a.id })) },
             exposureAssets: { create: assets.map((a) => ({ assetId: a.id })) },
             networks: { create: networks.map((n) => ({ networkId: n.id })) },
             protocols: { create: protocols.map((p) => ({ protocolId: p.id })) },

@@ -377,7 +377,7 @@ function OverviewSection({ strategy }: { strategy: StrategyDTO }) {
         <details className="border-t border-white/10 pt-5"><summary className="arc-mono min-h-11 cursor-pointer text-arc-text">WORKED EXAMPLE / ILLUSTRATIVE, NOT LIVE RATES</summary>
           <h3 className="mt-4 text-[20px] font-semibold text-arc-text">{strategy.education.example.title}</h3>
           <p className="mt-4">{strategy.education.example.starting}</p><p className="mt-3">{strategy.education.example.action}</p><p className="mt-3">Assumptions: {strategy.education.example.assumptions}</p><p className="mt-3">Benchmark: {strategy.education.example.benchmark}</p>
-          <div className="mt-6 grid gap-px border border-white/10 bg-white/10 xl:grid-cols-3">{strategy.education.example.scenarios.map(scenario => <div key={scenario.label} className="min-w-0 bg-arc-surface p-5"><h4 className="font-semibold text-arc-text">{scenario.label}</h4><p className="mt-3">{scenario.condition}</p><p className="mt-3">Ending assets: {scenario.assets}</p><p className="mt-3">{scenario.value}</p><p className="mt-3">{scenario.next}</p></div>)}</div>
+          <div className="mt-6 grid gap-px border border-white/10 bg-white/10 xl:grid-cols-3">{strategy.education.example.scenarios.map(scenario => <div key={scenario.label} className="min-w-0 bg-arc-surface p-5"><h4 className="font-semibold text-arc-text">{scenario.label}</h4><p className="mt-3">{scenario.condition}</p><p className="mt-3">Position assets: {scenario.assets}</p><p className="mt-3">{scenario.value}</p><p className="mt-3">{scenario.next}</p></div>)}</div>
         </details>
       </div>}
 
@@ -511,25 +511,13 @@ function MarketFitSection({ strategy }: { strategy: StrategyDTO }) {
                   {REGIME_ARROWS[regime]} {regime}
                   {!active && <span className="ml-2 text-arc-dim/70">NOT DESIGNED</span>}
                 </span>
-                <span className="font-mono text-[13px] tabular-nums text-arc-text">
-                  {typeof score === "number" ? score : "—"}
+                <span className="arc-mono text-[10px] text-arc-dim">
+                  {typeof score === "number" ? score : active ? "DESIGNED FOR" : "NOT SCORED"}
                 </span>
               </div>
-              <div className="mt-2 h-[3px] w-full bg-white/10" aria-hidden>
-                <span
-                  className={cn(
-                    "block h-full transition-all",
-                    active
-                      ? regime === "BULL"
-                        ? "bg-arc-green"
-                        : regime === "SIDEWAYS"
-                          ? "bg-arc-amber"
-                          : "bg-arc-red"
-                      : "bg-white/15"
-                  )}
-                  style={{ width: `${typeof score === "number" ? score : 4}%` }}
-                />
-              </div>
+              {typeof score === "number" && <div className="mt-2 h-[3px] w-full bg-white/10" aria-hidden>
+                <span className={cn("block h-full transition-all", active ? regime === "BULL" ? "bg-arc-green" : regime === "SIDEWAYS" ? "bg-arc-amber" : "bg-arc-red" : "bg-white/15")} style={{ width: `${score}%` }} />
+              </div>}
             </div>
           )
         })}
@@ -616,10 +604,15 @@ function RiskSection({ strategy }: { strategy: StrategyDTO }) {
       label: "Liquidation exposure",
       value: <span className={EXPOSURE_TEXT[risk.liquidationExposure]}>{risk.liquidationExposure}</span>,
     },
-    {
-      label: "Impermanent loss",
-      value: <span className={EXPOSURE_TEXT[risk.impermanentLoss]}>{risk.impermanentLoss}</span>,
-    },
+    ...(risk.conversionReversalRisk
+      ? [{
+          label: "Conversion / reversal risk",
+          value: <span className={EXPOSURE_TEXT[risk.conversionReversalRisk]}>{risk.conversionReversalRisk}</span>,
+        }]
+      : [{
+          label: "Impermanent loss",
+          value: <span className={EXPOSURE_TEXT[risk.impermanentLoss]}>{risk.impermanentLoss}</span>,
+        }]),
     {
       label: "Smart contract risk",
       value: <span className={RISK_TEXT[risk.smartContractRisk]}>{risk.smartContractRisk?.replace("_", " ")}</span>,
@@ -661,6 +654,11 @@ function RiskSection({ strategy }: { strategy: StrategyDTO }) {
           <p className="arc-mono mb-3 text-[10px] text-arc-amber">RISK EXPLANATION</p>
           <p className="text-[14px] leading-[1.75] text-arc-muted">{risk.explanation}</p>
         </div>
+      )}
+      {risk.conversionReversalExplanation && (
+        <p className="mt-5 max-w-2xl text-[14px] leading-[1.75] text-arc-muted">
+          {risk.conversionReversalExplanation}
+        </p>
       )}
     </section>
   )
@@ -771,6 +769,8 @@ function RequirementsSection({ strategy }: { strategy: StrategyDTO }) {
       <select aria-label="Asset, product and network" value={implementation} onChange={event=>setImplementation(Number(event.target.value))} className="mt-3 block min-h-11 w-full min-w-0 rounded-[4px] border border-white/15 bg-arc-surface px-3 text-[14px] text-arc-text">{implementations.map((item,index)=><option key={item.key} value={index}>{item.label}</option>)}</select>
     </label>
     <ul className="mt-6 space-y-3 text-[14px] leading-relaxed text-arc-muted">{selected.requirements.map(text=><li key={text}>{text}</li>)}</ul>
+    {strategy.slug === "accumulation-lp" && <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[13px]"><Link className="inline-flex min-h-11 items-center text-arc-green" href="/?view=learn&lesson=wallets">Learn about wallets →</Link><Link className="inline-flex min-h-11 items-center text-arc-green" href="/?view=learn&lesson=security">Learn about approvals →</Link><Link className="inline-flex min-h-11 items-center text-arc-green" href="/?view=learn&lesson=networks">Learn about gas →</Link></div>}
+    {strategy.slug === "accumulation-lp" && <p className="mt-2 text-[13px] text-arc-muted">Already in range at entry? That is a different two-sided LP: <Link className="text-arc-green underline underline-offset-4" href="/?view=strategy&slug=dual-asset-growth-lp">see Dual-Asset LP</Link>.</p>}
     <div className="mt-8 grid gap-6 border-t border-white/10 pt-6 sm:grid-cols-2">{[["ENTER",selected.enter],["RECEIVED POSITION",selected.accounting],["EXIT",selected.exit],["RISKS",selected.risks]].map(([title,text])=><div key={title}><p className="arc-mono text-arc-dim">{title}</p><p className="mt-3 text-[14px] leading-relaxed text-arc-muted">{text}</p></div>)}</div>
   </section>
   return (
@@ -814,6 +814,8 @@ function RequirementsSection({ strategy }: { strategy: StrategyDTO }) {
           <p className="mt-2.5 max-w-md text-[14px] leading-relaxed text-arc-muted">
             {req?.walletSetup || "Standard EVM wallet setup."}
           </p>
+          {strategy.slug === "accumulation-lp" && <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[13px]"><Link className="inline-flex min-h-11 items-center text-arc-green" href="/?view=learn&lesson=wallets">Learn about wallets →</Link><Link className="inline-flex min-h-11 items-center text-arc-green" href="/?view=learn&lesson=security">Learn about approvals →</Link><Link className="inline-flex min-h-11 items-center text-arc-green" href="/?view=learn&lesson=networks">Learn about gas →</Link></div>}
+          {strategy.slug === "accumulation-lp" && <p className="mt-2 text-[13px] text-arc-muted">Already in range at entry? That is a different two-sided LP: <Link className="text-arc-green underline underline-offset-4" href="/?view=strategy&slug=dual-asset-growth-lp">see Dual-Asset LP</Link>.</p>}
         </div>
         <div>
           <p className="arc-mono text-arc-dim">OTHER PREREQUISITES</p>

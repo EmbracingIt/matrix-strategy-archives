@@ -60,6 +60,8 @@ export const riskSchema = z.object({
     .enum(["LOW", "MEDIUM", "HIGH", "VERY_HIGH"])
     .default("MEDIUM"),
   impermanentLoss: z.enum(["NONE", "LOW", "MEDIUM", "HIGH"]).default("NONE"),
+  conversionReversalRisk: z.enum(["NONE", "LOW", "MEDIUM", "HIGH"]).optional(),
+  conversionReversalExplanation: z.string().optional(),
   assetVolatility: z.enum(["NONE", "LOW", "MEDIUM", "HIGH"]).default("MEDIUM"),
 });
 

@@ -700,7 +700,7 @@ function RiskSelect({
   onChange,
 }: {
   label: string
-  value: RiskLevel | ExposureLevel
+  value: RiskLevel | ExposureLevel | "NOT_SET"
   options: { value: string; label: string }[]
   onChange: (v: string) => void
 }) {
@@ -761,6 +761,12 @@ export function RiskSection({ form, update }: SectionProps) {
           onChange={(v) => setRisk({ impermanentLoss: v as ExposureLevel })}
         />
         <RiskSelect
+          label="Conversion / reversal risk"
+          value={risk.conversionReversalRisk || "NOT_SET"}
+          options={[{ value: "NOT_SET", label: "Not set" }, ...exposureOptions]}
+          onChange={(v) => setRisk({ conversionReversalRisk: v === "NOT_SET" ? "" : v as ExposureLevel })}
+        />
+        <RiskSelect
           label="Asset volatility"
           value={risk.assetVolatility}
           options={exposureOptions}
@@ -808,6 +814,16 @@ export function RiskSection({ form, update }: SectionProps) {
             placeholder="Explain the dominant risks, the tail risks, and what the strategy does NOT protect against…"
             rows={5}
             className="min-h-[140px] text-sm leading-relaxed"
+          />
+        </Field>
+      </div>
+      <div className="mt-6">
+        <Field label="Conversion / reversal risk explanation" hint="Optional; shown when this strategy has a conversion risk rating.">
+          <Textarea
+            value={risk.conversionReversalExplanation}
+            onChange={(e) => setRisk({ conversionReversalExplanation: e.target.value })}
+            rows={3}
+            className="min-h-[96px] text-sm leading-relaxed"
           />
         </Field>
       </div>

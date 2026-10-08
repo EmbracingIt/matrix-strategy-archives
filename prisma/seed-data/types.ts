@@ -51,6 +51,8 @@ export interface SeedRisk {
   incentiveReliance: ExposureLevel
   smartContractRisk: RiskLevel
   impermanentLoss: ExposureLevel
+  conversionReversalRisk?: ExposureLevel
+  conversionReversalExplanation?: string
   assetVolatility: ExposureLevel
 }
 

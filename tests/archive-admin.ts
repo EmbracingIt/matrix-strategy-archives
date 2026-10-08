@@ -32,6 +32,18 @@ async function main() {
     const records = await api("/api/strategies?status=ALL");
     assert.equal(records.length, 22);
     original = await api(`/api/strategies/${records.find(s => s.strategyId === 'STRATEGY_001').id}`);
+    assert.equal(original.education.example.scenarios.length, 4);
+    const unchangedLp = await api(`/api/strategies/${records.find(s => s.strategyId === 'STRATEGY_016').id}`);
+    assert.equal(unchangedLp.risk.conversionReversalRisk, undefined);
+    const riskRoundTrip = dtoToInput(original);
+    riskRoundTrip.risk = {
+      ...riskRoundTrip.risk,
+      conversionReversalRisk: 'MEDIUM',
+      conversionReversalExplanation: 'Local admin risk-field round-trip.',
+    };
+    const riskSaved = await api(`/api/strategies/${original.id}`, 'PUT', riskRoundTrip);
+    assert.equal(riskSaved.risk.conversionReversalRisk, 'MEDIUM');
+    assert.equal(riskSaved.risk.conversionReversalExplanation, 'Local admin risk-field round-trip.');
     await page.goto(origin + `/?view=admin&edit=${original.id}`);
     await page.getByLabel("Name", { exact: true }).fill(original.name + " local check");
     await save();
