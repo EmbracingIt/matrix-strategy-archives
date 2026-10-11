@@ -12,6 +12,7 @@ import { secondaryRegimeDef } from "@/lib/secondary-regimes"
 import { ArcAssetIcon, ArcIconStack, ArcNetworkIcon, ArcProtocolIcon } from "@/components/archive/archive-icons"
 import { RegimeIndicator } from "@/components/archive/regime-indicator"
 import { AccumulationLpDemo } from "@/components/archive/accumulation-lp-demo"
+import { DistributionLpDemo } from "@/components/archive/distribution-lp-demo"
 import { DualAssetLpDemo } from "@/components/archive/dual-asset-lp-demo"
 import { cn } from "@/lib/utils"
 import type { ExposureLevel, Regime, RiskLevel, StrategyDTO } from "@/lib/types"
@@ -387,7 +388,7 @@ function OverviewSection({ strategy }: { strategy: StrategyDTO }) {
           </div>
         </div>}
         <details className="border-t border-white/10 pt-5"><summary className="arc-mono min-h-11 cursor-pointer text-arc-text">WORKED EXAMPLE / ILLUSTRATIVE, NOT LIVE RATES</summary>
-          {strategy.slug === "accumulation-lp" ? <AccumulationLpDemo /> : strategy.slug === "dual-asset-growth-lp" ? <DualAssetLpDemo /> : <>
+          {strategy.slug === "accumulation-lp" ? <AccumulationLpDemo /> : strategy.slug === "distribution-lp" ? <DistributionLpDemo /> : strategy.slug === "dual-asset-growth-lp" ? <DualAssetLpDemo /> : <>
             <h3 className="mt-4 text-[20px] font-semibold text-arc-text">{strategy.education.example.title}</h3>
             <p className="mt-4">{strategy.education.example.starting}</p><p className="mt-3">{strategy.education.example.action}</p><p className="mt-3">Assumptions: {strategy.education.example.assumptions}</p><p className="mt-3">Benchmark: {strategy.education.example.benchmark}</p>
             {strategy.slug === "stablecoin-yield-rotation" ? <p className="mt-5 border-l border-arc-green/50 pl-4 text-arc-text">The benefit here is putting waiting capital to work: the illustrative six-month outcome is included above, before gas and other costs.</p> : <div className="mt-6 grid gap-px border border-white/10 bg-white/10 xl:grid-cols-3">{strategy.education.example.scenarios.map(scenario => <div key={scenario.label} className="min-w-0 bg-arc-surface p-5"><h4 className="font-semibold text-arc-text">{scenario.label}</h4><p className="mt-3">{scenario.condition}</p><p className="mt-3">Position assets: {scenario.assets}</p><p className="mt-3">{scenario.value}</p><p className="mt-3">{scenario.next}</p></div>)}</div>}

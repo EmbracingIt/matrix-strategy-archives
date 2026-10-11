@@ -81,6 +81,22 @@ async function main() {
         const estimatedFees = 3000 * (Math.pow(1 + 0.3704, 3 / 12) - 1);
         assert.ok(Math.abs(estimatedFees - 245.88) < 0.01);
       }
+      if (c.legacyId === "STRATEGY_009") {
+        assert.equal(c.education.editorialVersion, "distribution-lp-v3");
+        assert.deepEqual(c.depositAssets, ["ETH"]);
+        assert.deepEqual(c.requirements?.requiredHoldings, ["ETH"]);
+        assert.match(c.description, /converts ETH into USDC gradually/i);
+        assert.match(c.education.example.starting, /1 ETH at 3,000 USDC/i);
+        assert.match(c.education.example.assumptions, /45% APY/i);
+        assert.match(c.education.example.assumptions, /not live or promised/i);
+        const feeExample = 3000 * (Math.pow(1.45, 1.5 / 12) - 1);
+        assert.ok(Math.abs(feeExample - 142.6228) < 0.001);
+        const saleLiquidity = 1 / (1 / Math.sqrt(3000) - 1 / Math.sqrt(4000));
+        const partialSale = rangeAmounts(saleLiquidity, 3000, 4000, 3500);
+        assert.ok(Math.abs(partialSale.asset - 0.446314) < 0.000001);
+        assert.ok(Math.abs(partialSale.stable - 1794.15) < 0.01);
+        assert.ok(Math.abs(rangeAmounts(saleLiquidity, 3000, 4000, 4000).stable - Math.sqrt(3000 * 4000)) < 1e-10);
+      }
       assert.ok(
         c.education.implementations.every(
           (i) => i.requirements.length && i.sources.length,
@@ -117,6 +133,13 @@ async function main() {
     assert.match(dualAsset.education.example.assumptions, /37\.04% APY/i);
     assert.match(dualAsset.education.implementations[0].product, /Uniswap V3 0\.05%/i);
     assert.ok(publicRows.every(s=>!('detailedResearch' in s.education)));
+    const distribution = await json("/api/strategies/distribution-lp");
+    assert.equal(distribution.education.editorialVersion, "distribution-lp-v3");
+    assert.match(distribution.education.example.assumptions, /45% APY/i);
+    assert.match(distribution.education.example.assumptions, /142\.62 USDC/);
+    assert.deepEqual(distribution.depositAssets.map((asset: { symbol: string }) => asset.symbol), ["ETH"]);
+    assert.match(distribution.education.example.scenarios[0].assets, /0\.4463 ETH/);
+        assert.match(distribution.education.example.scenarios[0].assets, /1,794\.15 USDC/);
     assert.equal(publicRows.length, 8);
     assert.equal(new Set(publicRows.map((s) => s.id)).size, 8);
     for (const [regime, count] of Object.entries({ BULL: 5, SIDEWAYS: 8, BEAR: 3 })) {

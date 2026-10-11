@@ -138,8 +138,11 @@ const rangeScenario = (price: number, label: string) => {
     next: "Review the token mix and trigger before changing the range; fees would need to offset any holding shortfall plus costs.",
   };
 };
+const sellMoney = (value: number) => `${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC`;
 const sellL = 1 / (1 / Math.sqrt(3000) - 1 / Math.sqrt(4000));
+const sellPartial = rangeAmounts(sellL, 3000, 4000, 3500);
 const sellProceeds = rangeAmounts(sellL, 3000, 4000, 4000).stable;
+const sellFeeExample = 3000 * (Math.pow(1.45, 1.5 / 12) - 1);
 
 interface Canonical {
   legacyId: string;
@@ -641,71 +644,78 @@ export const catalogue: Canonical[] = [
     slug: "distribution-lp",
     name: "Distribution LP",
     summary:
-      "Place an asset in a selling range to convert it into stablecoins as price rises.",
+      "Gradually convert ETH to USDC across a chosen selling range instead of trying to call one exact market top.",
     description:
-      "You put ETH into a range above its current price to sell progressively into USDC. This sets a conversion plan rather than promising the best possible selling price. Above the range the position holds USDC; a fall back through the range buys ETH again unless you remove liquidity.",
+      "Start with ETH and set a range from a price where you are willing to begin selling toward the upper price where you would be comfortable finishing. As swaps move through the active range, the position converts ETH into USDC gradually and may collect fees. This replaces a single all-or-nothing sale at a guessed top with a planned series of conversions; it does not guarantee a better price or fee income. If price never enters the range, the ETH remains unsold and the position earns no fees while out of range. If price falls back through an open range, some or all of the ETH can be bought back.",
     objectives: ["capital-preservation"],
     assets: ["ETH", "USDC"],
+    depositAssets: ["ETH"],
     protocols: ["uniswap"],
     networks: ["ethereum"],
+    requirements: {
+      requiredHoldings: ["ETH"],
+      walletSetup: "Use an Ethereum wallet with ETH to sell and keep additional ETH for gas. Verify the official Uniswap V3 ETH/USDC pool, token addresses and price orientation before approving. Approve only the intended amount to the position manager; never share your recovery phrase.",
+      other: "The selected range sets the starting and ending conversion prices. Fee income depends on swaps while the position is in range; there is no guaranteed APY. An open position can convert USDC back into ETH on a decline.",
+    },
     steps: plan(
-      "Choose ETH to sell, selling bounds and a proceeds-withdrawal trigger.",
-      "Verify the Ethereum Uniswap V3 ETH/USDC pool and USDC-per-ETH bounds.",
-      "Enter in ETH if the entire range is above spot; preview the mix for an in-range start.",
-      "Track the USDC conversion and fees near selling bounds.",
-      "Reconsider if price never reaches the range or selling completes; an open position can buy ETH back.",
-      "Remove and collect USDC at your chosen trigger; check residual ETH and costs.",
+      "Choose an amount of ETH you are prepared to sell gradually. Set the price where you want selling to begin and the upper price where you would be comfortable completing the sale.",
+      "For this example, verify the Ethereum Uniswap V3 ETH/USDC pool and that the range is quoted in USDC per ETH.",
+      "Approve only the intended ETH and mint a one-sided position at the lower bound. Keep extra ETH outside the position for gas.",
+      "Watch price versus both range bounds, the remaining ETH/USDC mix, fees and the value against holding ETH. Fees accrue only while the range is active.",
+      "If price never enters the range, no conversion or active fees occur. If price returns down through the open range, the LP can buy ETH back; remove liquidity if you want to keep USDC proceeds.",
+      "Remove liquidity and collect fees when your proceeds trigger is reached. Check the final token mix, gas and any swap needed to hold only USDC.",
     ),
     riskText:
-      "Price may never enter the selling range. Leaving proceeds in the range risks unwanted repurchase during a reversal.",
+      "The price can rise beyond your range, leaving you with less ETH upside than holding. If price reverses through an open range, ETH exposure can return. An untouched out-of-range position earns no fees, and active fees are variable and may not cover costs.",
     education: {
       family: "Liquidity Provision",
       goal: "sell",
       complexity: "Intermediate",
       management: "Active management",
       returnSource:
-        "Swap fees while active; the objective is converting ETH into USDC, not maximising returns.",
+        "Swap fees accrue separately while the position is active. The primary objective is gradual ETH-to-USDC conversion at chosen prices, not maximizing returns.",
       exposure:
-        "ETH transitions to USDC; an open range reverses this transition during a fall. No debt.",
+        "ETH transitions toward USDC as price rises through the range. An open range can shift back toward ETH during a fall. No debt is used.",
       tradeOff:
-        "A planned conversion gives up some upside versus continuing to hold ETH.",
+        "The range avoids making one sale depend on a guessed top, but some ETH sells before the upper target and can miss further upside. A decline can buy ETH back unless you remove liquidity. Fees are uncertain and do not guarantee a better result than holding or a limit order.",
       fitsIf: [
-        "You are willing to sell through these prices and monitor completion.",
+        "You already hold ETH and are willing to sell it gradually across a price range.",
+        "You can monitor the position and are comfortable with its token mix at either boundary.",
       ],
-      reconsiderIf: ["Your selling goal changes or the range completes."],
+      reconsiderIf: ["Your selling goal changes, price moves beyond the range, or a reversal would make you unwilling to hold ETH again."],
       example: {
-        title: "Sell 1 ETH through 3,000–4,000 USDC",
-        starting: "1 ETH at 2,800 USDC; range wholly above spot.",
-        action: "Place ETH in a Uniswap V3 selling range.",
+        title: "Gradually sell 1 ETH from 3,000 toward 4,000 USDC",
+        starting: "Start with 1 ETH at 3,000 USDC. The range starts at the current price and ends at the upper price where you would be comfortable finishing the sale.",
+        action: `Place the ETH in a Uniswap V3 range. At 3,500, the principal is about ${sellPartial.asset.toFixed(4)} ETH + ${sellMoney(sellPartial.stable)}. For fee arithmetic only, assume 45% APY while active for 1.5 months and convert collected fees to USDC: about ${sellMoney(sellFeeExample)}.`,
         assumptions:
-          "Illustrative continuous V3 math with USDC = 1 USD; no fees, gas or tick rounding.",
-        benchmark: "Hold 1 ETH outside the pool.",
+          `Illustrative continuous V3 math with USDC = 1 USD; no gas, tick rounding or price impact. The fee estimate assumes a constant 45% APY on the starting $3,000 value for 1.5 months in range (${sellMoney(sellFeeExample)}); it is not live or promised. Actual fee amounts vary with swaps and active liquidity, and V3 fees accrue separately. For the comparisons below, assume fees are collected and converted to USDC; conversion costs are excluded.`,
+        benchmark: "Hold the same 1 ETH outside the pool. At 3,500 USDC per ETH, HODL is worth 3,500 USDC.",
         scenarios: [
           {
-            label: "Selling completes",
-            condition: "ETH reaches 4,000 USDC",
-            assets: `0 ETH + ${money(sellProceeds)}`,
-            value: `${money(sellProceeds)}; holding: 4,000 USDC`,
-            next: "Remove proceeds if you do not want to buy ETH back.",
+            label: "Price moves partway to 3,500",
+            condition: "ETH rises inside the range but does not reach the 4,000 USDC upper target.",
+            assets: `${sellPartial.asset.toFixed(4)} ETH + ${sellMoney(sellPartial.stable)} principal, plus about ${sellMoney(sellFeeExample)} assumed fees collected as USDC.`,
+            value: `About ${sellMoney(sellPartial.asset * 3500 + sellPartial.stable + sellFeeExample)} including assumed fees; HODL: 3,500 USDC.`,
+            next: "The position has sold part of the ETH without requiring a sale exactly at the upper target. This illustration still trails HODL before costs.",
           },
           {
-            label: "Price falls",
-            condition: "ETH = 2,000 USDC without entering the range",
-            assets: "1 ETH + 0 USDC",
-            value: "2,000 USDC; holding: 2,000 USDC",
-            next: "No sale took place and no active fees were earned.",
+            label: "Price reaches 4,000",
+            condition: "ETH moves through the entire active range to the chosen upper target.",
+            assets: `0 ETH + ${sellMoney(sellProceeds)} principal, plus about ${sellMoney(sellFeeExample)} assumed fees collected as USDC.`,
+            value: `About ${sellMoney(sellProceeds + sellFeeExample)} including assumed fees; HODL: 4,000 USDC.`,
+            next: "The ETH is converted at prices throughout the range; the average conversion price is about 3,464 USDC per ETH, below the 4,000 upper target.",
           },
           {
-            label: "Reverses after completion",
-            condition: "Rises to 4,000 then falls below 3,000 without removal",
-            assets: "1 ETH + 0 USDC (fees excluded)",
-            value: "At 2,800: 2,800 USDC; holding: 2,800 USDC",
-            next: "An LP range is reversible; completion is not an automatic permanent sale.",
+            label: "Price returns below 3,000",
+            condition: "After 1.5 months active in the range, ETH falls to 2,800 while the position is still open; assumed fees were already collected as USDC.",
+            assets: `1 ETH principal + about ${sellMoney(sellFeeExample)} collected fees in USDC.`,
+            value: `About ${sellMoney(2800 + sellFeeExample)} at 2,800 USDC per ETH; HODL: 2,800 USDC.`,
+            next: "The open range has shifted back to ETH. Actual fees depend on how long price was in range and trading activity; if price never enters the range, fees are zero while inactive.",
           },
         ],
       },
       monitor: lpMonitor,
-      exit: "Remove and collect at the proceeds trigger. Record the final token mix; swap residual ETH only if intended.",
+      exit: "Uniswap V3 does not automatically close the position. Remove liquidity and collect when your proceeds target is met or when you no longer want the exposure; check the ETH/USDC mix before any separate swap.",
       implementations: [uni(["ETH", "USDC"])],
       foundations: ["liquidity", "divergence"],
       tools: ["simulator"],
@@ -808,7 +818,7 @@ export const catalogue: Canonical[] = [
 ];
 
 catalogue.push(hedgeStrategy)
-for (const strategy of catalogue) strategy.education.editorialVersion = strategy.legacyId === "STRATEGY_018" ? "delta-neutral-lp-v3" : strategy.legacyId === "STRATEGY_001" ? "accumulation-lp-v6" : strategy.legacyId === "STRATEGY_022" ? "dual-asset-lp-v4" : strategy.legacyId === "STRATEGY_011" ? "stablecoin-lending-v4" : EDITORIAL_VERSION
+for (const strategy of catalogue) strategy.education.editorialVersion = strategy.legacyId === "STRATEGY_018" ? "delta-neutral-lp-v3" : strategy.legacyId === "STRATEGY_001" ? "accumulation-lp-v6" : strategy.legacyId === "STRATEGY_022" ? "dual-asset-lp-v4" : strategy.legacyId === "STRATEGY_011" ? "stablecoin-lending-v4" : strategy.legacyId === "STRATEGY_009" ? "distribution-lp-v3" : EDITORIAL_VERSION
 
 // Complete observed inventory plus four additional archived records found in DB.
 // Null destinations retire to contextual Learn, never another advanced catalogue.
