@@ -127,14 +127,16 @@ const lpReconsider = [
 ];
 const rangeL = 3000 / (Math.sqrt(3600) - Math.sqrt(2400));
 const rangeStart = rangeAmounts(rangeL, 2400, 3600, 3000);
+const rangeHodlEth = (rangeStart.asset * 3000 + rangeStart.stable) / 3000;
+const moneyUsd = (v: number) => `${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`;
 const rangeScenario = (price: number, label: string) => {
   const a = rangeAmounts(rangeL, 2400, 3600, price);
-  const hold = rangeStart.asset * price + rangeStart.stable;
+  const hold = rangeHodlEth * price;
   return {
     label,
     condition: `ETH at ${price} USDC`,
     assets: `${a.asset.toFixed(4)} ETH + ${money(a.stable)}`,
-    value: `${money(a.asset * price + a.stable)}; holding: ${money(hold)}`,
+    value: `${moneyUsd(a.asset * price + a.stable)}; 100% ETH HODL: ${moneyUsd(hold)}`,
     next: "Review the token mix and trigger before changing the range; fees would need to offset any holding shortfall plus costs.",
   };
 };
@@ -507,7 +509,8 @@ export const catalogue: Canonical[] = [
           "Provide one direct Uniswap V3 position across the stated bounds.",
         assumptions:
           "Illustrative continuous V3 range math, no tick rounding, fees, rewards or transaction costs. USDC = 1 USD. Fees cannot be predicted from these prices alone.",
-        benchmark: "Hold the exact starting token quantities outside the pool.",
+        benchmark:
+          "Compare with holding the same starting dollar value entirely in ETH: about 0.9586 ETH at the illustrative 3,000 USDC entry price.",
         scenarios: [
           rangeScenario(3600, "Upper boundary"),
           rangeScenario(2000, "Below the range"),
@@ -818,7 +821,7 @@ export const catalogue: Canonical[] = [
 ];
 
 catalogue.push(hedgeStrategy)
-for (const strategy of catalogue) strategy.education.editorialVersion = strategy.legacyId === "STRATEGY_018" ? "delta-neutral-lp-v5" : strategy.legacyId === "STRATEGY_001" ? "accumulation-lp-v6" : strategy.legacyId === "STRATEGY_022" ? "dual-asset-lp-v4" : strategy.legacyId === "STRATEGY_011" ? "stablecoin-lending-v4" : strategy.legacyId === "STRATEGY_009" ? "distribution-lp-v3" : EDITORIAL_VERSION
+for (const strategy of catalogue) strategy.education.editorialVersion = strategy.legacyId === "STRATEGY_018" ? "delta-neutral-lp-v5" : strategy.legacyId === "STRATEGY_016" ? "concentrated-liquidity-v2" : strategy.legacyId === "STRATEGY_001" ? "accumulation-lp-v6" : strategy.legacyId === "STRATEGY_022" ? "dual-asset-lp-v4" : strategy.legacyId === "STRATEGY_011" ? "stablecoin-lending-v4" : strategy.legacyId === "STRATEGY_009" ? "distribution-lp-v3" : EDITORIAL_VERSION
 
 // Complete observed inventory plus four additional archived records found in DB.
 // Null destinations retire to contextual Learn, never another advanced catalogue.

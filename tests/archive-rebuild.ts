@@ -97,6 +97,19 @@ async function main() {
         assert.ok(Math.abs(partialSale.stable - 1794.15) < 0.01);
         assert.ok(Math.abs(rangeAmounts(saleLiquidity, 3000, 4000, 4000).stable - Math.sqrt(3000 * 4000)) < 1e-10);
       }
+      if (c.legacyId === "STRATEGY_016") {
+        assert.equal(c.education.editorialVersion, "concentrated-liquidity-v2");
+        assert.match(c.education.example.benchmark, /same starting dollar value entirely in ETH/i);
+        assert.match(c.education.example.scenarios[0].value, /100% ETH HODL: 3,451\.07 USD/);
+        assert.match(c.education.example.scenarios[1].value, /100% ETH HODL: 1,917\.26 USD/);
+        const initialValue = rangeAmounts(3000 / (Math.sqrt(3600) - Math.sqrt(2400)), 2400, 3600, 3000);
+        const initialUsd = initialValue.asset * 3000 + initialValue.stable;
+        const upper = rangeAmounts(3000 / (Math.sqrt(3600) - Math.sqrt(2400)), 2400, 3600, 3600);
+        const upperShortfall = initialUsd * 1.2 - (upper.asset * 3600 + upper.stable);
+        assert.ok(Math.abs(initialUsd - 2875.8910048462426) < 1e-8);
+        assert.ok(Math.abs(upperShortfall - 451.06920581549093) < 1e-8);
+        assert.deepEqual([30, 45, 60].map((apy) => Math.ceil(upperShortfall / (initialUsd * (apy / 100) / 365))), [191, 128, 96]);
+      }
       assert.ok(
         c.education.implementations.every(
           (i) => i.requirements.length && i.sources.length,
@@ -128,6 +141,10 @@ async function main() {
     assert.equal(accumulation.risk.leverageUsed, true);
     assert.equal(accumulation.risk.liquidationExposure, "HIGH");
     assert.equal(accumulation.requirements.requiredHoldings.includes("ETH"), true);
+    const concentrated = await json("/api/strategies/concentrated-liquidity-provision");
+    assert.equal(concentrated.education.editorialVersion, "concentrated-liquidity-v2");
+    assert.match(concentrated.education.example.benchmark, /entirely in ETH/i);
+    assert.match(concentrated.education.example.scenarios[0].value, /3,451\.07 USD/);
     const dualAsset = await json("/api/strategies/dual-asset-growth-lp");
     assert.equal(dualAsset.education.editorialVersion, "dual-asset-lp-v4");
     assert.match(dualAsset.education.example.assumptions, /37\.04% APY/i);
