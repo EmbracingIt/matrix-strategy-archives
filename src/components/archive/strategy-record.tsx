@@ -332,6 +332,11 @@ function SectionRule({ code, title }: { code: string; title: string }) {
 }
 
 function OverviewSection({ strategy }: { strategy: StrategyDTO }) {
+  const liquidStakingScenario = strategy.education?.example.scenarios.find(
+    (scenario) => /200%|triples/i.test(`${scenario.label} ${scenario.condition}`),
+  ) ?? strategy.education?.example.scenarios.find(
+    (scenario) => /unchanged/i.test(`${scenario.label} ${scenario.condition}`),
+  ) ?? strategy.education?.example.scenarios[0]
   const facts: { label: string; value: React.ReactNode }[] = [
     { label: "TYPE", value: strategy.type },
     {
@@ -391,9 +396,19 @@ function OverviewSection({ strategy }: { strategy: StrategyDTO }) {
         </div>}
         <details className="border-t border-white/10 pt-5"><summary className="arc-mono min-h-11 cursor-pointer text-arc-text">WORKED EXAMPLE / ILLUSTRATIVE, NOT LIVE RATES</summary>
           {strategy.slug === "accumulation-lp" ? <AccumulationLpDemo /> : strategy.slug === "distribution-lp" ? <DistributionLpDemo /> : strategy.slug === "delta-neutral-lp-hedge" ? <DeltaNeutralLpDemo /> : strategy.slug === "dual-asset-growth-lp" ? <DualAssetLpDemo /> : strategy.slug === "concentrated-liquidity-provision" ? <ConcentratedLiquidityDemo /> : <>
-            <h3 className="mt-4 text-[20px] font-semibold text-arc-text">{strategy.education.example.title}</h3>
-            <p className="mt-4">{strategy.education.example.starting}</p><p className="mt-3">{strategy.education.example.action}</p><p className="mt-3">Assumptions: {strategy.education.example.assumptions}</p><p className="mt-3">Benchmark: {strategy.education.example.benchmark}</p>
-            {strategy.slug === "stablecoin-yield-rotation" ? <p className="mt-5 border-l border-arc-green/50 pl-4 text-arc-text">The benefit here is putting waiting capital to work: the illustrative six-month outcome is included above, before gas and other costs.</p> : <div className="mt-6 grid gap-px border border-white/10 bg-white/10 xl:grid-cols-3">{strategy.education.example.scenarios.map(scenario => <div key={scenario.label} className="min-w-0 bg-arc-surface p-5"><h4 className="font-semibold text-arc-text">{scenario.label}</h4><p className="mt-3">{scenario.condition}</p><p className="mt-3">Position assets: {scenario.assets}</p><p className="mt-3">{scenario.value}</p><p className="mt-3">{scenario.next}</p></div>)}</div>}
+            <h3 className="mt-4 text-[20px] font-semibold text-arc-text">{strategy.slug === "eth-liquid-staking" ? "How staking rewards add to ETH's price return" : strategy.education.example.title}</h3>
+            <p className="mt-4">{strategy.education.example.starting} {strategy.education.example.action}</p>
+            <p className="mt-3">Assumptions: {strategy.education.example.assumptions}</p>
+            {strategy.slug !== "eth-liquid-staking" && <p className="mt-3">Benchmark: {strategy.education.example.benchmark}</p>}
+            {strategy.slug === "stablecoin-yield-rotation" ? <p className="mt-5 border-l border-arc-green/50 pl-4 text-arc-text">The benefit here is putting waiting capital to work: the illustrative six-month outcome is included above, before gas and other costs.</p> : strategy.slug === "eth-liquid-staking" && strategy.education.example.comparison && liquidStakingScenario ? <div className="mt-6 overflow-hidden border border-arc-green/25 bg-arc-surface">
+              <div className="border-b border-white/10 px-4 py-4 sm:px-5"><p className="arc-mono text-[10px] text-arc-green">{liquidStakingScenario.label.toUpperCase()}</p><p className="mt-1 text-[13px]">{liquidStakingScenario.condition}</p></div>
+              <div className="grid divide-y divide-white/10 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+                <div className="min-w-0 p-4 sm:p-5"><p className="arc-mono text-[10px] text-arc-dim">{strategy.education.example.comparison.baselineLabel}</p><p className="mt-4 text-[10px] text-arc-muted">ENDING POSITION</p><p className="mt-1 font-semibold text-arc-text">{strategy.education.example.comparison.baselinePosition}</p><p className="mt-4 text-[10px] text-arc-muted">ENDING VALUE</p><p className="mt-1 text-[clamp(1.35rem,3vw,1.75rem)] font-semibold leading-tight text-arc-text">{strategy.education.example.comparison.baselineValue}</p><p className="mt-3 text-[12px] text-arc-muted">Total return <span className="font-medium text-arc-text">{strategy.education.example.comparison.baselineReturn}</span></p></div>
+                <div className="min-w-0 p-4 sm:p-5"><p className="arc-mono text-[10px] text-arc-green">{strategy.education.example.comparison.strategyLabel}</p><p className="mt-4 text-[10px] text-arc-muted">ENDING POSITION</p><p className="mt-1 font-semibold text-arc-text">{strategy.education.example.comparison.strategyPosition}</p><p className="mt-4 text-[10px] text-arc-muted">ENDING VALUE</p><p className="mt-1 text-[clamp(1.35rem,3vw,1.75rem)] font-semibold leading-tight text-arc-green">{strategy.education.example.comparison.strategyValue}</p><p className="mt-3 text-[12px] text-arc-muted">Total return <span className="font-medium text-arc-text">{strategy.education.example.comparison.strategyReturn}</span></p></div>
+              </div>
+              <p className="border-t border-white/10 bg-arc-green/5 px-4 py-3 text-[13px] font-medium text-arc-text sm:px-5">{strategy.education.example.comparison.difference}</p>
+              <p className="px-4 py-3 text-[12px] leading-relaxed text-arc-muted sm:px-5">Both positions retain ETH price risk. The staking comparison excludes transaction and exit costs, penalties, and any stETH market discount.</p>
+            </div> : strategy.slug === "eth-liquid-staking" && liquidStakingScenario ? <div className="mt-6 border border-arc-green/25 bg-arc-green/5 p-5"><p className="arc-mono text-[10px] text-arc-green">{liquidStakingScenario.label.toUpperCase()}</p><p className="mt-2">{liquidStakingScenario.condition}</p><p className="mt-3 text-arc-text">{liquidStakingScenario.assets}: {liquidStakingScenario.value}</p></div> : <div className="mt-6 grid gap-px border border-white/10 bg-white/10 xl:grid-cols-3">{strategy.education.example.scenarios.map(scenario => <div key={scenario.label} className="min-w-0 bg-arc-surface p-5"><h4 className="font-semibold text-arc-text">{scenario.label}</h4><p className="mt-3">{scenario.condition}</p><p className="mt-3">Position assets: {scenario.assets}</p><p className="mt-3">{scenario.value}</p><p className="mt-3">{scenario.next}</p></div>)}</div>}
           </>}
         </details>
       </div>}

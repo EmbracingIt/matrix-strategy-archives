@@ -52,7 +52,33 @@ async function main() {
     for (const c of catalogue) {
       educationSchema.parse(c.education);
       assert.ok(c.steps.length >= 4 && c.steps.length <= 6);
-      assert.equal(c.education.example.scenarios.length, 3);
+      assert.equal(
+        c.education.example.scenarios.length,
+        c.legacyId === "STRATEGY_007" ? 1 : 3,
+      );
+      if (c.legacyId === "STRATEGY_007") {
+        const example = c.education.example;
+        assert.match(example.title, /staking rewards add to ETH's price return/i);
+        assert.match(example.assumptions, /1\.03³ = 1\.092727/);
+        assert.match(example.scenarios[0].label, /200% over three years/);
+        assert.match(example.scenarios[0].condition, /2,500 to 7,500 USD/);
+        assert.match(example.scenarios[0].assets, /1\.092727 stETH/);
+        assert.match(example.scenarios[0].value, /8,195\.45 USD vs 7,500 USD/);
+        assert.deepEqual(example.comparison, {
+          baselineLabel: "HOLD ETH",
+          baselinePosition: "1.0000 ETH",
+          baselineValue: "7,500 USD",
+          baselineReturn: "+200%",
+          strategyLabel: "LIDO STAKING",
+          strategyPosition: "1.092727 stETH",
+          strategyValue: "8,195.45 USD",
+          strategyReturn: "+227.82%",
+          difference: "Total return: +227.82% with staking vs +200% holding (+27.82 percentage points).",
+        });
+        assert.match(c.education.tradeOff, /variable rate tied to market demand/i);
+        assert.ok(c.education.implementations[0].sources.includes("https://pro.aave.com/explore/reserve/ethereum/core/main/wstETH"));
+        assert.equal(1.03 ** 3 * 7500, 8195.4525);
+      }
       if (c.legacyId === "STRATEGY_001") {
         assert.doesNotMatch(JSON.stringify(c.education.example), /holding USDC|0\.9375 ETH|1800/);
         assert.equal(c.leverageUsed, true);

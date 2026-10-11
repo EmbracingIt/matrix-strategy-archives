@@ -12,6 +12,8 @@ export const sources = {
   sparkApp: "https://app.spark.finance/savings",
   lido: "https://docs.lido.fi/guides/lido-tokens-integration-guide/",
   lidoExit: "https://docs.lido.fi/contracts/withdrawal-queue-erc721/",
+  lidoSolSunset: "https://help.lido.fi/en/articles/8484136-lido-on-solana-sunset",
+  aaveWsteth: "https://pro.aave.com/explore/reserve/ethereum/core/main/wstETH",
   jito: "https://www.jito.network/docs/jitosol/get-started/stake-sol-for-jitosol-flow/overview/",
   jitoExit:
     "https://www.jito.network/docs/jitosol/get-started/unstaking-jitosol-flow/unstaking-overview/",
@@ -352,7 +354,7 @@ export const catalogue: Canonical[] = [
     name: "Liquid Staking",
     summary: "Earn network rewards on ETH or SOL you intend to hold.",
     description:
-      "You commit assets to network staking through a supported liquid staking implementation. You receive a token representing the stake and its rewards. You keep the underlying asset's price exposure, and you must choose between protocol withdrawal and a market sale of that representation when exiting.",
+      "You commit assets to network staking through a supported liquid staking implementation. You receive a token representing the stake and its rewards. You keep the underlying asset's price exposure, and you must choose between protocol withdrawal and a market sale of that representation when exiting. This record covers Lido on Ethereum and JitoSOL on Solana; Lido on Solana has closed.",
     objectives: ["yield"],
     assets: ["ETH", "SOL"],
     protocols: ["lido", "jito"],
@@ -373,11 +375,11 @@ export const catalogue: Canonical[] = [
       complexity: "Basic",
       management: "Occasional checks",
       returnSource:
-        "Network staking rewards; JitoSOL also reflects MEV rewards after applicable charges. Rewards may change or be offset by penalties.",
+        "Lido stETH reflects Ethereum staking rewards; JitoSOL reflects Solana staking and MEV rewards after applicable charges. Rewards increase your ETH- or SOL-equivalent position, so their market gains and losses apply to a larger balance.",
       exposure:
         "ETH or SOL remains exposed to price changes; the received token adds representation and exit risk. No debt.",
       tradeOff:
-        "A transferable staking token does not guarantee a 1:1 market sale or an immediate protocol exit.",
+        "Staking rewards can compound with ETH or SOL price returns. Lending ordinary ETH instead earns a variable rate tied to market demand. Some lending markets also accept wstETH, where staking value and lending interest can accrue together, but rates and support vary and borrowing against it adds liquidation risk. Neither approach is guaranteed to outperform.",
       fitsIf: [
         "You intend to hold the underlying asset and understand the representation.",
       ],
@@ -385,33 +387,30 @@ export const catalogue: Canonical[] = [
         "You need immediate liquidity or cannot accept token discounts and withdrawal delays.",
       ],
       example: {
-        title: "ETH rewards do not remove ETH price risk",
-        starting: "1 ETH valued at 3,000 USD; Lido stETH example.",
-        action: "Stake and hold for a year.",
+        title: "How staking rewards add to ETH's price return",
+        starting: "Stake 1 ETH when ETH is 2,500 USD; initially receive about 1 stETH.",
+        action: "Hold the staked position for three years while ETH rises 200% to 7,500 USD.",
         assumptions:
-          "Illustrative net reward accrual of 0.03 ETH equivalent, not a quoted rate. No penalties or gas; stETH market discount is specified separately. Actual rewards vary.",
+          "Illustrative 3% net APY, compounded annually for three years (1.03³ = 1.092727 stETH); not a live rate or forecast. Assumes no penalties, gas, withdrawal costs or stETH market discount. Actual rewards and ETH price vary.",
         benchmark: "Hold 1 ETH without staking.",
+        comparison: {
+          baselineLabel: "HOLD ETH",
+          baselinePosition: "1.0000 ETH",
+          baselineValue: "7,500 USD",
+          baselineReturn: "+200%",
+          strategyLabel: "LIDO STAKING",
+          strategyPosition: "1.092727 stETH",
+          strategyValue: "8,195.45 USD",
+          strategyReturn: "+227.82%",
+          difference: "Total return: +227.82% with staking vs +200% holding (+27.82 percentage points).",
+        },
         scenarios: [
           {
-            label: "Price rises",
-            condition: "ETH = 3,600 USD; no market discount",
-            assets: "1.03 stETH (ETH-equivalent claim)",
-            value: "3,708 USD; holding: 3,600 USD",
-            next: "Compare queue exit with market sale.",
-          },
-          {
-            label: "Price and token fall",
-            condition: "ETH = 2,000 USD; 2% stETH market discount",
-            assets: "1.03 stETH",
-            value: "Market sale: 2,018.80 USD; holding: 2,000 USD",
-            next: "The claim and market-sale price differ; check the queue and discount.",
-          },
-          {
-            label: "Price unchanged",
-            condition: "ETH = 3,000 USD; no market discount",
-            assets: "1.03 stETH",
-            value: "3,090 USD; holding: 3,000 USD",
-            next: "Review actual net rewards and exit costs.",
+            label: "ETH rises 200% over three years",
+            condition: "ETH moves from 2,500 to 7,500 USD; no stETH market discount",
+            assets: "1.092727 stETH",
+            value: "8,195.45 USD vs 7,500 USD holding 1 ETH",
+            next: "The staked position keeps ETH's full price exposure and adds rewards; a price fall would reduce both values. The result excludes costs and token discounts.",
           },
         ],
       },
@@ -439,8 +438,8 @@ export const catalogue: Canonical[] = [
           exit: "Request withdrawal of stETH or wstETH through the withdrawal queue and claim ETH after finalisation, or sell on a liquid market with slippage/discount risk.",
           risks:
             "Operator penalties, contract failures, queue delays and token discounts.",
-          sources: [sources.lido, sources.lidoExit],
           reviewedAt,
+          sources: [sources.lido, sources.lidoExit, sources.aaveWsteth],
         },
         {
           key: "jito-sol",
@@ -460,7 +459,7 @@ export const catalogue: Canonical[] = [
           exit: "Compare instant routes and their fees/liquidity with stake-account withdrawal and deactivation before withdrawing SOL.",
           risks:
             "Validators, stake-pool contracts, fees, withdrawal timing and market discount.",
-          sources: [sources.jito, sources.jitoExit],
+          sources: [sources.jito, sources.jitoExit, sources.lidoSolSunset],
           reviewedAt,
         },
       ],
@@ -821,7 +820,7 @@ export const catalogue: Canonical[] = [
 ];
 
 catalogue.push(hedgeStrategy)
-for (const strategy of catalogue) strategy.education.editorialVersion = strategy.legacyId === "STRATEGY_018" ? "delta-neutral-lp-v5" : strategy.legacyId === "STRATEGY_016" ? "concentrated-liquidity-v2" : strategy.legacyId === "STRATEGY_001" ? "accumulation-lp-v6" : strategy.legacyId === "STRATEGY_022" ? "dual-asset-lp-v4" : strategy.legacyId === "STRATEGY_011" ? "stablecoin-lending-v4" : strategy.legacyId === "STRATEGY_009" ? "distribution-lp-v3" : EDITORIAL_VERSION
+for (const strategy of catalogue) strategy.education.editorialVersion = strategy.legacyId === "STRATEGY_018" ? "delta-neutral-lp-v5" : strategy.legacyId === "STRATEGY_016" ? "concentrated-liquidity-v2" : strategy.legacyId === "STRATEGY_001" ? "accumulation-lp-v6" : strategy.legacyId === "STRATEGY_022" ? "dual-asset-lp-v4" : strategy.legacyId === "STRATEGY_011" ? "stablecoin-lending-v4" : strategy.legacyId === "STRATEGY_009" ? "distribution-lp-v3" : strategy.legacyId === "STRATEGY_007" ? "liquid-staking-v3" : EDITORIAL_VERSION
 
 // Complete observed inventory plus four additional archived records found in DB.
 // Null destinations retire to contextual Learn, never another advanced catalogue.

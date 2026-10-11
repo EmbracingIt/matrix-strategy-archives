@@ -43,6 +43,19 @@ export const educationSchema = z.object({
     action: z.string(),
     assumptions: z.string(),
     benchmark: z.string(),
+    comparison: z
+      .object({
+        baselineLabel: z.string(),
+        baselinePosition: z.string(),
+        baselineValue: z.string(),
+        baselineReturn: z.string(),
+        strategyLabel: z.string(),
+        strategyPosition: z.string(),
+        strategyValue: z.string(),
+        strategyReturn: z.string(),
+        difference: z.string(),
+      })
+      .optional(),
     scenarios: z
       .array(
         z.object({
