@@ -10,6 +10,7 @@ import { urls } from "@/lib/nav"
 import { objectiveLabels } from "@/lib/strategyObjectives"
 import { secondaryRegimeDef } from "@/lib/secondary-regimes"
 import { ArcAssetIcon, ArcIconStack, ArcNetworkIcon, ArcProtocolIcon } from "@/components/archive/archive-icons"
+import { RegimeIndicator } from "@/components/archive/regime-indicator"
 import { cn } from "@/lib/utils"
 import type { ExposureLevel, Regime, RiskLevel, StrategyDTO } from "@/lib/types"
 
@@ -31,7 +32,6 @@ const SECTIONS = [
   { id: "references", code: "09", label: "REFERENCES" },
 ] as const
 
-const REGIME_ARROWS: Record<Regime, string> = { BULL: "↗", SIDEWAYS: "→", BEAR: "↘" }
 const REGIME_TEXT: Record<Regime, string> = {
   BULL: "text-arc-green",
   SIDEWAYS: "text-arc-amber",
@@ -211,12 +211,7 @@ export function StrategyRecordView({ slug }: { slug: string }) {
 
           <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
             {strategy.marketFit?.regimes?.map((regime) => (
-              <span
-                key={regime}
-                className={cn("arc-mono text-[12px]", REGIME_TEXT[regime] ?? "text-arc-muted")}
-              >
-                {REGIME_ARROWS[regime]} {regime}
-              </span>
+              <RegimeIndicator key={regime} regime={regime} className="arc-mono text-[12px]" />
             ))}
             <span className={cn("arc-mono text-[12px]", RISK_TEXT[strategy.risk?.overallRisk ?? "MEDIUM"])}>
               {strategy.risk?.overallRisk?.replace("_", " ")} RISK
@@ -508,7 +503,7 @@ function MarketFitSection({ strategy }: { strategy: StrategyDTO }) {
                     active ? REGIME_TEXT[regime] : "text-arc-dim"
                   )}
                 >
-                  {REGIME_ARROWS[regime]} {regime}
+                  <RegimeIndicator regime={regime} muted={!active} className="arc-mono text-[11px]" />
                   {!active && <span className="ml-2 text-arc-dim/70">NOT DESIGNED</span>}
                 </span>
                 <span className="arc-mono text-[10px] text-arc-dim">

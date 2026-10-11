@@ -121,8 +121,8 @@ export function ArchiveSearch() {
                     </span>
                     <span className="mt-0.5 block truncate text-[12px] text-arc-muted">
                       {strategy.type} ·{" "}
-                      {[...new Set([...strategy.depositAssets, ...strategy.exposureAssets].map((a) => a.symbol))].join(" / ")}{" "}
-                      · {strategy.protocols.map((p) => p.name).join(", ")}
+                      {strategy.protocols.map((p) => p.name).join(", ") || "Protocol not listed"}{" "}
+                      {strategy.networks.length > 0 && `· ${strategy.networks.map((n) => n.name).join(", ")}`}
                     </span>
                   </span>
                   <ArrowRight

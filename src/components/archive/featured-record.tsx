@@ -4,33 +4,21 @@ import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { urls } from "@/lib/nav"
 import { objectiveLabels } from "@/lib/strategyObjectives"
-import { ArcAssetIcon, ArcIconStack, ArcNetworkIcon, ArcProtocolIcon } from "@/components/archive/archive-icons"
+import { ArcNetworkIcon, ArcProtocolIcon } from "@/components/archive/archive-icons"
+import { RegimeIndicator } from "@/components/archive/regime-indicator"
 import { WhyItMatches } from "@/components/archive/archive-match"
-import { cn } from "@/lib/utils"
 import type { MatchedRecord } from "@/lib/matching"
 
 /**
  * BEST MATCH — the strongest retrieval rendered as a dominant catalogue
  * abstract. Editorial rather than boxy: the record identity breathes on the
- * left (large serif title, circular composition marks, no internal borders),
+ * left (large serif title, protocol and network identity, no internal borders),
  * while the plain-language matching context sits in a quieter
  * right column separated by a single hairline instead of a bolted-on panel.
  */
 
-const REGIME_ARROWS: Record<string, string> = { BULL: "↗", SIDEWAYS: "→", BEAR: "↘" }
-const REGIME_TEXT: Record<string, string> = {
-  BULL: "text-arc-green",
-  SIDEWAYS: "text-arc-amber",
-  BEAR: "text-arc-red",
-}
-
 export function FeaturedRecord({ record }: { record: MatchedRecord }) {
   const strategy = record.strategy
-  const assets = [
-    ...new Map(
-      [...strategy.depositAssets, ...strategy.exposureAssets].map((a) => [a.symbol, a])
-    ).values(),
-  ]
 
   return (
     <article className="relative rounded-[6px] border border-arc-green/25 bg-arc-surface">
@@ -56,24 +44,6 @@ export function FeaturedRecord({ record }: { record: MatchedRecord }) {
 
           {/* Composition — circular marks, separated by hairlines not boxes */}
           <div className="mt-7 flex flex-wrap items-center gap-x-7 gap-y-4">
-            {assets.length > 0 && (
-              <span className="flex items-center gap-3">
-                <ArcIconStack ringClass="ring-arc-surface" className="mr-0.5">
-                  {assets.slice(0, 4).map((asset) => (
-                    <ArcAssetIcon
-                      key={asset.id}
-                      symbol={asset.symbol}
-                      category={asset.category}
-                      iconUrl={asset.iconUrl}
-                      size={26}
-                    />
-                  ))}
-                </ArcIconStack>
-                <span className="text-[13.5px] font-medium text-arc-text">
-                  {assets.map((a) => a.symbol).join(" / ")}
-                </span>
-              </span>
-            )}
             {strategy.protocols.length > 0 && (
               <span className="flex items-center gap-2.5 text-[13.5px] text-arc-muted">
                 <ArcProtocolIcon
@@ -104,9 +74,9 @@ export function FeaturedRecord({ record }: { record: MatchedRecord }) {
             {strategy.marketFit?.regimes?.map((regime) => (
               <span
                 key={regime}
-                className={cn("arc-mono text-[11px]", REGIME_TEXT[regime] ?? "text-arc-muted")}
+                className="arc-mono text-[11px]"
               >
-                {REGIME_ARROWS[regime]} {regime}
+                <RegimeIndicator regime={regime} />
               </span>
             ))}
             <span className="arc-mono text-[11px] text-arc-muted">

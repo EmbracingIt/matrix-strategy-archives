@@ -10,7 +10,8 @@ import { objectiveLabels } from "@/lib/strategyObjectives"
 import { secondaryRegimeLabel, secondaryRegimeParentLabel } from "@/lib/secondary-regimes"
 import { formatMonthYear } from "@/lib/format"
 import { useCompare } from "@/store/ui-store"
-import { ArcAssetIcon, ArcProtocolIcon } from "@/components/archive/archive-icons"
+import { ArcProtocolIcon, ArcNetworkIcon } from "@/components/archive/archive-icons"
+import { RegimeIndicator } from "@/components/archive/regime-indicator"
 import { ArchiveError, ArchiveSkeleton } from "@/components/archive/archive-bits"
 import { cn } from "@/lib/utils"
 import type { StrategyDTO } from "@/lib/types"
@@ -23,12 +24,6 @@ import type { StrategyDTO } from "@/lib/types"
  * scrolls horizontally on small screens.
  */
 
-const REGIME_ARROWS: Record<string, string> = { BULL: "↗", SIDEWAYS: "→", BEAR: "↘" }
-const REGIME_TEXT: Record<string, string> = {
-  BULL: "text-arc-green",
-  SIDEWAYS: "text-arc-amber",
-  BEAR: "text-arc-red",
-}
 const RISK_TEXT: Record<string, string> = {
   LOW: "text-arc-green",
   MEDIUM: "text-arc-amber",
@@ -182,12 +177,9 @@ export function CompareView() {
                           {(record.marketFit?.regimes ?? []).map((regime) => (
                             <span
                               key={regime}
-                              className={cn(
-                                "arc-mono text-[11px]",
-                                REGIME_TEXT[regime] ?? "text-arc-muted"
-                              )}
+                              className="arc-mono text-[11px]"
                             >
-                              {REGIME_ARROWS[regime]} {regime}
+                              <RegimeIndicator regime={regime} />
                             </span>
                           ))}
                         </span>
@@ -250,30 +242,10 @@ export function CompareView() {
                     ))}
                   </CompareRow>
 
-                  <CompareRow label="COMPOSITION">
+                  <CompareRow label="PROTOCOL / CHAIN">
                     {records.map((record) => (
                       <CompareCell key={record.slug}>
                         <div className="flex flex-col gap-2">
-                          <span className="flex items-center gap-2">
-                            <ArcAssetIcon
-                              symbol={record.depositAssets[0]?.symbol ?? "?"}
-                              category={record.depositAssets[0]?.category}
-                              iconUrl={record.depositAssets[0]?.iconUrl}
-                              size={18}
-                            />
-                            <span className="text-[12.5px] text-arc-text">
-                              {[
-                                ...new Map(
-                                  [...record.depositAssets, ...record.exposureAssets].map((a) => [
-                                    a.symbol,
-                                    a,
-                                  ])
-                                ).values(),
-                              ]
-                                .map((a) => a.symbol)
-                                .join(" / ") || "—"}
-                            </span>
-                          </span>
                           {record.protocols.length > 0 && (
                             <span className="flex items-center gap-2">
                               <ArcProtocolIcon
@@ -287,7 +259,7 @@ export function CompareView() {
                             </span>
                           )}
                           <span className="arc-mono text-[10px] text-arc-dim">
-                            {record.networks.map((n) => n.name).join(" / ") || "—"}
+                            {record.networks.map((n) => n.name).join(" / ") || "No chain listed"}
                           </span>
                         </div>
                       </CompareCell>

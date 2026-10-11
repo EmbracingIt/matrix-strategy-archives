@@ -4,7 +4,8 @@ import Link from "next/link"
 import { ArrowRight, Check, Plus } from "lucide-react"
 import { urls } from "@/lib/nav"
 import { objectiveLabels } from "@/lib/strategyObjectives"
-import { ArcAssetIcon, ArcIconStack, ArcNetworkIcon, ArcProtocolIcon } from "@/components/archive/archive-icons"
+import { ArcNetworkIcon, ArcProtocolIcon } from "@/components/archive/archive-icons"
+import { RegimeIndicator } from "@/components/archive/regime-indicator"
 import { useCompare } from "@/store/ui-store"
 import { WhyItMatches } from "@/components/archive/archive-match"
 import { cn } from "@/lib/utils"
@@ -14,20 +15,13 @@ import type { StrategyDTO } from "@/lib/types"
 /**
  * A strategy rendered as an archive record — digital catalogue entry, not
  * an ecommerce card. Clear hierarchy: the strategy NAME dominates (serif),
- * a single classification line supports it, circular composition marks sit
+ * a single classification line supports it, protocol/network marks sit
  * in one quiet row. Retrieval results include plain-language matching
  * context; the Browse All grid keeps its original presentation.
  *
  * The whole card opens the record via a stretched link; the COMPARE control
  * sits above it (relative z-20) so marking a record never navigates.
  */
-
-const REGIME_ARROWS: Record<string, string> = { BULL: "↗", SIDEWAYS: "→", BEAR: "↘" }
-const REGIME_TEXT: Record<string, string> = {
-  BULL: "text-arc-green",
-  SIDEWAYS: "text-arc-amber",
-  BEAR: "text-arc-red",
-}
 
 const RISK_TEXT: Record<string, string> = {
   LOW: "text-arc-green",
@@ -47,12 +41,6 @@ export function RecordCard({
 }) {
   const { compareSlugs, toggleCompare } = useCompare()
   const selected = compareSlugs.includes(strategy.slug)
-
-  const assets = [
-    ...new Map(
-      [...strategy.depositAssets, ...strategy.exposureAssets].map((a) => [a.symbol, a])
-    ).values(),
-  ]
 
   return (
     <div
@@ -92,24 +80,6 @@ export function RecordCard({
 
       {/* Composition — circular marks in one quiet row */}
       <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
-        {assets.length > 0 && (
-          <span className="flex items-center gap-2">
-            <ArcIconStack ringClass="ring-arc-surface/60">
-              {assets.slice(0, 3).map((asset) => (
-                <ArcAssetIcon
-                  key={asset.id}
-                  symbol={asset.symbol}
-                  category={asset.category}
-                  iconUrl={asset.iconUrl}
-                  size={20}
-                />
-              ))}
-            </ArcIconStack>
-            <span className="text-[12px] font-medium text-arc-muted">
-              {assets.map((a) => a.symbol).join(" / ")}
-            </span>
-          </span>
-        )}
         {strategy.protocols.length > 0 && (
           <span className="flex items-center gap-1.5 text-[12px] text-arc-muted">
             <ArcProtocolIcon name={strategy.protocols[0].name} iconUrl={strategy.protocols[0].iconUrl} size={16} />
@@ -136,9 +106,9 @@ export function RecordCard({
             {strategy.marketFit?.regimes?.map((regime) => (
               <span
                 key={regime}
-                className={cn("arc-mono text-[10px]", REGIME_TEXT[regime] ?? "text-arc-muted")}
+                className="arc-mono text-[10px]"
               >
-                {REGIME_ARROWS[regime]} {regime}
+                <RegimeIndicator regime={regime} />
               </span>
             ))}
             <span className={cn("arc-mono text-[10px]", RISK_TEXT[strategy.risk?.overallRisk ?? ""] ?? "text-arc-muted")}>

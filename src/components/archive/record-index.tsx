@@ -5,7 +5,8 @@ import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { urls } from "@/lib/nav"
 import { objectiveLabels } from "@/lib/strategyObjectives"
-import { ArcAssetIcon } from "@/components/archive/archive-icons"
+import { ArcNetworkIcon, ArcProtocolIcon } from "@/components/archive/archive-icons"
+import { RegimeIndicator } from "@/components/archive/regime-indicator"
 import { cn } from "@/lib/utils"
 import type { StrategyDTO } from "@/lib/types"
 
@@ -14,12 +15,6 @@ import type { StrategyDTO } from "@/lib/types"
  * listing rather than cards. Rows are records; classification is compact.
  */
 
-const REGIME_ARROWS: Record<string, string> = { BULL: "↗", SIDEWAYS: "→", BEAR: "↘" }
-const REGIME_TEXT: Record<string, string> = {
-  BULL: "text-arc-green",
-  SIDEWAYS: "text-arc-amber",
-  BEAR: "text-arc-red",
-}
 const RISK_TEXT: Record<string, string> = {
   LOW: "text-arc-green",
   MEDIUM: "text-arc-amber",
@@ -39,7 +34,7 @@ export function RecordIndex({ strategies }: { strategies: StrategyDTO[] }) {
             <th className="arc-mono hidden px-4 py-3.5 font-medium text-arc-dim lg:table-cell">
               CLASSIFICATION
             </th>
-            <th className="arc-mono hidden px-4 py-3.5 font-medium text-arc-dim md:table-cell">ASSETS</th>
+            <th className="arc-mono hidden px-4 py-3.5 font-medium text-arc-dim md:table-cell">PROTOCOL / CHAIN</th>
             <th className="arc-mono hidden px-4 py-3.5 font-medium text-arc-dim sm:table-cell">REGIMES</th>
             <th className="arc-mono px-4 py-3.5 font-medium text-arc-dim">RISK</th>
             <th className="arc-mono hidden px-4 py-3.5 font-medium text-arc-dim xl:table-cell">APY</th>
@@ -47,13 +42,7 @@ export function RecordIndex({ strategies }: { strategies: StrategyDTO[] }) {
           </tr>
         </thead>
         <tbody>
-          {strategies.map((strategy) => {
-            const assets = [
-              ...new Map(
-                [...strategy.depositAssets, ...strategy.exposureAssets].map((a) => [a.symbol, a])
-              ).values(),
-            ]
-            return (
+          {strategies.map((strategy) => (
               <tr
                 key={strategy.id}
                 className="group cursor-pointer border-b border-white/[0.07] transition-colors last:border-b-0 hover:bg-arc-surface/70"
@@ -76,36 +65,15 @@ export function RecordIndex({ strategies }: { strategies: StrategyDTO[] }) {
                   </span>
                 </td>
                 <td className="hidden px-4 py-4 align-middle text-[12.5px] text-arc-muted md:table-cell">
-                  <span className="flex items-center gap-2">
-                    {assets.length > 0 && (
-                      <span className="flex -space-x-1.5">
-                        {assets.slice(0, 3).map((asset) => (
-                          <span key={asset.id} className="rounded-full ring-1 ring-arc-bg">
-                            <ArcAssetIcon
-                              symbol={asset.symbol}
-                              category={asset.category}
-                              iconUrl={asset.iconUrl}
-                              size={18}
-                            />
-                          </span>
-                        ))}
-                      </span>
-                    )}
-                    <span className="block max-w-[140px] truncate">
-                      {assets.map((a) => a.symbol).join(" / ") || "—"}
-                    </span>
+                  <span className="flex flex-col gap-1.5">
+                    {strategy.protocols.length > 0 && <span className="flex items-center gap-1.5"><ArcProtocolIcon name={strategy.protocols[0].name} iconUrl={strategy.protocols[0].iconUrl} size={15} />{strategy.protocols.map((p) => p.name).join(", ")}</span>}
+                    {strategy.networks.length > 0 && <span className="flex items-center gap-1.5"><ArcNetworkIcon name={strategy.networks[0].name} iconUrl={strategy.networks[0].iconUrl} size={15} />{strategy.networks.map((n) => n.name).join(", ")}</span>}
                   </span>
                 </td>
                 <td className="hidden px-4 py-4 align-middle sm:table-cell">
                   <span className="flex gap-3">
                     {strategy.marketFit?.regimes?.map((regime) => (
-                      <span
-                        key={regime}
-                        className={cn("font-mono text-[13px]", REGIME_TEXT[regime] ?? "text-arc-muted")}
-                        title={regime}
-                      >
-                        {REGIME_ARROWS[regime]}
-                      </span>
+                      <RegimeIndicator key={regime} regime={regime} iconOnly />
                     ))}
                   </span>
                 </td>
@@ -139,8 +107,7 @@ export function RecordIndex({ strategies }: { strategies: StrategyDTO[] }) {
                   </Link>
                 </td>
               </tr>
-            )
-          })}
+          ))}
         </tbody>
       </table>
     </div>

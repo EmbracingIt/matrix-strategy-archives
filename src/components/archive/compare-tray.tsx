@@ -6,7 +6,7 @@ import { ArrowRight, X } from "lucide-react";
 import { useStrategies } from "@/hooks/use-strategy-data";
 import { urls } from "@/lib/nav";
 import { COMPARE_LIMIT, useCompare } from "@/store/ui-store";
-import { ArcAssetIcon } from "@/components/archive/archive-icons";
+import { ArcNetworkIcon, ArcProtocolIcon } from "@/components/archive/archive-icons";
 import { cn } from "@/lib/utils";
 
 /**
@@ -61,24 +61,13 @@ export function CompareTray() {
           {selected.map((strategy) => (
             <li key={strategy.slug} className="shrink-0">
               <span className="flex items-center gap-2 rounded-full border border-white/12 bg-arc-surface py-1 pl-1 pr-2">
-                <ArcAssetIcon
-                  symbol={
-                    strategy.depositAssets[0]?.symbol ??
-                    strategy.exposureAssets[0]?.symbol ??
-                    "?"
-                  }
-                  category={
-                    strategy.depositAssets[0]?.category ??
-                    strategy.exposureAssets[0]?.category
-                  }
-                  iconUrl={
-                    strategy.depositAssets[0]?.iconUrl ??
-                    strategy.exposureAssets[0]?.iconUrl
-                  }
-                  size={22}
-                />
-                <span className="max-w-[150px] truncate text-[12.5px] font-medium text-arc-text">
-                  {strategy.name}
+                <ArcProtocolIcon name={strategy.protocols[0]?.name ?? ""} iconUrl={strategy.protocols[0]?.iconUrl} size={18} />
+                <span className="min-w-0">
+                  <span className="block max-w-[150px] truncate text-[12.5px] font-medium text-arc-text">{strategy.name}</span>
+                  <span className="flex items-center gap-1 text-[10px] text-arc-dim">
+                    {strategy.protocols.map((protocol) => protocol.name).join(", ") || "Protocol not listed"}
+                    {strategy.networks.length > 0 && <><span aria-hidden>·</span><ArcNetworkIcon name={strategy.networks[0].name} iconUrl={strategy.networks[0].iconUrl} size={12} />{strategy.networks.map((network) => network.name).join(", ")}</>}
+                  </span>
                 </span>
                 <button
                   type="button"
