@@ -101,12 +101,6 @@ const rangeScenario = (price: number, label: string) => {
     next: "Review the token mix and trigger before changing the range; fees would need to offset any holding shortfall plus costs.",
   };
 };
-const accumL = 3000 / (Math.sqrt(3000) - Math.sqrt(2000));
-const accumAsset = rangeAmounts(accumL, 2000, 3000, 2000).asset;
-// Continuous V3 check for the partial-fill example: at 2,500, L≈298.4808459
-// gives 0.5201271752 ETH and 1,575.5730667 USDC (value 2,875.8910048 USD).
-// Above 3,000, it is 3,000 USDC. Full conversion is 3,000/1.2247448714
-// ≈ 2,449.4897428 USDC per ETH; at 1,800 the ETH is worth 2,204.5407685 USD.
 const sellL = 1 / (1 / Math.sqrt(3000) - 1 / Math.sqrt(4000));
 const sellProceeds = rangeAmounts(sellL, 3000, 4000, 4000).stable;
 
@@ -125,6 +119,9 @@ interface Canonical {
   education: StrategyEducation;
   depositAssets?: string[];
   requirements?: { requiredHoldings: string[]; walletSetup: string; other: string };
+  leverageUsed?: boolean;
+  leverageAmount?: string;
+  liquidationExposure?: "NONE" | "LOW" | "MEDIUM" | "HIGH";
   conversionReversalRisk?: "NONE" | "LOW" | "MEDIUM" | "HIGH";
   conversionReversalExplanation?: string;
   referenceTitles?: Record<string, string>;
@@ -491,115 +488,108 @@ export const catalogue: Canonical[] = [
     slug: "accumulation-lp",
     name: "Accumulation LP",
     summary:
-      "Use a Uniswap V3 range order to convert USDC into ETH gradually as price falls through a chosen range.",
+      "Borrow USDC against ETH you intend to keep, then use a Uniswap V3 range to accumulate additional ETH without selling your core exposure.",
     description:
-      "This is effectively a range order: a gradual limit buy implemented with Uniswap V3 concentrated liquidity. You place unborrowed USDC in a range wholly below the current ETH price. As traders swap through the range, the position progressively converts USDC into ETH. Below the range you hold ETH and remain exposed to further declines; a recovery can reverse the conversion unless you withdraw the acquired asset.",
+      "Use ETH you already hold as collateral for a USDC loan, then place the borrowed USDC in a Uniswap V3 range wholly below spot. This keeps your original ETH exposure while the range may accumulate additional ETH as price falls; it does not remove downside exposure. The USDC debt accrues interest, collateral value can fall, and the lending market may liquidate collateral before a recovery. If price recovers through the open range, accumulated LP ETH converts back to USDC. The lending market is not selected or reviewed by this archive, so this record does not specify rates or collateral parameters.",
     objectives: ["accumulation"],
     assets: ["USDC", "ETH"],
     protocols: ["uniswap"],
     networks: ["ethereum"],
     steps: plan(
-      "Choose a USDC budget and ETH buying bounds; no borrowing. Decide when to remove acquired ETH.",
-      "Select Uniswap V3 on Ethereum and verify USDC-per-ETH orientation and the pool.",
-      "If spot is above the entire range, start with USDC only. Starting while price is already in range requires both assets and is a different two-sided LP with a different risk profile; see Dual-Asset LP.",
-      "Review price and ETH acquired near the boundaries; track fees separately.",
-      "At completion, decide whether to withdraw and keep ETH. Recovery through the range sells it back into USDC.",
-      "Moving the range means withdrawing and re-minting, which costs gas and locks in the current token mix.",
+      "Decide how much ETH collateral you can afford to pledge and how you would repay the USDC debt under a large ETH decline. Do not assume you can wait for a recovery.",
+      "Choose and verify a lending market separately from Uniswap V3. Check collateral eligibility, available USDC, variable borrow rate, liquidation terms and health monitoring; this archive has not selected a lender.",
+      "Supply eligible ETH collateral and borrow only an amount you can manage. Place borrowed USDC in a buying range wholly below spot; reserve ETH for gas. An in-range start is a different two-sided LP, not this plan.",
+      "Set alerts for both LP range boundaries and monitor the lending account's collateral health and accrued debt. A sharp move can fill the range within minutes while weakening collateral at the same time.",
+      "If collateral health worsens, assess repayment or additional collateral early. ETH held in the LP is not automatically collateral; withdrawing it to supply or sell changes the LP and may add costs or tax events.",
+      "Remove liquidity, collect assets, and decide whether to repay the loan plus interest before withdrawing pledged ETH. Recovery through an open LP range converts its ETH back to USDC.",
     ),
     riskText:
-      "The archive rates smart-contract risk MEDIUM because this plan relies on Uniswap V3 contracts to hold and manage the position. This covers contract and protocol failure, not USDC issuer risk; USDC can depeg or be frozen/blacklisted. More ETH units can still mean a lower dollar value, and a recovery sells accumulated ETH back to USDC while the position stays open.",
+      "This plan adds collateralized borrowing to Uniswap V3. ETH price declines can reduce collateral health while LP assets and debt move differently; liquidation may occur before a recovery. Borrow rates can change and accrue against the USDC debt. The lending market is not selected or reviewed by this archive. Uniswap and lender contract failures, oracle or governance changes, USDC issuer freeze/blacklist or depeg, LP conversion reversal, fees and transaction costs also apply.",
+    leverageUsed: true,
+    leverageAmount: "USDC loan secured by ETH collateral; amount and rate depend on the selected lending market",
+    liquidationExposure: "HIGH",
     education: {
       family: "Liquidity Provision",
       goal: "accumulate",
       complexity: "Intermediate",
       management: "Active management",
       returnSource:
-        "Possible swap fees while active; the main objective is conversion, not a promised yield.",
+        "The objective is to accumulate ETH with borrowed USDC while retaining existing ETH exposure. LP fees may accrue while active, but borrowing interest is a cost and can exceed fee income; no return is promised.",
       exposure:
-        "Starts in USDC; progressively takes ETH price exposure. Below range it holds ETH. No debt or liquidation from borrowing.",
+        "Existing ETH remains pledged as collateral; borrowed USDC debt accrues interest. The LP progressively converts USDC into ETH below spot. ETH declines can reduce collateral health and LP value at the same time.",
       tradeOff:
-        "Compared with a limit order (such as UniswapX, CoW Swap or a centralised exchange), which fills at one price, does not reverse on recovery and is simpler, this range order converts gradually and may earn fees while active. It has no order-matching solver dependency; swaps by traders move the position through its range. Its key trade-off is reversal: if price recovers through an open range, ETH converts back to USDC. Arbitrageurs trade at market-aligned prices, so do not expect a better price than a plain limit order.",
+        "Borrowing can fund the range without selling your existing ETH exposure, but adds variable interest, lender and smart-contract risk, and liquidation exposure. LP conversion is still reversible: recovery through an open range sells LP-held ETH back to USDC. Fees are not guaranteed and may not cover borrowing costs. Liquidation can happen before a market recovery.",
       fitsIf: [
-        "You want ETH at the chosen buying range, including if price falls further.",
-        "You can monitor completion and act before unwanted reverse conversion.",
+        "You already hold ETH accepted as collateral and can withstand a large further decline without relying on a recovery.",
+        "You can monitor both LP boundaries and loan health, and have a concrete repayment or collateral plan.",
       ],
       reconsiderIf: [
-        "You no longer want ETH or cannot monitor the position.",
-        "The buying range completes or price starts recovering through it.",
+        "You cannot monitor the loan and LP together or cannot add collateral or repay if conditions worsen.",
+        "Borrowing costs exceed expected benefits, collateral health deteriorates, or you no longer want the combined ETH and debt exposure.",
       ],
       example: {
-        title: "Buy ETH through 2,000–3,000 USDC",
-        starting:
-          "3,000 USDC at ETH = 3,200 USDC; no ETH deposit and no borrowing.",
-        action:
-          "Place all USDC in a Uniswap V3 buying range wholly below spot.",
-        assumptions:
-          "Illustrative continuous V3 math, USDC = 1 USD, no fees, gas, rewards or tick rounding. Fees occur only from swaps using active liquidity.",
-        benchmark:
-          "Keep 3,000 USDC; a separate all-at-once ETH purchase is a different benchmark.",
+        title: "Example case: borrow 3,000 USDC for a $3,000–$2,600 ETH range",
+        starting: "ETH is $3,000. Keep eligible ETH as collateral rather than selling it; borrow 3,000 USDC only if the selected lending market's terms and your downside plan allow it.",
+        action: "Place borrowed USDC in a Uniswap V3 buying range from $3,000 to $2,600. The range may accumulate ETH as price falls while the original collateral retains ETH exposure.",
+        assumptions: "This is one possible path, not a forecast. The 30% APY fee assumption is hypothetical, not live; lender, borrowing rate, collateral amount, liquidation terms, gas and tax treatment are unspecified.",
+        benchmark: "Compare with holding 1 ETH without a loan. A full comparison also needs the pledged collateral, debt and interest; an LP balance alone is not net return.",
         scenarios: [
           {
-            label: "Price never enters",
-            condition: "ETH stays above 3,000 USDC",
-            assets: "3,000 USDC; 0 ETH",
-            value: "3,000.00 USD; holding USDC: 3,000.00 USD",
-            next: "No active fees are earned. Review whether the buying trigger still fits.",
+            label: "ETH falls to $2,600",
+            condition: "After 1.5 months, the LP range contains about 1.1127 ETH, including the hypothetical fee assumption.",
+            assets: "About 1.1127 ETH in the LP; pledged ETH collateral remains separate.",
+            value: "LP assets are about $2,893. The 3,000 USDC debt plus borrowing interest remains due; this is not total portfolio value or net return.",
+            next: "Collateral health may worsen as ETH falls. Liquidation can occur before a recovery; no lending market or liquidation threshold is specified here.",
           },
           {
-            label: "Falls through and below",
-            condition: "ETH reaches 1,800 USDC",
-            assets: `${accumAsset.toFixed(4)} ETH; 0 USDC`,
-            value: `${(accumAsset * 1800).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD; holding USDC: 3,000.00 USD`,
-            next: "More ETH does not mean profit. Full conversion gives an effective average buy price of about 2,449 USDC per ETH (√(2,000 × 3,000)), versus 3,200 USDC spot at the start. Decide whether to withdraw and keep ETH; further declines reduce value.",
+            label: "ETH falls, then returns to $3,000",
+            condition: "As price recovers above the range, the LP converts back to about 3,000 USDC principal, plus any fees earned while active.",
+            assets: "About 3,000 USDC principal plus fees; pledged ETH collateral remains separate.",
+            value: "Under the same simplified fee assumption, fees are about $100 equivalent. After repaying 3,000 USDC principal, they offset interest and costs only if actual fee proceeds exceed them.",
+            next: "Fee income is uncertain and may not cover borrowing interest, gas or other costs. Collateral may still be liquidated before a recovery.",
           },
           {
-            label: "Recovers without withdrawal",
-            condition: "Price crosses down to 2,000 then back above 3,000 USDC",
-            assets: "0 ETH; 3,000 USDC (fees excluded)",
-            value: "3,000.00 USD; holding USDC: 3,000.00 USD",
-            next: "The conversion reversed. To retain acquired ETH, removal timing matters.",
-          },
-          {
-            label: "Partial fill, then recovery",
-            condition: "ETH falls to 2,500 USDC, then recovers above 3,000 while the position stays open",
-            assets: "At 2,500: 0.5201 ETH + 1,575.57 USDC. Above 3,000: 0 ETH + 3,000 USDC (fees excluded).",
-            value: "At 2,500: 2,875.89 USD; above 3,000: 3,000.00 USD. Holding USDC: 3,000.00 USD.",
-            next: "Illustrative continuous V3 math with L ≈ 298.5: the mixed position reverses to USDC as price crosses the upper bound. At 2,500 its principal value is below the starting 3,000 USD, before fees and costs.",
+            label: "ETH rises without entering the range",
+            condition: "If ETH moves above $3,000 and never trades through the range, the LP can remain in USDC.",
+            assets: "LP remains around 3,000 USDC; pledged ETH collateral keeps its ETH price exposure.",
+            value: "The collateral's value can rise with ETH, while the debt remains 3,000 USDC plus interest.",
+            next: "The LP may earn little or no fees if its liquidity is not active. This path preserves collateral upside but does not guarantee a net gain.",
           },
         ],
       },
       monitor: [
-        "Set price alerts at the lower and upper range boundaries. A sharp move can fill the whole range within minutes.",
-        "Review the token mix near each boundary; record fees separately from principal value.",
+        "Set price alerts at both LP range boundaries and monitor the lending account's collateral health and accrued debt. A sharp move can fill the whole range within minutes.",
+        "Review the LP token mix near each boundary; compare actual fee income with borrowing interest and transaction costs.",
         "A 0.05% versus 0.3% fee tier changes fee capture and can affect pool use and fill behaviour. Fee income is small relative to price moves; arbitrageurs fill at market-aligned prices (adverse selection), so do not expect the LP to beat a plain limit order on price.",
         "Minting, collecting and removing on Ethereum mainnet can take a meaningful share of a small position. Size accordingly; other networks and L2 deployments have different costs and are separate implementations in this archive.",
-        "Minting, swaps through the range and removing liquidity can be taxable events in many jurisdictions. Check local rules.",
+        "Supplying collateral, borrowing, LP swaps and removing liquidity may have tax consequences depending on jurisdiction. Check local rules.",
       ],
-      exit: "Uniswap V3 has no automatic withdrawal. If you do not remove the liquidity, a price recovery sells your ETH back into USDC.",
+      exit: "Uniswap V3 has no automatic withdrawal. Remove and collect the LP assets, then assess repaying the USDC debt plus interest before withdrawing pledged collateral. If left open, a price recovery sells LP-held ETH back into USDC.",
       implementations: [
         {
           ...uni(["ETH", "USDC"]),
           sources: [sources.uni, sources.uniMath, sources.uniDeployments],
-          risks: "Smart-contract or pool failure; USDC issuer freeze/blacklist or depeg; price-conversion and adverse-selection risk; and changing pool activity. Minting and withdrawal have MEV/sandwich exposure; consider a protected RPC for larger positions. Protect the position NFT: review approvals before signing and verify the NFT in the official interface to avoid phishing approvals and fake position NFTs.",
+          risks: "Collateralized borrowing adds variable-rate and liquidation risk: falling ETH collateral value can put the loan at risk before a market recovery. The archive has not selected or reviewed a lending market; verify its collateral rules, borrow rate, health monitoring and repayment path. Also consider Uniswap smart-contract or pool failure; USDC issuer freeze/blacklist or depeg; price-conversion and adverse-selection risk; and changing pool activity. Minting and withdrawal have MEV/sandwich exposure; consider a protected RPC for larger positions. Protect the position NFT: review approvals before signing and verify the NFT in the official interface to avoid phishing approvals and fake position NFTs.",
           requirements: [
-            "USDC on Ethereum for the wholly-below-spot range; keep ETH separately for gas.",
+            "ETH collateral in a separately selected lending market, plus ETH reserved for gas; USDC borrowed for the wholly-below-spot range. This archive has not selected or reviewed a lender.",
+            "Before borrowing, verify supported collateral, available liquidity, current variable rate, loan-to-value and liquidation terms in the chosen market. Monitor its collateral health; adding ETH held inside an LP requires first withdrawing that ETH from the LP.",
             "Approve the Uniswap V3 NonfungiblePositionManager for the specific USDC amount required; avoid unlimited approvals. Verify the manager address against Uniswap's official Ethereum deployments page.",
             "An in-range start needs both assets and is a different two-sided LP with a different risk profile. See the Dual-Asset LP record.",
             "This supported plan is on Uniswap V3 Ethereum; other networks and L2s are separate implementations with different costs.",
           ],
           enter:
-            "Enter with USDC only and set the entire buying range below spot. If price is already in range, treat the two-sided entry as a different position, not this plan. Verify USDC-per-ETH price orientation.",
-          exit: "Uniswap V3 has no automatic withdrawal. If you do not remove the liquidity, a price recovery sells your ETH back into USDC. Remove liquidity and collect; returned assets are not automatically swapped. Account for gas and any later swap.",
+            "After verifying the lending market and debt plan, borrow USDC against eligible ETH collateral and enter the Uniswap V3 range with borrowed USDC only; set the full range below spot. If price is already in range, treat that as a different two-sided position. Verify USDC-per-ETH orientation.",
+          exit: "Uniswap V3 has no automatic withdrawal. Remove liquidity and collect; returned assets are not automatically swapped. Assess repaying the USDC debt plus interest before withdrawing collateral. If left open, a price recovery sells LP-held ETH back into USDC. Account for gas and any later swap.",
         },
       ],
-      foundations: ["liquidity", "divergence", "wallets"],
+      foundations: ["liquidity", "divergence", "wallets", "borrowing"],
       tools: ["simulator", "impermanent-loss"],
     },
     depositAssets: ["USDC"],
     requirements: {
-      requiredHoldings: ["USDC"],
-      walletSetup: "Use an Ethereum wallet, hold USDC for the range and ETH for gas. Approve the Uniswap V3 position manager for the limited USDC amount needed; do not approve an unlimited amount. Learn about wallets, token approvals and gas before signing.",
-      other: "Uniswap V3 has no automatic withdrawal; set boundary alerts and be prepared to remove liquidity. The Ethereum NonfungiblePositionManager is 0xC36442b4a4522E871399CD717aBDD847Ab11FE88; verify it on the official deployments page.",
+      requiredHoldings: ["ETH"],
+      walletSetup: "Use an Ethereum wallet with ETH eligible for collateral, and reserve ETH for gas. Select and verify a lending market; borrowed USDC funds the range. Approve only the intended collateral and USDC amounts for the correct protocols. Learn about wallets, token approvals, borrowing and gas before signing.",
+      other: "Borrow rates, collateral requirements and liquidation thresholds depend on the lending market, which this archive has not selected or reviewed. Uniswap V3 has no automatic withdrawal; set LP and collateral-health alerts. The Ethereum NonfungiblePositionManager is 0xC36442b4a4522E871399CD717aBDD847Ab11FE88; verify it on the official deployments page.",
     },
     conversionReversalRisk: "HIGH",
     conversionReversalExplanation: "If price recovers through the open range, accumulated ETH converts back to USDC; remove liquidity if you want to retain ETH.",
@@ -782,7 +772,7 @@ export const catalogue: Canonical[] = [
 ];
 
 catalogue.push(hedgeStrategy)
-for (const strategy of catalogue) strategy.education.editorialVersion = strategy.legacyId === "STRATEGY_018" ? "delta-neutral-lp-v3" : strategy.legacyId === "STRATEGY_001" ? "accumulation-lp-v2" : EDITORIAL_VERSION
+for (const strategy of catalogue) strategy.education.editorialVersion = strategy.legacyId === "STRATEGY_018" ? "delta-neutral-lp-v3" : strategy.legacyId === "STRATEGY_001" ? "accumulation-lp-v6" : EDITORIAL_VERSION
 
 // Complete observed inventory plus four additional archived records found in DB.
 // Null destinations retire to contextual Learn, never another advanced catalogue.
@@ -792,7 +782,7 @@ export const consolidation: Record<
 > = {
   STRATEGY_001: {
     destination: "accumulation-lp",
-    reason: "Canonical unleveraged accumulation",
+    reason: "Canonical collateral-backed accumulation",
   },
   STRATEGY_002: {
     destination: null,

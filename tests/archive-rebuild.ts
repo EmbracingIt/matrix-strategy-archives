@@ -53,6 +53,13 @@ async function main() {
       educationSchema.parse(c.education);
       assert.ok(c.steps.length >= 4 && c.steps.length <= 6);
       assert.equal(c.education.example.scenarios.length, 3);
+      if (c.legacyId === "STRATEGY_001") {
+        assert.doesNotMatch(JSON.stringify(c.education.example), /holding USDC|0\.9375 ETH|1800/);
+        assert.equal(c.leverageUsed, true);
+        assert.equal(c.liquidationExposure, "HIGH");
+        assert.match(c.description, /keeps your original ETH exposure/i);
+        assert.match(c.education.example.starting, /borrow 3,000 USDC/i);
+      }
       assert.ok(
         c.education.implementations.every(
           (i) => i.requirements.length && i.sources.length,
@@ -74,6 +81,12 @@ async function main() {
       ) < 1e-10,
     );
     const publicRows = await json("/api/strategies");
+    const accumulation = await json("/api/strategies/accumulation-lp");
+    assert.equal(accumulation.education.example.scenarios.length, 3);
+    assert.doesNotMatch(JSON.stringify(accumulation.education.example), /holding USDC|0\.9375 ETH|1800/);
+    assert.equal(accumulation.risk.leverageUsed, true);
+    assert.equal(accumulation.risk.liquidationExposure, "HIGH");
+    assert.equal(accumulation.requirements.requiredHoldings.includes("ETH"), true);
     assert.ok(publicRows.every(s=>!('detailedResearch' in s.education)));
     assert.equal(publicRows.length, 8);
     assert.equal(new Set(publicRows.map((s) => s.id)).size, 8);
@@ -142,7 +155,9 @@ async function main() {
       }
     }
     assert.equal((await json("/api/strategies?q=accumulation")).length, 1);
-    assert.equal((await json("/api/strategies?leverage=levered")).length, 1);
+    const levered = await json("/api/strategies?leverage=levered");
+    assert.equal(levered.length, 2);
+    assert.ok(levered.some((s: { slug: string }) => s.slug === "accumulation-lp"));
     const matched = await json("/api/match", {
       method: "POST",
       headers: { "content-type": "application/json" },

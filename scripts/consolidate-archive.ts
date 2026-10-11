@@ -147,9 +147,9 @@ async function main() {
                   ? "HIGH"
                   : "MEDIUM",
               explanation: c.riskText,
-              leverageUsed: c.education.family === "Hedging",
-              leverageAmount: c.education.family === "Hedging" ? "Derivative exposure; example uses 1× initial short notional/margin." : undefined,
-              liquidationExposure: c.education.family === "Hedging" ? "HIGH" : "NONE",
+              leverageUsed: c.leverageUsed ?? c.education.family === "Hedging",
+              leverageAmount: c.leverageAmount ?? (c.education.family === "Hedging" ? "Derivative exposure; example uses 1× initial short notional/margin." : undefined),
+              liquidationExposure: c.liquidationExposure ?? (c.education.family === "Hedging" ? "HIGH" : "NONE"),
               incentiveReliance: "NONE",
               smartContractRisk: "MEDIUM",
               impermanentLoss:

@@ -11,6 +11,7 @@ import { objectiveLabels } from "@/lib/strategyObjectives"
 import { secondaryRegimeDef } from "@/lib/secondary-regimes"
 import { ArcAssetIcon, ArcIconStack, ArcNetworkIcon, ArcProtocolIcon } from "@/components/archive/archive-icons"
 import { RegimeIndicator } from "@/components/archive/regime-indicator"
+import { AccumulationLpDemo } from "@/components/archive/accumulation-lp-demo"
 import { cn } from "@/lib/utils"
 import type { ExposureLevel, Regime, RiskLevel, StrategyDTO } from "@/lib/types"
 
@@ -366,9 +367,11 @@ function OverviewSection({ strategy }: { strategy: StrategyDTO }) {
         {strategy.education.tools.includes("hedging") && <div className="border border-arc-green/20 bg-arc-green/5 p-4"><Link href="/?view=tools#hedging-calculator" className="inline-flex min-h-11 items-center text-arc-green">Hedging Calculator — In development →</Link><p>Not ready to use. Planned to help size LP delta hedges; verify current inventory and sizing independently before entry.</p></div>}
         {[["RETURN SOURCE", strategy.education.returnSource], ["EXPOSURE", strategy.education.exposure], ["MAIN TRADE-OFF", strategy.education.tradeOff]].map(([title, text]) => <div key={title}><p className="arc-mono text-arc-green">{title}</p><p className="mt-2">{text}</p></div>)}
         <details className="border-t border-white/10 pt-5"><summary className="arc-mono min-h-11 cursor-pointer text-arc-text">WORKED EXAMPLE / ILLUSTRATIVE, NOT LIVE RATES</summary>
-          <h3 className="mt-4 text-[20px] font-semibold text-arc-text">{strategy.education.example.title}</h3>
-          <p className="mt-4">{strategy.education.example.starting}</p><p className="mt-3">{strategy.education.example.action}</p><p className="mt-3">Assumptions: {strategy.education.example.assumptions}</p><p className="mt-3">Benchmark: {strategy.education.example.benchmark}</p>
-          <div className="mt-6 grid gap-px border border-white/10 bg-white/10 xl:grid-cols-3">{strategy.education.example.scenarios.map(scenario => <div key={scenario.label} className="min-w-0 bg-arc-surface p-5"><h4 className="font-semibold text-arc-text">{scenario.label}</h4><p className="mt-3">{scenario.condition}</p><p className="mt-3">Position assets: {scenario.assets}</p><p className="mt-3">{scenario.value}</p><p className="mt-3">{scenario.next}</p></div>)}</div>
+          {strategy.slug === "accumulation-lp" ? <AccumulationLpDemo /> : <>
+            <h3 className="mt-4 text-[20px] font-semibold text-arc-text">{strategy.education.example.title}</h3>
+            <p className="mt-4">{strategy.education.example.starting}</p><p className="mt-3">{strategy.education.example.action}</p><p className="mt-3">Assumptions: {strategy.education.example.assumptions}</p><p className="mt-3">Benchmark: {strategy.education.example.benchmark}</p>
+            <div className="mt-6 grid gap-px border border-white/10 bg-white/10 xl:grid-cols-3">{strategy.education.example.scenarios.map(scenario => <div key={scenario.label} className="min-w-0 bg-arc-surface p-5"><h4 className="font-semibold text-arc-text">{scenario.label}</h4><p className="mt-3">{scenario.condition}</p><p className="mt-3">Position assets: {scenario.assets}</p><p className="mt-3">{scenario.value}</p><p className="mt-3">{scenario.next}</p></div>)}</div>
+          </>}
         </details>
       </div>}
 
