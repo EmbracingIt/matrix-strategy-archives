@@ -168,7 +168,7 @@ async function main() {
                 url,
               })),
             ),
-            lastReviewedAt: new Date(c.legacyId === "STRATEGY_011" || c.legacyId === "STRATEGY_009" ? "2026-10-11" : "2026-10-08"),
+            lastReviewedAt: new Date(c.legacyId === "STRATEGY_011" || c.legacyId === "STRATEGY_009" || c.legacyId === "STRATEGY_018" ? "2026-10-11" : "2026-10-08"),
             depositAssets: { create: assets.filter((a) => !c.depositAssets || c.depositAssets.includes(a.symbol)).map((a) => ({ assetId: a.id })) },
             exposureAssets: { create: assets.map((a) => ({ assetId: a.id })) },
             networks: { create: networks.map((n) => ({ networkId: n.id })) },

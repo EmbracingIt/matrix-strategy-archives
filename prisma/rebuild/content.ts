@@ -818,7 +818,7 @@ export const catalogue: Canonical[] = [
 ];
 
 catalogue.push(hedgeStrategy)
-for (const strategy of catalogue) strategy.education.editorialVersion = strategy.legacyId === "STRATEGY_018" ? "delta-neutral-lp-v3" : strategy.legacyId === "STRATEGY_001" ? "accumulation-lp-v6" : strategy.legacyId === "STRATEGY_022" ? "dual-asset-lp-v4" : strategy.legacyId === "STRATEGY_011" ? "stablecoin-lending-v4" : strategy.legacyId === "STRATEGY_009" ? "distribution-lp-v3" : EDITORIAL_VERSION
+for (const strategy of catalogue) strategy.education.editorialVersion = strategy.legacyId === "STRATEGY_018" ? "delta-neutral-lp-v5" : strategy.legacyId === "STRATEGY_001" ? "accumulation-lp-v6" : strategy.legacyId === "STRATEGY_022" ? "dual-asset-lp-v4" : strategy.legacyId === "STRATEGY_011" ? "stablecoin-lending-v4" : strategy.legacyId === "STRATEGY_009" ? "distribution-lp-v3" : EDITORIAL_VERSION
 
 // Complete observed inventory plus four additional archived records found in DB.
 // Null destinations retire to contextual Learn, never another advanced catalogue.

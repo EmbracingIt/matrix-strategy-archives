@@ -154,18 +154,30 @@ async function main() {
     assert.deepEqual(btcPhase.map(s => s.name), ["Crypto Lending"]);
     const hedge = publicRows.find(s => s.slug === "delta-neutral-lp-hedge");
     assert.equal(hedge.education.complexity, "Advanced");
+    assert.equal(hedge.education.editorialVersion, "delta-neutral-lp-v5");
+    assert.match(hedge.education.example.assumptions, /45% APY/i);
+    assert.match(hedge.education.example.assumptions, /584\.05 USD-equivalent gross fees/i);
+    assert.match(hedge.education.example.action, /adjust the short toward that amount/i);
+    assert.match(hedge.education.implementations[0].accounting, /hedge does not increase pool fees/i);
     assert.equal((await json('/api/strategies/hedged-concentrated-liquidity')).slug, hedge.slug);
     assert.equal((await json('/api/strategies/spot-perp-hedge')).slug, hedge.slug);
     assert.ok(hedge.protocols.some(p => p.slug === 'uniswap'));
     assert.ok(hedge.protocols.some(p => p.slug === 'hyperliquid'));
-    // V3 boundary inventory + fixed initial short + separate margin/fees/costs.
+    // V3 boundary inventory for the LP; no short P&L is invented without its rebalance path.
     const hedgeL = 1 / (1 / Math.sqrt(3000) - 1 / Math.sqrt(4500));
-    for (const [price, fees, expected] of [[2000, 80, 8499.49], [4500, 80, 8224.23], [3000, 100, 9070]]) {
-      const inventory = rangeAmounts(hedgeL, 2000, 4500, price);
-      const total = inventory.asset * price + inventory.stable + 3000 + (3000 - price) + fees - 30;
-      assert.ok(Math.abs(total - expected) < 0.005);
-      assert.ok(hedge.education.example.scenarios.some(s => s.value.includes(expected.toLocaleString('en-US'))));
-    }
+    const lowerHedgeInventory = rangeAmounts(hedgeL, 2000, 4500, 2000);
+    const upperHedgeInventory = rangeAmounts(hedgeL, 2000, 4500, 4500);
+    assert.ok(Math.abs(lowerHedgeInventory.asset - 2.224744871391589) < 1e-10);
+    assert.equal(lowerHedgeInventory.stable, 0);
+    assert.equal(upperHedgeInventory.asset, 0);
+    assert.ok(Math.abs(upperHedgeInventory.stable - 6674.234614174767) < 1e-8);
+    const deltaFeeExample = 6000 * (Math.pow(1.45, 3 / 12) - 1);
+    assert.ok(Math.abs(deltaFeeExample - 584.05198) < 0.001);
+    assert.equal(hedge.education.example.scenarios.length, 3);
+    assert.match(hedge.education.example.scenarios[0].value, /8,033\.54 USD versus 9,000 USD/);
+    assert.match(hedge.education.example.scenarios[0].assets, /2\.224745 ETH/);
+    assert.match(hedge.education.example.scenarios[1].value, /No total is estimated/);
+    assert.match(hedge.education.example.benchmark, /separate 3,000 USD reserve/);
     assert.ok(
       publicRows.every(
         (s) =>
