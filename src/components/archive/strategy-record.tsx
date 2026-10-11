@@ -16,7 +16,7 @@ import type { ExposureLevel, Regime, RiskLevel, StrategyDTO } from "@/lib/types"
 
 /**
  * STRATEGY RECORD — opening a complete archived record. Editorial layout:
- * a sticky section index (01–09), big readable text, thin rules, numbered
+ * a sticky section index (01–07), big readable text, thin rules, numbered
  * methodology and research provenance. The index tracks scroll position.
  */
 
@@ -28,8 +28,6 @@ const SECTIONS = [
   { id: "risk", code: "05", label: "RISK" },
   { id: "assets", code: "06", label: "ASSETS" },
   { id: "platforms", code: "07", label: "PLATFORMS" },
-  { id: "requirements", code: "08", label: "REQUIREMENTS" },
-  { id: "references", code: "09", label: "REFERENCES" },
 ] as const
 
 const REGIME_TEXT: Record<Regime, string> = {
@@ -234,8 +232,7 @@ export function StrategyRecordView({ slug }: { slug: string }) {
             <RiskSection strategy={strategy} />
             <AssetsSection strategy={strategy} />
             <PlatformsSection strategy={strategy} />
-            <RequirementsSection strategy={strategy} />
-            <ReferencesSection strategy={strategy} />
+            <ReviewProvenance strategy={strategy} />
           </div>
         </div>
 
@@ -348,7 +345,6 @@ function OverviewSection({ strategy }: { strategy: StrategyDTO }) {
         </span>
       ),
     },
-    { label: "MIN CAPITAL", value: strategy.requirements?.minCapital || "—" },
     { label: "RECORD OPENED", value: formatDate(strategy.createdAt) },
     { label: "LAST REVIEWED", value: formatDate(strategy.lastReviewedAt) },
   ]
@@ -376,7 +372,7 @@ function OverviewSection({ strategy }: { strategy: StrategyDTO }) {
         </details>
       </div>}
 
-      <dl className="mt-10 grid grid-cols-2 gap-px border border-white/10 bg-white/10 sm:grid-cols-3 xl:grid-cols-4">
+      <dl className="mt-10 grid grid-cols-2 gap-px border border-white/10 bg-white/10 sm:grid-cols-3">
         {facts.map((fact) => (
           <div key={fact.label} className="bg-arc-surface px-4 py-4">
             <dt className="arc-mono text-[10px] text-arc-dim">{fact.label}</dt>
@@ -753,139 +749,25 @@ function PlatformsSection({ strategy }: { strategy: StrategyDTO }) {
   )
 }
 
-function RequirementsSection({ strategy }: { strategy: StrategyDTO }) {
-  const [implementation, setImplementation] = useState(0)
-  const req = strategy.requirements
-  const implementations = strategy.education?.implementations
-  const selected = implementations?.[implementation] ?? implementations?.[0]
-  if (selected && implementations) return <section id="requirements" aria-label="Requirements">
-    <SectionRule code="08" title="Requirements" />
-    <label className="arc-mono mt-8 block text-arc-dim">ASSET / PRODUCT / NETWORK
-      <select aria-label="Asset, product and network" value={implementation} onChange={event=>setImplementation(Number(event.target.value))} className="mt-3 block min-h-11 w-full min-w-0 rounded-[4px] border border-white/15 bg-arc-surface px-3 text-[14px] text-arc-text">{implementations.map((item,index)=><option key={item.key} value={index}>{item.label}</option>)}</select>
-    </label>
-    <ul className="mt-6 space-y-3 text-[14px] leading-relaxed text-arc-muted">{selected.requirements.map(text=><li key={text}>{text}</li>)}</ul>
-    {strategy.slug === "accumulation-lp" && <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[13px]"><Link className="inline-flex min-h-11 items-center text-arc-green" href="/?view=learn&lesson=wallets">Learn about wallets →</Link><Link className="inline-flex min-h-11 items-center text-arc-green" href="/?view=learn&lesson=security">Learn about approvals →</Link><Link className="inline-flex min-h-11 items-center text-arc-green" href="/?view=learn&lesson=networks">Learn about gas →</Link></div>}
-    {strategy.slug === "accumulation-lp" && <p className="mt-2 text-[13px] text-arc-muted">Already in range at entry? That is a different two-sided LP: <Link className="text-arc-green underline underline-offset-4" href="/?view=strategy&slug=dual-asset-growth-lp">see Dual-Asset LP</Link>.</p>}
-    <div className="mt-8 grid gap-6 border-t border-white/10 pt-6 sm:grid-cols-2">{[["ENTER",selected.enter],["RECEIVED POSITION",selected.accounting],["EXIT",selected.exit],["RISKS",selected.risks]].map(([title,text])=><div key={title}><p className="arc-mono text-arc-dim">{title}</p><p className="mt-3 text-[14px] leading-relaxed text-arc-muted">{text}</p></div>)}</div>
-  </section>
+function ReviewProvenance({ strategy }: { strategy: StrategyDTO }) {
   return (
-    <section id="requirements" aria-label="Requirements">
-      <SectionRule code="08" title="Requirements" />
-      <div className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-        <div>
-          <p className="arc-mono text-arc-dim">MINIMUM CAPITAL</p>
-          <p className="mt-2 font-mono text-[22px] font-medium tabular-nums text-arc-text">
-            {req?.minCapital || "—"}
-          </p>
-        </div>
-        <div>
-          <p className="arc-mono text-arc-dim">REQUIRED HOLDINGS</p>
-          {req?.requiredHoldings?.length ? (
-            <div className="mt-2.5 flex flex-wrap gap-2">
-              {req.requiredHoldings.map((holding) => (
-                <span
-                  key={holding}
-                  className="arc-mono border border-white/15 bg-arc-surface px-2.5 py-1 text-arc-text"
-                >
-                  {holding}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-2.5 text-[13.5px] text-arc-muted">None specified</p>
-          )}
-        </div>
-        <div>
-          <p className="arc-mono text-arc-dim">LOCKUP</p>
-          <p className="mt-2 text-[14px] text-arc-text">
-            {strategy.risk?.lockupPeriod || "No lockup"}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-8 grid gap-8 border-t border-white/[0.07] pt-8 sm:grid-cols-2">
-        <div>
-          <p className="arc-mono text-arc-dim">WALLET / NETWORK SETUP</p>
-          <p className="mt-2.5 max-w-md text-[14px] leading-relaxed text-arc-muted">
-            {req?.walletSetup || "Standard EVM wallet setup."}
-          </p>
-          {strategy.slug === "accumulation-lp" && <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[13px]"><Link className="inline-flex min-h-11 items-center text-arc-green" href="/?view=learn&lesson=wallets">Learn about wallets →</Link><Link className="inline-flex min-h-11 items-center text-arc-green" href="/?view=learn&lesson=security">Learn about approvals →</Link><Link className="inline-flex min-h-11 items-center text-arc-green" href="/?view=learn&lesson=networks">Learn about gas →</Link></div>}
-          {strategy.slug === "accumulation-lp" && <p className="mt-2 text-[13px] text-arc-muted">Already in range at entry? That is a different two-sided LP: <Link className="text-arc-green underline underline-offset-4" href="/?view=strategy&slug=dual-asset-growth-lp">see Dual-Asset LP</Link>.</p>}
-        </div>
-        <div>
-          <p className="arc-mono text-arc-dim">OTHER PREREQUISITES</p>
-          <p className="mt-2.5 max-w-md text-[14px] leading-relaxed text-arc-muted">
-            {req?.other || "None."}
-          </p>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function ReferencesSection({ strategy }: { strategy: StrategyDTO }) {
-  const references = strategy.references ?? []
-  return (
-    <section id="references" aria-label="References">
-      <SectionRule code="09" title="References" />
-      {references.length === 0 ? (
-        <p className="mt-6 text-[14px] text-arc-muted">No references documented.</p>
-      ) : (
-        <ol className="mt-8">
-          {references.map((reference, index) => (
-            <li
-              key={`${reference.url}-${index}`}
-              className="grid gap-2 border-t border-white/[0.07] py-6 last:border-b sm:grid-cols-[auto_1fr_auto] sm:gap-8"
-            >
-              <span className="font-mono text-[13px] tabular-nums text-arc-dim">
-                {String(index + 1).padStart(3, "0")}
-              </span>
-              <div className="min-w-0">
-                <p className="text-[15px] font-medium text-arc-text">{reference.title}</p>
-                {reference.publisher && (
-                  <p className="arc-mono mt-1.5 text-[10px] text-arc-dim">
-                    {reference.publisher.toUpperCase()}
-                  </p>
-                )}
-                {reference.notes && (
-                  <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-arc-muted">
-                    {reference.notes}
-                  </p>
-                )}
-              </div>
-              {reference.url && (
-                <a
-                  href={reference.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="arc-mono flex h-9 items-center gap-2 self-start border border-white/15 px-4 text-arc-muted transition-colors hover:border-arc-green/50 hover:text-arc-green"
-                >
-                  VIEW SOURCE <ArrowUpRight className="size-3.5" aria-hidden />
-                </a>
-              )}
-            </li>
-          ))}
-        </ol>
-      )}
-
-      <div className="mt-10 flex flex-wrap items-center gap-4 border border-dashed border-white/15 bg-arc-surface/50 px-5 py-4">
-        <span className="arc-barcode h-5 w-14 opacity-50" aria-hidden />
-        <div>
-          <p className="arc-mono text-arc-dim">LAST REVIEWED</p>
-          <p className="mt-1 font-mono text-[15px] font-medium uppercase text-arc-text">
-            {strategy.lastReviewedAt
-              ? new Date(strategy.lastReviewedAt).toLocaleDateString("en-GB", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })
-              : "NOT YET REVIEWED"}
-          </p>
-        </div>
-        <p className="arc-mono ml-auto hidden text-arc-dim sm:block">
-          RESEARCH PROVENANCE — MATRIX FINANCE
+    <div className="flex flex-wrap items-center gap-4 border border-dashed border-white/15 bg-arc-surface/50 px-5 py-4">
+      <span className="arc-barcode h-5 w-14 opacity-50" aria-hidden />
+      <div>
+        <p className="arc-mono text-arc-dim">LAST REVIEWED</p>
+        <p className="mt-1 font-mono text-[15px] font-medium uppercase text-arc-text">
+          {strategy.lastReviewedAt
+            ? new Date(strategy.lastReviewedAt).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })
+            : "NOT YET REVIEWED"}
         </p>
       </div>
-    </section>
+      <p className="arc-mono ml-auto hidden text-arc-dim sm:block">
+        RESEARCH PROVENANCE — MATRIX FINANCE
+      </p>
+    </div>
   )
 }
