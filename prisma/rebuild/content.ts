@@ -6,6 +6,10 @@ const reviewedAt = "2026-10-08";
 export const sources = {
   aave: "https://aave.com/help/supplying/withdraw-tokens",
   aaveSupply: "https://aave.com/help/supplying/supply-tokens",
+  compoundSupply: "https://docs.compound.finance/",
+  compoundRates: "https://docs.compound.finance/interest-rates/",
+  sparkSavings: "https://docs.spark.finance/products/spark-savings",
+  sparkApp: "https://app.spark.finance/savings",
   lido: "https://docs.lido.fi/guides/lido-tokens-integration-guide/",
   lidoExit: "https://docs.lido.fi/contracts/withdrawal-queue-erc721/",
   jito: "https://www.jito.network/docs/jitosol/get-started/stake-sol-for-jitosol-flow/overview/",
@@ -37,6 +41,39 @@ const lending = (asset: string) => ({
   sources: [sources.aaveSupply, sources.aave],
   reviewedAt,
 });
+const stablecoinLendingOptions = [
+  { ...lending("USDC"), reviewedAt: "2026-10-11" },
+  {
+    key: "compound-usdc",
+    label: "USDC · Compound III · Ethereum",
+    protocol: "compound",
+    product: "Compound III USDC supply",
+    network: "ethereum",
+    assets: ["USDC"],
+    requirements: ["USDC on Ethereum; ETH reserved for transaction costs.", "Verify the Compound III USDC market, supply cap and withdrawal liquidity."],
+    enter: "Choose the Ethereum USDC market in Compound III and supply USDC; do not borrow as part of this plan.",
+    accounting: "The USDC base-asset balance earns variable supply interest; check whether any separate rewards apply.",
+    exit: "Withdraw USDC when market liquidity permits.",
+    risks: "Protocol and market-contract risks, bad debt, USDC issuer and peg risk, and withdrawal liquidity.",
+    sources: [sources.compoundSupply, sources.compoundRates],
+    reviewedAt: "2026-10-11",
+  },
+  {
+    key: "spark-spusdc",
+    label: "USDC · Spark Savings spUSDC · Ethereum",
+    protocol: "spark",
+    product: "Spark Savings USDC V2 (spUSDC)",
+    network: "ethereum",
+    assets: ["USDC"],
+    requirements: ["USDC on Ethereum; ETH reserved for transaction costs.", "Confirm the current Spark USDC vault and its supported deposit and withdrawal route."],
+    enter: "Deposit USDC to Spark Savings spUSDC. This is a savings vault using Spark's Liquidity Layer, not a direct borrower-funded lending pool.",
+    accounting: "Vault shares represent a claim on USDC; yield comes from the Spark Liquidity Layer and rates are governed, not fixed.",
+    exit: "Redeem spUSDC through the official Spark app; larger withdrawals may use a liquidity-intent flow.",
+    risks: "Vault, allocator, underlying deployment, USDS backing, USDC issuer and peg, smart-contract and withdrawal risks.",
+    sources: [sources.sparkSavings, sources.sparkApp],
+    reviewedAt: "2026-10-11",
+  },
+];
 const uni = (
   assets: string[],
   product = "Uniswap V3 concentrated liquidity",
@@ -147,81 +184,81 @@ export const catalogue: Canonical[] = [
     slug: "stablecoin-yield-rotation",
     name: "Stablecoin Lending",
     summary:
-      "Supply stablecoins to a lending market and earn variable borrower interest.",
+      "Put USDC that would otherwise sit idle to work while it waits for a later allocation.",
     description:
-      "You supply a stablecoin you intend to keep to a lending market. Borrowers pay interest, which increases your claim on that asset. You aim to earn income without deliberately buying a volatile asset, but a dollar peg and the ability to withdraw are not guaranteed.",
+      "The main benefit is activating capital that might otherwise sit idle while you wait to allocate it. In an uncertain or sideways market, USDC can earn a variable return without deliberately buying a volatile asset. Aave and Compound are lending markets; Spark's spUSDC is a savings vault with a different yield source and risk path. Rates change, and neither USDC's peg nor immediate withdrawal is guaranteed.",
     objectives: ["yield", "capital-preservation"],
     assets: ["USDC"],
-    protocols: ["aave"],
+    protocols: ["aave", "compound", "spark"],
     networks: ["ethereum"],
     steps: plan(
       "Choose an amount you can leave exposed; keep emergency funds and gas outside the position.",
-      "Select USDC in Aave V3 on Ethereum; check caps, contract addresses and withdrawal liquidity.",
-      "Approve the intended amount and supply. Leave borrowing out of this plan.",
-      "Check the variable rate, utilisation, peg and available liquidity weekly and after material alerts.",
-      "Review a depeg, market pause, deteriorating liquidity or a rate too small to cover costs.",
-      "Withdraw USDC when available; revoke unused approvals after confirming the returned balance.",
+      "Choose Aave V3, Compound III, or Spark Savings spUSDC on Ethereum. Confirm the exact product, rate, caps and withdrawal route; Spark's vault is not a direct lending pool.",
+      "Approve only the intended amount and supply or deposit it. Spark Savings returns spUSDC; leave borrowing out of this plan.",
+      "Check the selected product's rate, utilisation where applicable, redemption liquidity, USDC peg and gas cost weekly and after alerts.",
+      "Review a depeg, market pause, deteriorating liquidity or a net rate too small to justify the risk and costs.",
+      "Withdraw or redeem through the selected product when available; confirm the returned balance, then revoke unused approvals.",
     ),
     riskText:
-      "A stable price target does not eliminate loss. A depeg, bad debt or contract failure can reduce or delay recovery.",
+      "A stable price target does not eliminate loss. USDC can depeg; lending markets can incur bad debt or contract failure; and savings vaults add their own allocation and redemption risks.",
     education: {
       family: "Lending",
       goal: "earn",
       complexity: "Basic",
       management: "Occasional checks",
       returnSource:
-        "Borrower interest in the supplied stablecoin; incentive tokens, if any, are separate.",
+        "Aave and Compound supply interest comes from lending-market demand. Spark spUSDC yield comes through the Spark Liquidity Layer; any incentives are separate. Rates are variable.",
       exposure: "A claim on supplied USDC. No debt is opened in this plan.",
       tradeOff:
-        "Earn variable interest while accepting stablecoin, lending-market and withdrawal-liquidity risk.",
+        "Earn a variable return on waiting USDC while accepting stablecoin, protocol, product-specific and withdrawal-liquidity risks.",
       fitsIf: [
         "You want income on stablecoins you already intend to hold.",
         "You can tolerate delays in accessing this portion of your funds.",
       ],
       reconsiderIf: [
         "The stablecoin loses its peg or withdrawal liquidity deteriorates.",
-        "The net interest no longer justifies the risk and costs.",
+        "The net interest or vault yield no longer justifies the risk and costs.",
       ],
       example: {
-        title: "1,000 USDC for one year",
+        title: "3,000 USDC on Aave for six months",
         starting:
-          "1,000 USDC; goal: keep a stablecoin balance and earn interest.",
-        action: "Supply USDC without borrowing.",
+          "During an uncertain, sideways market, supply 3,000 USDC on Aave V3 while the capital waits to be allocated. No crypto asset is bought in this example.",
+        action: "Supply USDC without borrowing. If 4% APY stayed constant for six months, the balance would be about 3,059.41 USDC: roughly 59.41 USDC earned while capital waits, before gas and other costs. Holding the same USDC in a wallet would leave the balance at 3,000 USDC.",
         assumptions:
-          "Illustrative simple interest for one year at constant 5%, 1% or 0%; no compounding, gas or incentives. USDC = 1 USD except in the depeg scenario. These are not current Aave rates.",
+          "Illustrative only: a constant 4% APY for six months gives about 3,059.41 USDC using 3,000 × (1.04^0.5). APY compounds by definition; actual supply rates vary and this is not a current quote or forecast. Excludes gas and incentives; assumes USDC stays at 1 USD.",
         benchmark:
-          "Hold 1,000 USDC outside the lending market over the same year.",
+          "Hold 3,000 USDC outside the lending market over the same six months, ready for a later allocation.",
         scenarios: [
           {
-            label: "More income",
-            condition: "Constant 5% and peg maintained",
-            assets: "1,050 USDC",
-            value: "1,050 USD; holding: 1,000 USD",
-            next: "Review the current rate and liquidity; do not assume next year's rate.",
+            label: "Illustrative 4% APY",
+            condition: "Rate stays at 4% APY for six months; USDC remains at $1.",
+            assets: "About 3,059.41 USDC",
+            value: "About 3,059.41 USD; holding: 3,000 USD before gas and other costs.",
+            next: "The roughly 59.41 USDC difference is not guaranteed; compare expected net return with transaction costs.",
           },
           {
-            label: "Peg loss",
-            condition: "Constant 1%; USDC ends at 0.90 USD",
-            assets: "1,010 USDC",
-            value: "909 USD; holding: 900 USD",
-            next: "Interest has not prevented a dollar loss; review issuer and exit liquidity.",
+            label: "Rate falls",
+            condition: "For illustration, APY averages 1% for the six months; USDC stays at $1.",
+            assets: "About 3,014.96 USDC",
+            value: "About 3,014.96 USD; holding: 3,000 USD, before gas.",
+            next: "A lower rate may leave little after transaction costs; the APY can change while supplied.",
           },
           {
-            label: "No interest",
-            condition: "0% and peg maintained",
-            assets: "1,000 USDC",
-            value: "1,000 USD; holding: 1,000 USD",
-            next: "Decide whether leaving funds exposed still serves the objective.",
+            label: "USDC depegs",
+            condition: "The 4% APY illustration holds, but USDC is worth $0.90 at exit.",
+            assets: "About 3,059.41 USDC",
+            value: "About 2,753.47 USD; holding: 2,700 USD at the same peg.",
+            next: "Interest does not remove issuer or depeg risk; compare exit liquidity before supplying.",
           },
         ],
       },
       monitor: [
-        "Variable borrower rate and withdrawal liquidity.",
+        "The selected market rate or vault yield, and the product's withdrawal or redemption liquidity.",
         "Stablecoin peg, reserve warnings and supply caps.",
         "Gas cost versus income; review weekly and after material changes.",
       ],
-      exit: "Withdraw the supplied asset when available; do not assume immediate access during high utilisation.",
-      implementations: [lending("USDC")],
+      exit: "Withdraw or redeem through the selected product when available; do not assume immediate access during high utilisation or market stress.",
+      implementations: stablecoinLendingOptions,
       foundations: ["lending", "wallets"],
       tools: [],
       incomeNote:
@@ -771,7 +808,7 @@ export const catalogue: Canonical[] = [
 ];
 
 catalogue.push(hedgeStrategy)
-for (const strategy of catalogue) strategy.education.editorialVersion = strategy.legacyId === "STRATEGY_018" ? "delta-neutral-lp-v3" : strategy.legacyId === "STRATEGY_001" ? "accumulation-lp-v6" : strategy.legacyId === "STRATEGY_022" ? "dual-asset-lp-v4" : EDITORIAL_VERSION
+for (const strategy of catalogue) strategy.education.editorialVersion = strategy.legacyId === "STRATEGY_018" ? "delta-neutral-lp-v3" : strategy.legacyId === "STRATEGY_001" ? "accumulation-lp-v6" : strategy.legacyId === "STRATEGY_022" ? "dual-asset-lp-v4" : strategy.legacyId === "STRATEGY_011" ? "stablecoin-lending-v4" : EDITORIAL_VERSION
 
 // Complete observed inventory plus four additional archived records found in DB.
 // Null destinations retire to contextual Learn, never another advanced catalogue.

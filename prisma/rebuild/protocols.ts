@@ -50,6 +50,56 @@ export const reviewedProtocols: Entry[] = [
     ),
   },
   {
+    name: "Compound",
+    slug: "compound",
+    website: "https://compound.finance",
+    description:
+      "Compound III has Ethereum USDC markets where suppliers can earn variable base-asset interest.",
+    review: {
+      ...reviewed(
+        ["Lending/Borrowing"],
+        [
+          {
+            name: "Compound III USDC market",
+            networks: ["Ethereum"],
+            purpose: "Supply USDC as the base asset and earn variable market interest; borrowing is not part of this strategy.",
+          },
+        ],
+        ["https://docs.compound.finance/", "https://docs.compound.finance/interest-rates/"],
+        "Market contracts, bad debt, utilization-driven rate changes, USDC issuer and peg risk, and withdrawal liquidity.",
+        "Withdraw USDC when the selected market has available liquidity.",
+      ),
+      reviewedAt: "2026-10-11",
+      unresolved:
+        "Product mechanics and the documented Ethereum USDC market were checked; live rates, market parameters, audits and individual user eligibility are not certified.",
+    },
+  },
+  {
+    name: "Spark",
+    slug: "spark",
+    website: "https://spark.finance",
+    description:
+      "Spark Savings USDC V2 (spUSDC) is a savings vault using the Spark Liquidity Layer; it is distinct from a direct lending-market deposit.",
+    review: {
+      ...reviewed(
+        ["Lending/Borrowing", "Yield Aggregation"],
+        [
+          {
+            name: "Spark Savings USDC V2 (spUSDC)",
+            networks: ["Ethereum", "X Layer"],
+            purpose: "Deposit USDC into an ERC-4626 savings vault; yield comes through the Spark Liquidity Layer, rather than direct USDC borrower interest.",
+          },
+        ],
+        ["https://docs.spark.finance/products/spark-savings", "https://app.spark.finance/savings"],
+        "Vault and allocator contracts, underlying deployments and USDS backing, governance-managed rates, USDC issuer and peg risk, and redemption liquidity.",
+        "Redeem spUSDC through the official Spark Savings app; larger Ethereum withdrawals can use a liquidity-intent request.",
+      ),
+      reviewedAt: "2026-10-11",
+      unresolved:
+        "Product mechanics and documented supported networks were checked; live rates, vault state, audits, underlying allocations and individual user eligibility are not certified.",
+    },
+  },
+  {
     name: "Uniswap",
     slug: "uniswap",
     website: "https://uniswap.org",
@@ -214,7 +264,6 @@ export const candidates = [
   ["SushiSwap", "sushiswap", "Decentralized Exchanges"],
   ["JustLend", "justlend", "Lending/Borrowing"],
   ["Kamino Lend", "kamino", "Lending/Borrowing"],
-  ["Compound Finance", "compound", "Lending/Borrowing"],
   ["Venus Core Pool", "venus", "Lending/Borrowing"],
   ["Hyperliquid", "hyperliquid", "Perpetual Futures Exchanges"],
   ["Jupiter", "jupiter", "Perpetual Futures Exchanges"],

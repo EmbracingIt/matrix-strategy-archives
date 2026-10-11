@@ -60,6 +60,19 @@ async function main() {
         assert.match(c.description, /keeps your original ETH exposure/i);
         assert.match(c.education.example.starting, /borrow 3,000 USDC/i);
       }
+      if (c.legacyId === "STRATEGY_011") {
+        assert.equal(c.education.editorialVersion, "stablecoin-lending-v4");
+        assert.deepEqual(c.protocols, ["aave", "compound", "spark"]);
+        assert.equal(c.education.implementations.length, 3);
+        assert.match(c.education.implementations[2].product, /spUSDC/i);
+        assert.match(c.education.implementations[2].enter, /not a direct borrower-funded lending pool/i);
+        assert.match(c.education.example.title, /3,000 USDC on Aave for six months/i);
+        assert.match(c.education.example.assumptions, /4% APY for six months/i);
+        assert.match(c.education.example.scenarios[0].assets, /3,059\.41 USDC/);
+        assert.match(c.education.example.scenarios[0].value, /3,059\.41 USD/);
+        const ending = 3000 * Math.sqrt(1.04);
+        assert.ok(Math.abs(ending - 3059.41) < 0.01);
+      }
       if (c.legacyId === "STRATEGY_022") {
         assert.equal(c.education.editorialVersion, "dual-asset-lp-v4");
         assert.match(c.education.example.starting, /borrow 3,000 USDC/i);
@@ -89,6 +102,10 @@ async function main() {
       ) < 1e-10,
     );
     const publicRows = await json("/api/strategies");
+    const stablecoinLending = await json("/api/strategies/stablecoin-yield-rotation");
+    assert.equal(stablecoinLending.education.editorialVersion, "stablecoin-lending-v4");
+    assert.deepEqual(stablecoinLending.protocols.map((p: { slug: string }) => p.slug).sort(), ["aave", "compound", "spark"]);
+    assert.equal(stablecoinLending.education.implementations.length, 3);
     const accumulation = await json("/api/strategies/accumulation-lp");
     assert.equal(accumulation.education.example.scenarios.length, 3);
     assert.doesNotMatch(JSON.stringify(accumulation.education.example), /holding USDC|0\.9375 ETH|1800/);
@@ -184,7 +201,9 @@ async function main() {
       matched.every((m) => publicRows.some((s) => s.id === m.strategy.id)),
     );
     const protocols = await json("/api/protocols");
-    assert.equal(protocols.length, 9);
+    assert.equal(protocols.length, 11);
+    assert.ok(protocols.some((p: { slug: string }) => p.slug === "compound"));
+    assert.ok(protocols.some((p: { slug: string }) => p.slug === "spark"));
     protocols.forEach((p) => {
       protocolReviewSchema.parse(p.review);
       assert.equal(p.review.status, "reviewed");

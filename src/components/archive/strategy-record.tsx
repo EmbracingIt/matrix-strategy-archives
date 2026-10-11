@@ -367,11 +367,30 @@ function OverviewSection({ strategy }: { strategy: StrategyDTO }) {
       {strategy.education && <div className="mt-8 space-y-5 text-[14px] leading-[1.75] text-arc-muted">
         {strategy.education.tools.includes("hedging") && <div className="border border-arc-green/20 bg-arc-green/5 p-4"><Link href="/?view=tools#hedging-calculator" className="inline-flex min-h-11 items-center text-arc-green">Hedging Calculator — In development →</Link><p>Not ready to use. Planned to help size LP delta hedges; verify current inventory and sizing independently before entry.</p></div>}
         {[["RETURN SOURCE", strategy.education.returnSource], ["EXPOSURE", strategy.education.exposure], ["MAIN TRADE-OFF", strategy.education.tradeOff]].map(([title, text]) => <div key={title}><p className="arc-mono text-arc-green">{title}</p><p className="mt-2">{text}</p></div>)}
+        {strategy.slug === "stablecoin-yield-rotation" && <div className="pt-2">
+          <p className="arc-mono text-arc-green">PROTOCOL AND PRODUCT OPTIONS</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            {strategy.education.implementations.map((implementation) => {
+              const protocol = implementation.protocol.toLowerCase()
+              const appUrl = protocol === "aave" ? "https://app.aave.com/" : protocol === "compound" ? "https://app.compound.finance/markets" : "https://app.spark.finance/savings"
+              const optionNote = protocol === "spark" ? "Savings vault; yield comes through the Spark Liquidity Layer, not direct borrower interest." : "USDC lending market with a variable supply rate."
+              return <article key={implementation.key} className="border border-white/10 bg-arc-surface p-4">
+                <h3 className="font-semibold text-arc-text">{implementation.protocol === "aave" ? "Aave" : implementation.protocol === "compound" ? "Compound" : "Spark"}</h3>
+                <p className="mt-1 text-[12px] text-arc-text">{implementation.product}</p>
+                <p className="mt-2 text-[12px]">{optionNote} Check the current rate and market status on the official interface.</p>
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+                  <a href={appUrl} target="_blank" rel="noreferrer" className="arc-mono inline-flex min-h-11 items-center gap-1 text-[10px] text-arc-green hover:text-arc-text">CURRENT RATE / APP <ArrowUpRight className="size-3" aria-hidden /></a>
+                  <a href={implementation.sources[0]} target="_blank" rel="noreferrer" className="arc-mono inline-flex min-h-11 items-center gap-1 text-[10px] text-arc-dim hover:text-arc-text">PRODUCT DOCS <ArrowUpRight className="size-3" aria-hidden /></a>
+                </div>
+              </article>
+            })}
+          </div>
+        </div>}
         <details className="border-t border-white/10 pt-5"><summary className="arc-mono min-h-11 cursor-pointer text-arc-text">WORKED EXAMPLE / ILLUSTRATIVE, NOT LIVE RATES</summary>
           {strategy.slug === "accumulation-lp" ? <AccumulationLpDemo /> : strategy.slug === "dual-asset-growth-lp" ? <DualAssetLpDemo /> : <>
             <h3 className="mt-4 text-[20px] font-semibold text-arc-text">{strategy.education.example.title}</h3>
             <p className="mt-4">{strategy.education.example.starting}</p><p className="mt-3">{strategy.education.example.action}</p><p className="mt-3">Assumptions: {strategy.education.example.assumptions}</p><p className="mt-3">Benchmark: {strategy.education.example.benchmark}</p>
-            <div className="mt-6 grid gap-px border border-white/10 bg-white/10 xl:grid-cols-3">{strategy.education.example.scenarios.map(scenario => <div key={scenario.label} className="min-w-0 bg-arc-surface p-5"><h4 className="font-semibold text-arc-text">{scenario.label}</h4><p className="mt-3">{scenario.condition}</p><p className="mt-3">Position assets: {scenario.assets}</p><p className="mt-3">{scenario.value}</p><p className="mt-3">{scenario.next}</p></div>)}</div>
+            {strategy.slug === "stablecoin-yield-rotation" ? <p className="mt-5 border-l border-arc-green/50 pl-4 text-arc-text">The benefit here is putting waiting capital to work: the illustrative six-month outcome is included above, before gas and other costs.</p> : <div className="mt-6 grid gap-px border border-white/10 bg-white/10 xl:grid-cols-3">{strategy.education.example.scenarios.map(scenario => <div key={scenario.label} className="min-w-0 bg-arc-surface p-5"><h4 className="font-semibold text-arc-text">{scenario.label}</h4><p className="mt-3">{scenario.condition}</p><p className="mt-3">Position assets: {scenario.assets}</p><p className="mt-3">{scenario.value}</p><p className="mt-3">{scenario.next}</p></div>)}</div>}
           </>}
         </details>
       </div>}
