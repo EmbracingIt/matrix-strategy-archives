@@ -60,6 +60,14 @@ async function main() {
         assert.match(c.description, /keeps your original ETH exposure/i);
         assert.match(c.education.example.starting, /borrow 3,000 USDC/i);
       }
+      if (c.legacyId === "STRATEGY_022") {
+        assert.equal(c.education.editorialVersion, "dual-asset-lp-v4");
+        assert.match(c.education.example.starting, /borrow 3,000 USDC/i);
+        assert.match(c.education.example.assumptions, /37\.04% APY/i);
+        assert.match(c.education.implementations[0].product, /Uniswap V3 0\.05%/i);
+        const estimatedFees = 3000 * (Math.pow(1 + 0.3704, 3 / 12) - 1);
+        assert.ok(Math.abs(estimatedFees - 245.88) < 0.01);
+      }
       assert.ok(
         c.education.implementations.every(
           (i) => i.requirements.length && i.sources.length,
@@ -87,6 +95,10 @@ async function main() {
     assert.equal(accumulation.risk.leverageUsed, true);
     assert.equal(accumulation.risk.liquidationExposure, "HIGH");
     assert.equal(accumulation.requirements.requiredHoldings.includes("ETH"), true);
+    const dualAsset = await json("/api/strategies/dual-asset-growth-lp");
+    assert.equal(dualAsset.education.editorialVersion, "dual-asset-lp-v4");
+    assert.match(dualAsset.education.example.assumptions, /37\.04% APY/i);
+    assert.match(dualAsset.education.implementations[0].product, /Uniswap V3 0\.05%/i);
     assert.ok(publicRows.every(s=>!('detailedResearch' in s.education)));
     assert.equal(publicRows.length, 8);
     assert.equal(new Set(publicRows.map((s) => s.id)).size, 8);

@@ -687,12 +687,12 @@ export const catalogue: Canonical[] = [
     protocols: ["uniswap"],
     networks: ["ethereum"],
     steps: plan(
-      "Choose two assets you want to hold and write down the starting quantities.",
-      "Select the Ethereum Uniswap V2 WETH/WBTC pair; confirm contracts, reserves and liquidity.",
-      "Provide equal value for this V2 implementation and receive fungible LP tokens.",
-      "Review the asset ratio, relative prices, fees and value versus holding regularly.",
-      "Reconsider a loss of conviction in either token or an unacceptable holding shortfall.",
-      "Remove V2 liquidity to receive both tokens; a final desired allocation may require a separate swap.",
+      "Choose BTC and ETH exposures you are willing to hold, and decide how much capital you can risk if their relative prices diverge.",
+      "For the example implementation, verify the Ethereum Uniswap V3 WBTC/WETH 0.05% pool, token contracts and current liquidity; the supplied APY screenshot is not a live quote.",
+      "Choose an explicit price range and supply the WBTC/WETH mix it requires. V3 positions use an NFT; fees accrue only while the position is in range.",
+      "Monitor the WBTC/WETH relative price, range status, fee accrual and total value against holding the same mix; both USD prices rising does not ensure the LP outperforms.",
+      "Reconsider if the position is out of range, relative-price changes leave you with an unwanted mix, or fees no longer justify management and costs.",
+      "Remove liquidity and collect fees. You receive the position's current token mix, which can differ from the starting mix; any rebalance is a separate trade.",
     ),
     riskText:
       "Both assets can fall. Relative-price divergence, wrapper/custody risk and contracts can outweigh fees.",
@@ -702,9 +702,9 @@ export const catalogue: Canonical[] = [
       complexity: "Intermediate",
       management: "Regular monitoring",
       returnSource:
-        "V2 swap fees remain in pool reserves; asset prices change principal value.",
+        "Uniswap V3 swap fees accrue separately while the position is active; asset prices and their relative ratio change principal value.",
       exposure:
-        "Two volatile tokens including their wrapper risks; proportions change. No debt.",
+        "Two volatile tokens, including their wrapper risks; the mix changes with WBTC/WETH relative price. The base LP is unleveraged; the worked example adds a USDC loan and liquidation exposure.",
       tradeOff:
         "Owning both assets does not mean their prices move together or LP beats holding.",
       fitsIf: ["You want both exposures and can accept changing proportions."],
@@ -712,35 +712,34 @@ export const catalogue: Canonical[] = [
         "You no longer want one asset or relative-price divergence exceeds your tolerance.",
       ],
       example: {
-        title: "Relative price matters",
+        title: "Three months in the WBTC/WETH 0.05% pool",
         starting:
-          "Illustrative equal-value V2 position: 1 WETH at 3,000 USD + 0.05 WBTC at 60,000 USD; total 6,000 USD.",
-        action: "Provide full-range constant-product liquidity.",
+          "Illustrative leveraged example: borrow 3,000 USDC against eligible BTC and ETH collateral, then convert 1,500 USD-equivalent to WBTC and 1,500 USD-equivalent to WETH for the Ethereum Uniswap V3 pool shown in the supplied screenshot.",
+        action: "Choose and verify a V3 price range, then mint a position. Compare it with holding the same borrowed WBTC/WETH mix while keeping the same collateral and debt.",
         assumptions:
-          "Arbitrage aligns pool price with market prices. Constant product x×y = 0.05; exclude fees, gas, incentives and rounding. This model is not used for concentrated positions.",
-        benchmark: "Hold 1 WETH and 0.05 WBTC.",
+          "The screenshot shows 37.04% APY, but its capture date is not visible. For arithmetic only, assume that APY persists for three months, both assets rise 20% against USD while WBTC/WETH stays at the same relative price, and the position remains in range. Estimated fees are about 245.88 USD-equivalent using 3,000 × ((1 + 0.3704)^(3/12) − 1). The lender, interest rate, collateral size, chosen range and transaction costs are unspecified.",
+        benchmark: "Hold the same borrowed asset mix and repay the same loan; the original BTC and ETH collateral is common to both paths and excluded from these LP-leg values.",
         scenarios: [
           {
-            label: "Both rise together",
-            condition: "WETH 3,600 USD; WBTC 72,000 USD",
-            assets: "1 WETH + 0.05 WBTC",
-            value: "7,200 USD; holding: 7,200 USD",
-            next: "Compare fees after costs; similar relative prices do not remove token risk.",
+            label: "Both rise 20%; relative price holds",
+            condition: "The position remains in range for three months; use the screenshot APY only as a constant illustration.",
+            assets: "The starting WBTC/WETH mix remains similar before fees.",
+            value: "LP: about 3,845.88 USD including estimated fees. Same-mix HODL: 3,600 USD. Both figures are before debt repayment and costs.",
+            next: "The estimated 245.88 USD fee difference is before added LP costs and loan interest. The same interest applies to both borrowed paths; pledged collateral is not included.",
+          },
+          {
+            label: "Prices stay near entry",
+            condition: "BTC/WBTC and ETH prices are unchanged for the three months.",
+            assets: "The position stays in range and retains roughly its initial mix; token fees may vary.",
+            value: "If the same APY assumption held, LP value would be about 3,245.88 USD versus 3,000 USD for same-mix HODL, before debt and costs.",
+            next: "Do not treat a pool APY snapshot as a forecast; actual fees depend on trading, active liquidity and your position's share.",
           },
           {
             label: "Relative prices diverge",
-            condition: "WETH 1,500 USD; WBTC 60,000 USD",
-            assets: "1.4142 WETH + 0.03536 WBTC",
-            value:
-              "4,242.64 USD; holding: 4,500 USD (257.36 USD shortfall before fees)",
-            next: "Review whether the increased WETH exposure still fits; loss exists before withdrawal.",
-          },
-          {
-            label: "Prices unchanged",
-            condition: "WETH 3,000 USD; WBTC 60,000 USD",
-            assets: "1 WETH + 0.05 WBTC (fees excluded)",
-            value: "6,000 USD; holding: 6,000 USD",
-            next: "Actual net benefit depends on fees and costs, not an assumed APY.",
+            condition: "ETH and BTC do not rise by the same percentage, or price exits the chosen V3 range.",
+            assets: "The LP can shift toward one token; outside the range it may hold one asset and stop earning fees until price re-enters.",
+            value: "No portfolio value is estimated: the result depends on the selected range and full relative-price path.",
+            next: "Compare the final token mix with holding both assets. Rising USD prices can still coincide with LP underperformance if their relative price changes.",
           },
         ],
       },
@@ -751,18 +750,18 @@ export const catalogue: Canonical[] = [
       exit: "Redeem LP tokens for both assets. Exiting does not rebalance into your original proportions.",
       implementations: [
         {
-          ...uni(["WETH", "WBTC"], "Uniswap V2 constant-product pool"),
-          key: "uniswap-v2-ethereum",
+          ...uni(["WETH", "WBTC"], "Uniswap V3 0.05% concentrated-liquidity pool"),
+          key: "uniswap-v3-ethereum-005-wbtc-weth",
           requirements: [
-            "WETH and WBTC on Ethereum in equal value for this V2 implementation, plus ETH for gas.",
-            "Verify the canonical V2 pair, token addresses and current reserves; this is not a live pool opportunity quote.",
+            "WETH and WBTC on Ethereum, plus ETH for gas and any initial swaps needed to obtain the pool's token mix.",
+            "Choose a price range and verify the exact Uniswap V3 WBTC/WETH pool, 0.05% fee tier, token addresses and current liquidity. The supplied APY image is not a live opportunity quote.",
           ],
           enter:
-            "Supply both tokens in the reserve ratio and receive fungible V2 LP tokens.",
+            "Approve only the required WBTC and WETH amounts, choose price bounds, and mint the V3 position NFT. Confirm the displayed token mix and that the current price is in range.",
           accounting:
-            "V2 has fungible LP tokens and full-range reserves. Swap fees remain in reserves; no direct V3 NFT or range is involved.",
-          exit: "Redeem the V2 LP tokens for both reserve assets; a swap is a separate action.",
-          sources: [sources.uniV2],
+            "A V3 position has a chosen price interval and is represented by an NFT. The asset mix changes with WBTC/WETH relative price; fees accrue separately while active and do not automatically compound.",
+          exit: "Remove liquidity and collect fees from the position NFT. The returned WBTC/WETH mix may differ from entry; any conversion is a separate swap.",
+          sources: [sources.uni],
         },
       ],
       foundations: ["liquidity", "divergence"],
@@ -772,7 +771,7 @@ export const catalogue: Canonical[] = [
 ];
 
 catalogue.push(hedgeStrategy)
-for (const strategy of catalogue) strategy.education.editorialVersion = strategy.legacyId === "STRATEGY_018" ? "delta-neutral-lp-v3" : strategy.legacyId === "STRATEGY_001" ? "accumulation-lp-v6" : EDITORIAL_VERSION
+for (const strategy of catalogue) strategy.education.editorialVersion = strategy.legacyId === "STRATEGY_018" ? "delta-neutral-lp-v3" : strategy.legacyId === "STRATEGY_001" ? "accumulation-lp-v6" : strategy.legacyId === "STRATEGY_022" ? "dual-asset-lp-v4" : EDITORIAL_VERSION
 
 // Complete observed inventory plus four additional archived records found in DB.
 // Null destinations retire to contextual Learn, never another advanced catalogue.
